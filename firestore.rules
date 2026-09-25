@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isTime(v) { return v is int && v > 0; }
+    function isTimeOrNull(v) { return v == null || isTime(v); }
+    function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
+    function validSession(d) {
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
+        && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
+        && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 21
+        && tableIds().hasAll(d.tableIds)
+        && d.status in ['seated','otoshi','lo_done','exited']
+        && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
+        && d.updatedAt == request.time;
+    }
+    match /sessions/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && validSession(request.resource.data);
+      allow delete: if signedIn();
+    }
+    match /tables/{tableId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && tableId in tableIds()
+        && request.resource.data.keys().hasOnly(['sessionId','updatedAt'])
+        && (request.resource.data.sessionId == null || request.resource.data.sessionId is string)
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /clockProbes/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
