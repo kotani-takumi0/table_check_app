@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
 import { alertOf, formatElapsed, isVisible, nextStatus, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Session, type Status } from './domain';
 import { GRID, SEATS, type Seat } from './layout';
-import type { SessionStore } from './store';
+import type { SessionStore, SyncState } from './store';
 import { useSessions } from './useSessions';
 import { now } from './clock';
 
@@ -83,13 +83,18 @@ function SeatCard({ seat, session, time, onSeat, onNext, onBack }: CardProps) {
 export default function App({ store }: { store: SessionStore }) {
   const { sessions, seat, next, back } = useSessions(store);
   const [time, setTime] = useState(now);
+  const [syncState, setSyncState] = useState<SyncState>('synced');
+  useEffect(() => {
+    setSyncState('synced');
+    return store.subscribeSync?.(setSyncState);
+  }, [store]);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
   const date = new Date(time);
   return <main className="app">
-    <header><time>{`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`}</time></header>
+    <header>{store.subscribeSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}<time>{`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`}</time></header>
     <section className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />

@@ -63,3 +63,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .line-vertical { grid-row: 2 / 8; width: 1px; margin-left: -3px; }
 .line-vertical.first { grid-column: 10; }
 .line-vertical.second { grid-column: 13; }
+
+.sync-state { font-size: 12px; margin-right: 12px; }
+.sync-state.pending { color: var(--warning); }
+.sync-state.offline { color: var(--danger); }
