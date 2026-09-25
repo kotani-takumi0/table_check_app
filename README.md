@@ -29,3 +29,47 @@ npm test
 - データは localStorage の `table-check:sessions` に保存し、同じブラウザの別タブにも反映します。保存領域が利用できない場合やJSONが壊れている場合は空配列として扱います。
 
 `SessionStore` の実装は `src/main.tsx` で注入します。Phase 2ではこの生成箇所を差し替え、`App.tsx`・`useSessions.ts`・`domain.ts` を変更せず同期実装に切り替えられます。時刻は `src/clock.ts` の `now()` に集約しています。
+
+## Phase 2: Firebase 同期
+
+`.env.local` がない場合、または以下の4設定のいずれかが空の場合は、従来の localStorage で動きます。4設定がすべてある場合は匿名ログイン後に Firestore を購読します。既存の localStorage データは移行しません。
+
+### 設定（人間が実施）
+
+1. Firebase Console で練習用プロジェクトと Web アプリを作成します。
+2. Authentication のログイン方法で「匿名」を有効にし、Cloud Firestore のデータベースを作成します。
+3. `.env.example` を `.env.local` にコピーし、Web アプリの設定から `VITE_FIREBASE_API_KEY`、`VITE_FIREBASE_AUTH_DOMAIN`、`VITE_FIREBASE_PROJECT_ID`、`VITE_FIREBASE_APP_ID` を記入します。
+4. `.firebaserc` の `__PROJECT_ID__` を同じ練習用プロジェクトの ID に変更します。
+5. 開発サーバーを再起動します。Hosting 向けの設定はビルド時に取り込まれます。
+
+Firebase CLI はグローバルにインストールして使います。プロジェクトの依存には含めません。
+
+```sh
+npm install -g firebase-tools
+firebase login
+```
+
+### 練習用 Hosting へのデプロイ
+
+プレビューデプロイは Hosting のみなので、最初にルールを反映します。
+
+```sh
+firebase deploy --only firestore:rules
+npm run deploy:preview
+```
+
+`test` プレビューチャンネルは7日間有効です。Authentication の承認済みドメインに、必要に応じてプレビュー URL のホスト名を追加してください。
+
+Hosting と Firestore ルールをまとめて反映するコマンドは以下です。対象は `.firebaserc` に設定したプロジェクトです。
+
+```sh
+npm run deploy
+```
+
+### 同期の挙動と確認
+
+- `tables/{卓}.sessionId` で参照される、購読開始時から過去12時間以内のセッションを表示します。同時案内では卓の参照を後から書いたセッションが表示されます。
+- Firestore の永続キャッシュを複数タブで共有します。書き込みはバッチでキューに入り、オフライン時もサーバーの応答を待たず操作を完了します。
+- ヘッダーの時刻の左に「送信待ち」または「オフライン（声かけに戻ってください）」を表示します。キャッシュ由来の状態を優先してオフラインと表示します。同期完了時は表示しません。
+- 起動時と10分ごとにサーバーとの時差を計測し、最後に成功した補正値を `table-check:offset` に保存します。
+- 人間のログインとデプロイ後、2つのブラウザで同じ卓の操作が同期されること、オフラインで操作後に復帰すると送信されること、未認証の REST 書き込みが拒否されることを確認してください。
