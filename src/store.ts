@@ -1,9 +1,11 @@
 import type { Session } from './domain';
 
+export type SyncState = 'synced' | 'pending' | 'offline';
 export interface SessionStore {
   subscribe(cb: (sessions: Session[]) => void): () => void;
   put(session: Session): Promise<void>;
   remove(id: string): Promise<void>;
+  subscribeSync?(cb: (state: SyncState) => void): () => void;
 }
 const KEY = 'table-check:sessions';
 function validSession(value: unknown): value is Session {
