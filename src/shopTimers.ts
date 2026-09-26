@@ -1,9 +1,10 @@
 import type { SyncState } from './store';
 
 // 卓とは別の、店全体で周期的にやる作業のタイマー
+// ヘッダーは幅が無いので icon だけ出し、label は読み上げと通知に使う（icon は仮。あとで差し替える）
 export const SHOP_TIMERS = [
-  { id: 'toilet_check', label: 'トイレチェック', intervalMin: 30 },
-  { id: 'toilet_clean', label: 'トイレ清掃', intervalMin: 120 },
+  { id: 'toilet_check', label: 'トイレチェック', icon: '👀', intervalMin: 30 },
+  { id: 'toilet_clean', label: 'トイレ清掃', icon: '🧽', intervalMin: 120 },
 ] as const;
 export type ShopTimerId = typeof SHOP_TIMERS[number]['id'];
 export type ShopTimerDone = Partial<Record<ShopTimerId, number>>;
