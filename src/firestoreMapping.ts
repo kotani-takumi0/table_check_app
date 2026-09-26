@@ -29,20 +29,17 @@ export function fromSessionDoc(id: string, data: unknown): Session | null {
   // お会計を入れる前の文書には paidAt が無いので未払いとして読む
   return { id, ...toSessionDoc({ ...s, paidAt: s.paidAt ?? null } as unknown as Session) };
 }
+// 卓の持ち主は「tables/{卓} がそのセッションを指し、かつセッションの tableIds にもその卓がある」ときだけ。
+// 移動・取り消しで卓を null に戻す書き込みをしない（オフライン復帰時に他の端末の案内を消さない）ので、
+// 古い参照や、同時操作で他の客に取られた卓は、ここで tableIds から外す
 export function resolveSessions(tables: Record<string, string | null>, sessions: Session[]): Session[] {
-  const referenced = new Set(Object.values(tables));
   const seen = new Set<string>();
-  return sessions.filter(session => {
-    if (!referenced.has(session.id) || seen.has(session.id)) return false;
+  return sessions.flatMap(session => {
+    if (seen.has(session.id)) return [];
     seen.add(session.id);
-    return true;
+    const owned = session.tableIds.filter(tableId => tables[tableId] === session.id);
+    if (owned.length === 0) return [];
+    return [owned.length === session.tableIds.length ? session : { ...session, tableIds: owned }];
   });
 }
 export function tablesToWrite(session: Session): string[] { return session.tableIds; }
-// 移動・外した卓：まだこのセッションを指しているが、もう使っていない卓
-export function tablesToRelease(session: Session, tables: Record<string, string | null>): string[] {
-  return Object.keys(tables).filter(tableId => tables[tableId] === session.id && !session.tableIds.includes(tableId));
-}
-export function tablesToClear(id: string, tables: Record<string, string | null>): string[] {
-  return Object.keys(tables).filter(tableId => tables[tableId] === id);
-}

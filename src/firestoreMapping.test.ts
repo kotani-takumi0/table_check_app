@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { advance, newSession } from './domain';
-import { fromSessionDoc, resolveSessions, tablesToClear, tablesToRelease, tablesToWrite, toSessionDoc } from './firestoreMapping';
+import { fromSessionDoc, resolveSessions, tablesToWrite, toSessionDoc } from './firestoreMapping';
 
 const seated = newSession('session', '31', 10_000);
 const data = { tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null };
@@ -52,16 +52,18 @@ describe('卓参照による表示', () => {
   it('存在しない id を無視する', () => {
     expect(resolveSessions({ '31': 'missing' }, [seated])).toEqual([]);
   });
-  it('tablesToClear は現在該当する卓だけを返す', () => {
-    expect(tablesToClear(seated.id, { '31': seated.id, '33': other.id, '34': null, '36': seated.id })).toEqual(['31', '36']);
-    expect(tablesToClear('missing', { '31': seated.id })).toEqual([]);
+  it('移動元の卓の古い参照は、セッションの tableIds に無いので空席として扱う', () => {
+    const moved = { ...seated, tableIds: ['15'] };
+    expect(resolveSessions({ '31': seated.id, '15': seated.id }, [moved])).toEqual([moved]);
+    expect(resolveSessions({ '31': seated.id }, [moved])).toEqual([]);
+  });
+  it('同時操作で他の客に取られた卓は団体の tableIds から外す', () => {
+    const group = { ...seated, tableIds: ['11', '12'] };
+    const other12 = newSession('other12', '12', 30_000);
+    expect(resolveSessions({ '11': seated.id, '12': other12.id }, [group, other12]))
+      .toEqual([{ ...group, tableIds: ['11'] }, other12]);
   });
   it('tablesToWrite は tableIds をそのまま返す', () => {
     expect(tablesToWrite(seated)).toBe(seated.tableIds);
   });
-});
-it('移動・外した卓だけを解放し、他のセッションの卓や使っている卓は触らない', () => {
-  const moved = { ...newSession('s', '15', 0), tableIds: ['15', '12'] };
-  expect(tablesToRelease(moved, { '11': 's', '12': 's', '15': null, '13': 'other' })).toEqual(['11']);
-  expect(tablesToRelease(moved, { '12': 's', '15': 's' })).toEqual([]);
 });

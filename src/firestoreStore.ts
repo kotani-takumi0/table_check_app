@@ -1,8 +1,8 @@
 import type { User } from 'firebase/auth';
-import { collection, doc, onSnapshot, query, serverTimestamp, where, writeBatch, type Firestore, type SnapshotMetadata } from 'firebase/firestore';
+import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, where, writeBatch, type Firestore, type SnapshotMetadata } from 'firebase/firestore';
 import { now } from './clock';
 import type { Session } from './domain';
-import { fromSessionDoc, resolveSessions, tablesToClear, tablesToRelease, tablesToWrite, toSessionDoc } from './firestoreMapping';
+import { fromSessionDoc, resolveSessions, tablesToWrite, toSessionDoc } from './firestoreMapping';
 import type { SessionStore, SyncState } from './store';
 
 export class FirestoreSessionStore implements SessionStore {
@@ -75,18 +75,12 @@ export class FirestoreSessionStore implements SessionStore {
     for (const tableId of tablesToWrite(session)) {
       batch.set(doc(this.db, 'tables', tableId), { sessionId: session.id, updatedAt: serverTimestamp() });
     }
-    for (const tableId of tablesToRelease(session, this.tables)) {
-      batch.set(doc(this.db, 'tables', tableId), { sessionId: null, updatedAt: serverTimestamp() });
-    }
     void batch.commit().catch(error => console.error(error));
   }
   async remove(id: string): Promise<void> {
     if (!await this.ready) return;
-    const batch = writeBatch(this.db);
-    batch.delete(doc(this.db, 'sessions', id));
-    for (const tableId of tablesToClear(id, this.tables)) {
-      batch.set(doc(this.db, 'tables', tableId), { sessionId: null, updatedAt: serverTimestamp() });
-    }
-    void batch.commit().catch(error => console.error(error));
+    // 卓の参照は消さない（消えたセッションを指す卓は resolveSessions で空席になる）
+    void deleteDoc(doc(this.db, 'sessions', id)).catch(error => console.error(error));
   }
+
 }
