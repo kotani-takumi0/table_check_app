@@ -8,6 +8,7 @@ interface Props {
   onNext(session: Session): void;
   onBack(session: Session): void;
   onRetime(session: Session, field: EditableTime, at: number): boolean;
+  returnFocus: HTMLElement | null;
 }
 function TimeRow({ label, value, onSave }: { label: string; value: number | null; onSave(hhmm: string): boolean }) {
   const [draft, setDraft] = useState(value === null ? '' : formatClock(value));
@@ -21,7 +22,13 @@ function TimeRow({ label, value, onSave }: { label: string; value: number | null
     {error && <span className="time-error" role="alert">案内 → お通し → L.O.確認・現在 の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime }: Props) {
+export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, returnFocus }: Props) {
+  const panel = useRef<HTMLElement>(null);
+  // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
+  useEffect(() => {
+    panel.current?.focus();
+    return () => returnFocus?.focus();
+  }, [returnFocus]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -38,7 +45,7 @@ export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime }
   return <div className="panel-backdrop"
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
-    <section className="panel" role="dialog" aria-modal="true" aria-label={`${session.tableIds.join('・')}番の詳細`}>
+    <section ref={panel} tabIndex={-1} className="panel" role="dialog" aria-modal="true" aria-label={`${session.tableIds.join('・')}番の詳細`}>
       <div className="panel-head">
         <span className="panel-seat">{session.tableIds.join('・')}番</span>
         <strong className="panel-status" style={{ color: `var(--${session.status})` }}>{STATUS_LABEL[session.status]}</strong>
