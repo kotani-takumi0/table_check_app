@@ -12,7 +12,7 @@ import { useSessions } from './useSessions';
 import { now } from './clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
-  const { sessions, seat, next, back, retime } = useSessions(store);
+  const { sessions, seat, next, back, retime, pay } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const closePanel = useCallback(() => setOpenId(null), []);
   // 開くと背景が inert になりフォーカスが外れるので、開く前に覚えておく
@@ -70,9 +70,9 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       {SEATS.map(position => {
         const session = sessions.filter(s => s.tableIds.includes(position.id) && isVisible(s, time))
           .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
-        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onOpen={openPanel} />;
+        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onOpen={openPanel} onPay={pay} />;
       })}
     </section>
-    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} returnFocus={returnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} onPay={pay} returnFocus={returnFocus.current} />}
   </main>;
 }

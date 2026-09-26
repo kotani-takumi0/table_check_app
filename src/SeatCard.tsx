@@ -13,8 +13,9 @@ interface CardProps {
   onSeat(tableId: string): void;
   onNext(session: Session): void;
   onOpen(session: Session): void;
+  onPay(session: Session): void;
 }
-export function SeatCard({ seat, session, time, onSeat, onNext, onOpen }: CardProps) {
+export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -67,12 +68,18 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen }: CardPr
     {session && timer && <>
       <strong className="status">{seat.kind === 'table' ? STATUS_LABEL[session.status] : STATUS_SHORT[session.status]}</strong>
       <span className="timer" aria-label={`${timer.label} ${formatElapsed(timer.elapsedMs)}`} title={timer.label}>{formatElapsed(timer.elapsedMs)}</span>
+      {seat.kind === 'counter' && session.paidAt !== null && <span className="paid-mark" aria-hidden="true">¥✓</span>}
     </>}
   </>;
   if (!session) return <button {...common} aria-label={`${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>{content}</button>;
-  if (seat.kind === 'counter') return <button {...common} aria-label={`${seat.id}番 ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}`} onClick={() => onNext(session)}>{content}</button>;
+  if (seat.kind === 'counter') return <button {...common} aria-label={`${seat.id}番 ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}`} onClick={() => onNext(session)}>{content}</button>;
   return <div {...common}>
     {content}
+    {/* 上段の低いカードは状態名と並べる幅が無いので「¥」だけにする */}
+    <button className={`pay-toggle ${session.paidAt !== null ? 'paid' : ''}`} aria-pressed={session.paidAt !== null}
+      aria-label={session.paidAt !== null ? 'お会計済み（押すと未払いに戻す）' : '未払い（押すとお会計済みにする）'} onClick={() => onPay(session)}>
+      {seat.rowSpan === 1 ? (session.paidAt !== null ? '¥✓' : '¥') : session.paidAt !== null ? '会計済み' : '未払い'}
+    </button>
     {alert?.reason && <span className="alert-reason">{REASONS[alert.reason]}</span>}
     {next && <button className="next-button" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>}
   </div>;
