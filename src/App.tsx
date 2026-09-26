@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { isVisible, lastOrderDue, type Session } from './domain';
+import { isVisible, lastOrderDue, unpaidTableCount, type Session } from './domain';
 import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from './layout';
 import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
 import { DetailPanel } from './DetailPanel';
+import { ClearAllDialog } from './ClearAllDialog';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
@@ -13,7 +14,7 @@ import { useSessions } from './useSessions';
 import { now } from './clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
-  const { sessions, seat, next, back, retime, pay, moveTo, addTo, release } = useSessions(store);
+  const { sessions, seat, next, back, retime, pay, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
@@ -26,6 +27,13 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     setOpenId(session.id);
     setOpenFrom(from);
   }, []);
+  const [clearing, setClearing] = useState(false);
+  const clearReturnFocus = useRef<HTMLElement | null>(null);
+  const openClear = useCallback(() => {
+    clearReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setClearing(true);
+  }, []);
+  const closeClear = useCallback(() => setClearing(false), []);
   const [time, setTime] = useState(now);
   const [sessionSync, setSessionSync] = useState<SyncState>('synced');
   const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
@@ -63,6 +71,7 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   });
   const toasts = [...lastOrderToasts, ...shopTimerToasts];
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
+  const modal = Boolean(opened) || clearing;
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
@@ -95,8 +104,8 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
-    </div> : <Header inert={Boolean(opened)} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />}
-    <section inert={Boolean(opened)} className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
+    </div> : <Header inert={modal} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} />}
+    <section inert={modal} className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />
       <div className="line line-middle" aria-hidden="true" />
@@ -110,5 +119,6 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       })}
     </section>
     {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={seat} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
 }
