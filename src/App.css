@@ -31,7 +31,8 @@ html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .app { height: 100vh; padding: 8px 16px 16px; display: flex; flex-direction: column; }
-header { height: 26px; flex-shrink: 0; text-align: right; color: var(--muted); }
+header { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; color: var(--muted); }
+header time { margin-left: auto; }
 header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
 .floor { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: 12px 6px; isolation: isolate; }
 .card { position: relative; min-width: 0; min-height: 0; border-radius: 8px; padding: 8px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
@@ -64,6 +65,17 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .line-vertical.first { grid-column: 10; }
 .line-vertical.second { grid-column: 13; }
 
-.sync-state { font-size: 12px; margin-right: 12px; }
+.sync-state { font-size: 12px; margin-left: auto; }
+.sync-state + time { margin-left: 0; }
 .sync-state.pending { color: var(--warning); }
 .sync-state.offline { color: var(--danger); }
+
+.shop-timers { display: flex; gap: 8px; }
+.shop-timer { min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 17px; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.shop-timer-rest { font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
+.shop-timer.due { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); color: var(--danger); font-weight: 700; }
+.toasts { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.toast { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; border: 1.5px solid color-mix(in srgb, var(--danger) 45%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--danger) 12%, var(--surface)); color: var(--text); }
+.toast-message { flex: 1; color: var(--danger); font-size: 16px; }
+.toast-button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 14px; }
+.toast-button.primary { border-color: var(--danger); }
