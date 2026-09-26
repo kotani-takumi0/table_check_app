@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeShopTimerDone, parseShopTimerDone, shopTimerState } from './shopTimers';
+import { mergeShopTimerDone, parseDoneAt, shopTimerState } from './shopTimers';
 
 const minute = 60_000;
 describe('店全体のタイマー', () => {
@@ -10,10 +10,9 @@ describe('店全体のタイマー', () => {
   it('一度も済にしていなければすぐに時間', () => {
     expect(shopTimerState(120, undefined, 5).due).toBe(true);
   });
-  it('保存データから既知のタイマーの数値だけ取り出す', () => {
-    expect(parseShopTimerDone({ toilet_check: 10, toilet_clean: 'x', other: 5, })).toEqual({ toilet_check: 10 });
-    for (const bad of [null, 1, 'a', []]) expect(parseShopTimerDone(bad)).toEqual({});
-    expect(parseShopTimerDone({ toilet_clean: Infinity })).toEqual({});
+  it('保存データから有限の数値だけ取り出す', () => {
+    expect(parseDoneAt('10')).toBe(10);
+    for (const bad of [null, '', 'x', 'Infinity', 'NaN']) expect(parseDoneAt(bad)).toBeUndefined();
   });
 });
 describe('LocalShopTimerStore', () => {
@@ -31,6 +30,24 @@ describe('LocalShopTimerStore', () => {
     await store.markDone('toilet_clean', 2);
     expect(latest).toEqual({ toilet_check: 1, toilet_clean: 2 });
     stop();
+    Reflect.deleteProperty(globalThis, 'window');
+  });
+  it('別タブが同時に別のタイマーを済にしても両方残る', async () => {
+    const { LocalShopTimerStore } = await import('./shopTimers');
+    const storage = new Map<string, string>();
+    Object.assign(globalThis, { window: {
+      localStorage: { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => { storage.set(k, v); } },
+      addEventListener: () => undefined, removeEventListener: () => undefined,
+    } });
+    const tabA = new LocalShopTimerStore(), tabB = new LocalShopTimerStore();
+    let latestA = {};
+    tabA.subscribe(done => { latestA = done; });
+    tabB.subscribe(() => undefined);
+    await tabA.markDone('toilet_check', 1);
+    await tabB.markDone('toilet_clean', 2);
+    expect(new LocalShopTimerStore()['read']()).toEqual({ toilet_check: 1, toilet_clean: 2 });
+    await tabA.markDone('toilet_check', 3);
+    expect(latestA).toEqual({ toilet_check: 3, toilet_clean: 2 });
     Reflect.deleteProperty(globalThis, 'window');
   });
 });
