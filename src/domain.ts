@@ -66,6 +66,20 @@ export function lastOrderDue(sessions: Session[], now: number): Session[] {
     .filter(s => s.status === 'otoshi' && s.otoshiAt !== null && now - s.otoshiAt >= RULES.lastOrderMin * MINUTE)
     .sort((a, b) => (a.otoshiAt ?? 0) - (b.otoshiAt ?? 0));
 }
+// 卓の付け替え・追加・外す。卓番は数値順に並べる（どの端末でも同じ表示にする）
+const byNumber = (ids: string[]) => [...new Set(ids)].sort((a, b) => Number(a) - Number(b));
+export function moveTable(session: Session, from: string, to: string): Session | null {
+  if (!session.tableIds.includes(from) || session.tableIds.includes(to)) return null;
+  return { ...session, tableIds: byNumber(session.tableIds.map(id => id === from ? to : id)) };
+}
+export function addTable(session: Session, tableId: string): Session | null {
+  if (session.tableIds.includes(tableId)) return null;
+  return { ...session, tableIds: byNumber([...session.tableIds, tableId]) };
+}
+export function removeTable(session: Session, tableId: string): Session | null {
+  if (!session.tableIds.includes(tableId) || session.tableIds.length <= 1) return null;
+  return { ...session, tableIds: session.tableIds.filter(id => id !== tableId) };
+}
 export function togglePaid(session: Session, at: number): Session {
   return { ...session, paidAt: session.paidAt === null ? at : null };
 }

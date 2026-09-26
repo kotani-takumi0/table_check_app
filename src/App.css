@@ -90,7 +90,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 
 .panel-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #000 40%, transparent); }
 .panel:focus { outline: none; }
-.panel { width: min(440px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 10px; background: var(--surface); color: var(--text); }
+.panel { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; width: min(440px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 10px; background: var(--surface); color: var(--text); }
 .panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .panel-seat { font-size: 16px; font-weight: 500; }
 .panel-status { font-size: 22px; font-weight: 700; }
@@ -139,3 +139,16 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .mini .toast { padding: 0 2px 0 8px; gap: 4px; }
 .mini .toast-message { font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini .toast-button { min-height: 32px; padding: 0 8px; font-size: 12px; }
+
+/* 卓の移動・団体 */
+.group-mark { margin-left: 3px; font-size: 0.8em; font-weight: 700; color: var(--st, var(--muted)); }
+.table-chips { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 2 / -1; }
+.table-chip { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px 0 12px; border: 1px solid var(--line); border-radius: 18px; font-weight: 500; }
+.chip-remove { min-width: 32px; min-height: 32px; border: 0; border-radius: 16px; background: transparent; color: var(--muted); font-size: 16px; }
+.table-chip:not(:has(.chip-remove)) { padding-right: 12px; }
+.pick-bar { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 14px; border: 1.5px solid var(--seated); border-radius: 8px; background: color-mix(in srgb, var(--seated) 14%, var(--surface)); color: var(--text); }
+.pick-bar strong { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; }
+.mini .pick-bar { height: 34px; }
+.mini .pick-bar strong { font-size: 12px; }
+.pick-target { border: 2px dashed var(--seated); color: var(--seated); background: color-mix(in srgb, var(--seated) 6%, transparent); }
+.pick-disabled { opacity: 0.35; }

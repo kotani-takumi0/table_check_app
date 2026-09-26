@@ -16,8 +16,8 @@ function validSession(value: unknown): value is Session {
   if (typeof value !== 'object' || value === null) return false;
   const s = value as Record<string, unknown>;
   const timestamp = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
-  return typeof s.id === 'string' && Array.isArray(s.tableIds) && s.tableIds.length === 1
-    && s.tableIds.every(id => typeof id === 'string')
+  return typeof s.id === 'string' && Array.isArray(s.tableIds) && s.tableIds.length >= 1
+    && s.tableIds.every(id => typeof id === 'string') && new Set(s.tableIds).size === s.tableIds.length
     && ['seated', 'otoshi', 'lo_done', 'exited'].includes(String(s.status))
     && timestamp(s.seatedAt)
     && [s.otoshiAt, s.loDoneAt, s.exitedAt].every(v => v === null || timestamp(v))

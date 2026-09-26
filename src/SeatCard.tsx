@@ -12,11 +12,12 @@ interface CardProps {
   time: number;
   onSeat(tableId: string): void;
   onNext(session: Session): void;
-  onOpen(session: Session): void;
+  onOpen(session: Session, from: string): void;
   onPay(session: Session): void;
   mini: boolean;   // スマホ：卓番・状態・タイマーだけ出し、タップで詳細パネル
+  picking: boolean; // 移動先・追加先を選んでいる間：空席だけ押せる
 }
-export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, mini }: CardProps) {
+export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, mini, picking }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -30,13 +31,13 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
     if (!event.isPrimary || event.button !== 0) return;
     cancel();
     suppressClick.current = false;
-    if (!session) return;
+    if (!session || picking) return;
     setPressing(true);
     timeout.current = setTimeout(() => {
       timeout.current = null;
       suppressClick.current = true;
       setPressing(false);
-      onOpen(session);
+      onOpen(session, seat.id);
     }, 600);
   };
   const captureClick = (event: MouseEvent<HTMLElement>) => {
@@ -56,7 +57,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   } as CSSProperties;
   const common = {
     style,
-    className: `card ${seat.kind} ${session ? 'occupied' : 'empty'} ${mini ? 'mini' : seat.rowSpan === 1 ? 'compact' : seat.colSpan === 1 ? 'narrow' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${pressing ? 'pressing' : ''}`,
+    className: `card ${seat.kind} ${session ? 'occupied' : 'empty'} ${mini ? 'mini' : seat.rowSpan === 1 ? 'compact' : seat.colSpan === 1 ? 'narrow' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''}`,
     onPointerDown: start,
     onPointerUp: cancel,
     onPointerLeave: cancel,
@@ -64,9 +65,12 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
     onClickCapture: captureClick,
     onContextMenu: (event: MouseEvent<HTMLElement>) => event.preventDefault(),
   };
+  // 団体：同じセッションの他の卓番を添える
+  const others = session ? session.tableIds.filter(id => id !== seat.id) : [];
+  const group = others.length > 0 ? `（${session?.tableIds.join('・')}番の団体）` : '';
   const content = <>
     {/* スマホは会計済みの印を卓番の横に並べる（小さいカードで重ならないように） */}
-    <span className="seat-number">{seat.id}{mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}</span>
+    <span className="seat-number">{seat.id}{others.length > 0 && <span className="group-mark">+{others.length <= 2 ? others.join('+') : `${others.length}卓`}</span>}{mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}</span>
     {session && timer && <>
       {/* カウンター・スマホ・縦向きの細いテーブルは幅が無いので短縮ラベル */}
       <strong className="status">{seat.kind === 'table' && !mini && seat.colSpan > 1 ? STATUS_LABEL[session.status] : STATUS_SHORT[session.status]}</strong>
@@ -74,10 +78,10 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
       {seat.kind === 'counter' && !mini && session.paidAt !== null && <span className="paid-mark" aria-hidden="true">¥✓</span>}
     </>}
   </>;
-  if (!session) return <button {...common} aria-label={`${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>{content}</button>;
-  if (mini) return <button {...common} aria-label={`${seat.id}番 ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session)}>{content}</button>;
-  if (seat.kind === 'counter') return <button {...common} aria-label={`${seat.id}番 ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}`} onClick={() => onNext(session)}>{content}</button>;
-  return <div {...common}>
+  if (!session) return <button {...common} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>{content}</button>;
+  if (mini) return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>{content}</button>;
+  if (seat.kind === 'counter') return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}`} onClick={() => onNext(session)}>{content}</button>;
+  return <div {...common} inert={picking}>
     {content}
     {/* 上段の低いカード・縦向きの細いカードは卓番や状態名と並べる幅が無いので「¥」だけにする */}
     <button className={`pay-toggle ${session.paidAt !== null ? 'paid' : ''}`} aria-pressed={session.paidAt !== null}

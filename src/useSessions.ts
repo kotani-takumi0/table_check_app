@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { advance, editTime, newSession, revert, togglePaid, type EditableTime, type Session } from './domain';
+import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, togglePaid, type EditableTime, type Session } from './domain';
 import type { SessionStore } from './store';
 import { now } from './clock';
 export function useSessions(store: SessionStore): {
@@ -9,6 +9,9 @@ export function useSessions(store: SessionStore): {
   back(session: Session): void;
   retime(session: Session, field: EditableTime, at: number): boolean;
   pay(session: Session): void;
+  moveTo(session: Session, from: string, to: string): void;
+  addTo(session: Session, tableId: string): void;
+  release(session: Session, tableId: string): void;
 } {
   const [sessions, setSessions] = useState<Session[]>([]);
   useEffect(() => store.subscribe(setSessions), [store]);
@@ -27,5 +30,17 @@ export function useSessions(store: SessionStore): {
     return edited !== null;
   }, [store]);
   const pay = useCallback((session: Session) => { void store.put(togglePaid(session, now())); }, [store]);
-  return { sessions, seat, next, back, retime, pay };
+  const moveTo = useCallback((session: Session, from: string, to: string) => {
+    const moved = moveTable(session, from, to);
+    if (moved) void store.put(moved);
+  }, [store]);
+  const addTo = useCallback((session: Session, tableId: string) => {
+    const added = addTable(session, tableId);
+    if (added) void store.put(added);
+  }, [store]);
+  const release = useCallback((session: Session, tableId: string) => {
+    const removed = removeTable(session, tableId);
+    if (removed) void store.put(removed);
+  }, [store]);
+  return { sessions, seat, next, back, retime, pay, moveTo, addTo, release };
 }
