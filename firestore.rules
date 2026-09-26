@@ -27,6 +27,15 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
+    match /shopTimers/{timerId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && timerId in ['toilet_check','toilet_clean']
+        && request.resource.data.keys().hasOnly(['doneAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['doneAt','updatedAt'])
+        && isTime(request.resource.data.doneAt)
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /clockProbes/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
