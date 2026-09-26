@@ -24,3 +24,8 @@ export const SEATS: Seat[] = [
   { id: '13', kind: 'table', col: 10, colSpan: 3, row: 5, rowSpan: 2 },
   { id: '21', kind: 'table', col: 13, colSpan: 3, row: 5, rowSpan: 2 },
 ];
+// 縦向きの画面では、手描きの配置図と同じ向き（今の配置を時計回りに90°）で並べる
+export const PORTRAIT_GRID = { cols: GRID.rows, rows: GRID.cols } as const;
+export function rotateClockwise(seat: Seat): Seat {
+  return { ...seat, col: GRID.rows + 2 - seat.row - seat.rowSpan, colSpan: seat.rowSpan, row: seat.col, rowSpan: seat.colSpan };
+}

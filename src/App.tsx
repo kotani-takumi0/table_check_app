@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, lastOrderDue, type Session } from './domain';
-import { GRID, SEATS } from './layout';
+import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from './layout';
+import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
 import { DetailPanel } from './DetailPanel';
@@ -58,19 +59,24 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   });
   const toasts = [...lastOrderToasts, ...shopTimerToasts];
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
-  return <main className="app">
+  // 縦向きは手描きの配置図と同じ向き（時計回りに90°）。スマホは小さいカード＋タップで詳細
+  const portrait = useMediaQuery('(orientation: portrait)');
+  const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
+  const grid = portrait ? PORTRAIT_GRID : GRID;
+  const seats = portrait ? SEATS.map(rotateClockwise) : SEATS;
+  return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     <Header inert={Boolean(opened)} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />
-    <section inert={Boolean(opened)} className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
+    <section inert={Boolean(opened)} className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />
       <div className="line line-middle" aria-hidden="true" />
       <div className="line line-vertical first" aria-hidden="true" />
       <div className="line line-vertical second" aria-hidden="true" />
-      <Toasts toasts={toasts} onDismiss={dismiss} />
-      {SEATS.map(position => {
+      <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
+      {seats.map(position => {
         const session = sessions.filter(s => s.tableIds.includes(position.id) && isVisible(s, time))
           .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
-        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onOpen={openPanel} onPay={pay} />;
+        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} />;
       })}
     </section>
     {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} onPay={pay} returnFocus={returnFocus.current} />}
