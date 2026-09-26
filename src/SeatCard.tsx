@@ -80,7 +80,9 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   </>;
   if (!session) return <button {...common} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>{content}</button>;
   if (mini) return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>{content}</button>;
-  if (seat.kind === 'counter') return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}`} onClick={() => onNext(session)}>{content}</button>;
+  // 退店済の卓は、退店済の表示が消えるのを待たずに次のお客さんを案内できる
+  const exited = session.status === 'exited';
+  if (seat.kind === 'counter') return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>{content}</button>;
   return <div {...common} inert={picking}>
     {content}
     {/* 上段の低いカード・縦向きの細いカードは卓番や状態名と並べる幅が無いので「¥」だけにする */}
@@ -89,6 +91,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
       {seat.rowSpan === 1 || seat.colSpan === 1 ? (session.paidAt !== null ? '¥✓' : '¥') : session.paidAt !== null ? '会計済み' : '未払い'}
     </button>
     {alert?.reason && <span className="alert-reason">{REASONS[alert.reason]}</span>}
-    {next && <button className="next-button" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>}
+    {next ? <button className="next-button" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>
+      : exited && <button className="next-button" aria-label={`${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>ご案内</button>}
   </div>;
 }

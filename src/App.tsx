@@ -109,6 +109,6 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
         return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={pick ? applyPick : seat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />;
       })}
     </section>
-    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={seat} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
   </main>;
 }
