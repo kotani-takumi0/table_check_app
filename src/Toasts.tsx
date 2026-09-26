@@ -3,7 +3,7 @@ export interface Toast {
   message: string;
   action?: { label: string; onClick(): void };
 }
-// 画面上部の帯。閉じるまで残す（カードに被らないよう、フロア図の上に並べる）
+// 閉じるまで残す通知。フロア図の空き（2行目の列6〜15）に置き、行の高さを変えない
 export function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss(key: string): void }) {
   if (toasts.length === 0) return null;
   return <div className="toasts" role="status">

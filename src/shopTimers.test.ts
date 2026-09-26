@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseShopTimerDone, shopTimerState } from './shopTimers';
+import { mergeShopTimerDone, parseShopTimerDone, shopTimerState } from './shopTimers';
 
 const minute = 60_000;
 describe('店全体のタイマー', () => {
@@ -39,4 +39,9 @@ it('同期状態はいちばん悪いものを出す', async () => {
   expect(worstSyncState(['synced', 'synced'])).toBe('synced');
   expect(worstSyncState(['synced', 'pending'])).toBe('pending');
   expect(worstSyncState(['pending', 'offline'])).toBe('offline');
+});
+it('別タブの済を消さずに、タイマーごとに新しい時刻を残す', () => {
+  expect(mergeShopTimerDone({ toilet_check: 5 }, { toilet_clean: 3 })).toEqual({ toilet_check: 5, toilet_clean: 3 });
+  expect(mergeShopTimerDone({ toilet_check: 5 }, { toilet_check: 2 })).toEqual({ toilet_check: 5 });
+  expect(mergeShopTimerDone({ toilet_check: 2 }, { toilet_check: 5 })).toEqual({ toilet_check: 5 });
 });

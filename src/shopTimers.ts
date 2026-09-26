@@ -24,6 +24,12 @@ export interface ShopTimerStore {
   subscribeSync?(cb: (state: SyncState) => void): () => void;
 }
 const KEY = 'table-check:shopTimers';
+// タイマーごとに新しいほうの時刻を残す（別タブの書き込みを消さない）
+export function mergeShopTimerDone(a: ShopTimerDone, b: ShopTimerDone): ShopTimerDone {
+  const merged: ShopTimerDone = { ...a };
+  for (const [id, at] of Object.entries(b) as [ShopTimerId, number][]) merged[id] = Math.max(merged[id] ?? -Infinity, at);
+  return merged;
+}
 export function parseShopTimerDone(value: unknown): ShopTimerDone {
   if (typeof value !== 'object' || value === null) return {};
   return Object.fromEntries(Object.entries(value).filter(([id, at]) => isShopTimerId(id) && typeof at === 'number' && Number.isFinite(at)));
@@ -55,7 +61,7 @@ export class LocalShopTimerStore implements ShopTimerStore {
     };
   }
   async markDone(id: ShopTimerId, at: number): Promise<void> {
-    this.current = { ...this.state(), [id]: at };
+    this.current = mergeShopTimerDone(mergeShopTimerDone(this.state(), this.read()), { [id]: at });
     try { window.localStorage.setItem(KEY, JSON.stringify(this.current)); } catch { /* 保存できなくてもこのページでは保つ */ }
     this.subscribers.forEach(cb => cb(this.state()));
   }

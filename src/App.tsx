@@ -41,13 +41,13 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   });
   return <main className="app">
     <Header time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />
-    <Toasts toasts={toasts} onDismiss={dismiss} />
     <section className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />
       <div className="line line-middle" aria-hidden="true" />
       <div className="line line-vertical first" aria-hidden="true" />
       <div className="line line-vertical second" aria-hidden="true" />
+      <Toasts toasts={toasts} onDismiss={dismiss} />
       {SEATS.map(position => {
         const session = sessions.filter(s => s.tableIds.includes(position.id) && isVisible(s, time))
           .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
