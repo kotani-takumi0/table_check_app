@@ -58,7 +58,7 @@ export class FirestoreShopTimerStore implements ShopTimerStore {
   }
   async markDone(id: ShopTimerId, at: number): Promise<void> {
     if (!await this.ready) return;
-    // オフラインだと commit が終わらないので待たない
+    // オフラインだと commit が終わらないので待たない。古い時刻の書き込みはルールで拒否され、画面はサーバの値に戻る
     void setDoc(doc(this.db, 'shopTimers', id), { doneAt: at, updatedAt: serverTimestamp() }).catch(error => console.error(error));
   }
 }
