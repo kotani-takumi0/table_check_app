@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { isVisible, type Session } from './domain';
+import { isVisible, lastOrderDue, type Session } from './domain';
 import { GRID, SEATS } from './layout';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
@@ -41,13 +41,22 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  const toasts: Toast[] = SHOP_TIMERS.flatMap(timer => {
+  // 「閉じる」はこの端末だけ。お通し時刻を直すと別の通知として出し直す
+  const lastOrderToasts: Toast[] = lastOrderDue(sessions, time).flatMap(session => {
+    const key = `lo:${session.id}:${session.otoshiAt}`;
+    return isDismissed(key) ? [] : [{
+      key, tone: 'warning' as const, message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`,
+      action: { label: 'L.O.確認済みにする', onClick: () => next(session) },
+    }];
+  });
+  const shopTimerToasts: Toast[] = SHOP_TIMERS.flatMap(timer => {
     const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
     const key = `${timer.id}:${state.dueAt}`;
     return state.due && !isDismissed(key)
-      ? [{ key, message: `${timer.label}の時間です`, action: { label: '済にする', onClick: () => markShopTimerDone(timer.id) } }]
+      ? [{ key, tone: 'danger' as const, message: `${timer.label}の時間です`, action: { label: '済にする', onClick: () => markShopTimerDone(timer.id) } }]
       : [];
   });
+  const toasts = [...lastOrderToasts, ...shopTimerToasts];
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
   return <main className="app">
     <Header inert={Boolean(opened)} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />

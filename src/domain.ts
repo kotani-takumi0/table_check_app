@@ -59,6 +59,12 @@ export function alertOf(session: Session, now: number): { level: Alert; reason: 
   }
   return { level: 'none', reason: null };
 }
+// お通しから L.O. の時間を過ぎても L.O.確認済みにしていないセッション（お通しが古い順）
+export function lastOrderDue(sessions: Session[], now: number): Session[] {
+  return sessions
+    .filter(s => s.status === 'otoshi' && s.otoshiAt !== null && now - s.otoshiAt >= RULES.lastOrderMin * MINUTE)
+    .sort((a, b) => (a.otoshiAt ?? 0) - (b.otoshiAt ?? 0));
+}
 export function isVisible(session: Session, now: number): boolean {
   return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < RULES.exitedKeepMin * MINUTE);
 }
