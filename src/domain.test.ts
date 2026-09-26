@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, alertOf, clockTimeNear, lastOrderDue, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, lastOrderDue, moveTable, removeTable, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -91,4 +91,25 @@ it('お会計は状態とは独立に切り替えられ、進める・戻すで�
   expect(togglePaid(paid, 80_000)).toEqual(otoshi);
   expect(advance(paid, 90_000).paidAt).toBe(70_000);
   expect(revert(paid)?.paidAt).toBe(70_000);
+});
+describe('卓の移動・団体', () => {
+  const group = { ...otoshi, tableIds: ['11', '12'] };
+  it('移動は指定した卓だけ付け替え、状態・時刻・会計は引き継ぐ', () => {
+    expect(moveTable(otoshi, '31', '15')).toEqual({ ...otoshi, tableIds: ['15'] });
+    expect(moveTable(group, '12', '21')).toEqual({ ...group, tableIds: ['11', '21'] });
+    expect(moveTable(group, '11', '3')).toEqual({ ...group, tableIds: ['3', '12'] });
+  });
+  it('持っていない卓からの移動・すでに持っている卓への移動はしない', () => {
+    expect(moveTable(group, '13', '14')).toBeNull();
+    expect(moveTable(group, '11', '12')).toBeNull();
+  });
+  it('追加は数値順に並べ、重複は追加しない', () => {
+    expect(addTable(otoshi, '5')).toEqual({ ...otoshi, tableIds: ['5', '31'] });
+    expect(addTable(group, '12')).toBeNull();
+  });
+  it('外すのは2卓以上のときだけ', () => {
+    expect(removeTable(group, '11')).toEqual({ ...group, tableIds: ['12'] });
+    expect(removeTable(otoshi, '31')).toBeNull();
+    expect(removeTable(group, '13')).toBeNull();
+  });
 });

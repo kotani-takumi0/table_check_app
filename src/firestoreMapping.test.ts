@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { advance, newSession } from './domain';
-import { fromSessionDoc, resolveSessions, tablesToClear, tablesToWrite, toSessionDoc } from './firestoreMapping';
+import { fromSessionDoc, resolveSessions, tablesToClear, tablesToRelease, tablesToWrite, toSessionDoc } from './firestoreMapping';
 
 const seated = newSession('session', '31', 10_000);
 const data = { tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null };
@@ -59,4 +59,9 @@ describe('卓参照による表示', () => {
   it('tablesToWrite は tableIds をそのまま返す', () => {
     expect(tablesToWrite(seated)).toBe(seated.tableIds);
   });
+});
+it('移動・外した卓だけを解放し、他のセッションの卓や使っている卓は触らない', () => {
+  const moved = { ...newSession('s', '15', 0), tableIds: ['15', '12'] };
+  expect(tablesToRelease(moved, { '11': 's', '12': 's', '15': null, '13': 'other' })).toEqual(['11']);
+  expect(tablesToRelease(moved, { '12': 's', '15': 's' })).toEqual([]);
 });

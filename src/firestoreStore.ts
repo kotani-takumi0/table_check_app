@@ -2,7 +2,7 @@ import type { User } from 'firebase/auth';
 import { collection, doc, onSnapshot, query, serverTimestamp, where, writeBatch, type Firestore, type SnapshotMetadata } from 'firebase/firestore';
 import { now } from './clock';
 import type { Session } from './domain';
-import { fromSessionDoc, resolveSessions, tablesToClear, tablesToWrite, toSessionDoc } from './firestoreMapping';
+import { fromSessionDoc, resolveSessions, tablesToClear, tablesToRelease, tablesToWrite, toSessionDoc } from './firestoreMapping';
 import type { SessionStore, SyncState } from './store';
 
 export class FirestoreSessionStore implements SessionStore {
@@ -74,6 +74,9 @@ export class FirestoreSessionStore implements SessionStore {
     batch.set(doc(this.db, 'sessions', session.id), { ...toSessionDoc(session), updatedAt: serverTimestamp() });
     for (const tableId of tablesToWrite(session)) {
       batch.set(doc(this.db, 'tables', tableId), { sessionId: session.id, updatedAt: serverTimestamp() });
+    }
+    for (const tableId of tablesToRelease(session, this.tables)) {
+      batch.set(doc(this.db, 'tables', tableId), { sessionId: null, updatedAt: serverTimestamp() });
     }
     void batch.commit().catch(error => console.error(error));
   }

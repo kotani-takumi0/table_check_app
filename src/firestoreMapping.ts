@@ -39,6 +39,10 @@ export function resolveSessions(tables: Record<string, string | null>, sessions:
   });
 }
 export function tablesToWrite(session: Session): string[] { return session.tableIds; }
+// 移動・外した卓：まだこのセッションを指しているが、もう使っていない卓
+export function tablesToRelease(session: Session, tables: Record<string, string | null>): string[] {
+  return Object.keys(tables).filter(tableId => tables[tableId] === session.id && !session.tableIds.includes(tableId));
+}
 export function tablesToClear(id: string, tables: Record<string, string | null>): string[] {
   return Object.keys(tables).filter(tableId => tables[tableId] === id);
 }
