@@ -9,9 +9,11 @@ interface Props {
   showSync: boolean;
   shopTimers: ShopTimerDone;
   onShopTimerDone(id: ShopTimerId): void;
+  canClearAll: boolean;
+  onClearAll(): void;   // 確認ダイアログを開く（押しただけでは消さない）
   inert?: boolean;
 }
-export function Header({ time, syncState, showSync, shopTimers, onShopTimerDone, inert }: Props) {
+export function Header({ time, syncState, showSync, shopTimers, onShopTimerDone, canClearAll, onClearAll, inert }: Props) {
   return <header inert={inert}>
     <div className="shop-timers">
       {SHOP_TIMERS.map(timer => {
@@ -26,5 +28,7 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerDone,
     {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
     <span className="app-version" title="このアプリのバージョン">{APP_VERSION}</span>
     <time>{formatClock(time)}</time>
+    {/* よく押すトイレのボタンから離して右端に置く（アイコンは仮。あとで差し替える） */}
+    <button className="clear-all" aria-label="全卓を消去（確認が出ます）" title="全卓を消去" disabled={!canClearAll} onClick={onClearAll}><span aria-hidden="true">🗑️</span></button>
   </header>;
 }

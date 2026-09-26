@@ -86,6 +86,11 @@ export function togglePaid(session: Session, at: number): Session {
 export function isVisible(session: Session, now: number): boolean {
   return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < RULES.exitedKeepMin * MINUTE);
 }
+// 全卓消去の警告用：まだお店にいて会計していない客の卓数（退店済は数えない）
+export function unpaidTableCount(sessions: Session[], now: number): number {
+  return sessions.filter(s => isVisible(s, now) && s.status !== 'exited' && s.paidAt === null)
+    .reduce((count, s) => count + s.tableIds.length, 0);
+}
 export function formatElapsed(ms: number): string {
   const seconds = Math.floor(Math.max(0, ms) / 1000);
   const minutes = Math.floor(seconds / 60);

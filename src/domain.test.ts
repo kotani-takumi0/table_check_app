@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addTable, advance, alertOf, clockTimeNear, lastOrderDue, moveTable, removeTable, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, lastOrderDue, moveTable, removeTable, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf, unpaidTableCount } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -41,6 +41,12 @@ it('退店から5分で非表示にする', () => {
   expect(isVisible(exited, 40_000 + 5 * minute - 1000)).toBe(true);
   expect(isVisible(exited, 40_000 + 5 * minute)).toBe(false);
   for (const session of [seated, otoshi, loDone]) expect(isVisible(session, 1e12)).toBe(true);
+});
+it('会計前の卓数は、店にいて未払いの客の卓を数え、退店済・会計済み・見えない客は数えない', () => {
+  const group = { ...otoshi, id: 'group', tableIds: ['11', '12'] };
+  const paid = togglePaid({ ...seated, id: 'paid', tableIds: ['13'] }, 50_000);
+  expect(unpaidTableCount([seated, group, paid, exited], 50_000)).toBe(3);
+  expect(unpaidTableCount([], 50_000)).toBe(0);
 });
 it('タイマーは状態ごとの基準時刻から計算し、負にならない', () => {
   expect(timerOf(seated, 50_000)).toEqual({ label: '案内から', elapsedMs: 40_000 });

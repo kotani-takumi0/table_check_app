@@ -74,6 +74,12 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .line-vertical.second { grid-column: 13; }
 
 .sync-state { font-size: 12px; margin-left: auto; }
+/* 全卓消去 */
+.clear-all { flex-shrink: 0; min-width: 40px; min-height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 17px; background: transparent; font-size: 15px; }
+.clear-all:disabled { opacity: 0.4; cursor: default; }
+.mini .clear-all { min-width: 36px; min-height: 28px; padding: 0 6px; font-size: 13px; }
+.clear-all-message { margin: 0; line-height: 1.6; }
+.clear-all-warning { margin: 0; color: var(--danger); font-weight: 700; }
 .sync-state + .app-version { margin-left: 0; }
 .sync-state.pending { color: var(--warning); }
 .sync-state.offline { color: var(--danger); }
@@ -107,6 +113,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .panel-button { min-height: 50px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-size: 14px; }
 .panel-button:disabled { opacity: 0.4; cursor: default; }
 .panel-button.primary { border-color: var(--seated); background: color-mix(in srgb, var(--seated) 12%, var(--surface)); }
+.panel-button.danger { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); color: var(--danger); font-weight: 700; }
 
 /* 縦向き：配置を時計回りに90°回した 7列×15行。飾りも同じく回した位置に置く */
 .portrait .floor { --gy: 6px; }

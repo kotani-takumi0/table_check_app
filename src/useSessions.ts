@@ -12,6 +12,7 @@ export function useSessions(store: SessionStore): {
   moveTo(session: Session, from: string, to: string): void;
   addTo(session: Session, tableId: string): void;
   release(session: Session, tableId: string): void;
+  clearAll(): void;
 } {
   const [sessions, setSessions] = useState<Session[]>([]);
   useEffect(() => store.subscribe(setSessions), [store]);
@@ -42,5 +43,9 @@ export function useSessions(store: SessionStore): {
     const removed = removeTable(session, tableId);
     if (removed) void store.put(removed);
   }, [store]);
-  return { sessions, seat, next, back, retime, pay, moveTo, addTo, release };
+  // 全卓消去：今ある客をすべて消す（全端末の画面から消える）
+  const clearAll = useCallback(() => {
+    for (const session of sessions) void store.remove(session.id);
+  }, [store, sessions]);
+  return { sessions, seat, next, back, retime, pay, moveTo, addTo, release, clearAll };
 }
