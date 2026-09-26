@@ -79,10 +79,10 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   if (seat.kind === 'counter') return <button {...common} aria-label={`${seat.id}番 ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}`} onClick={() => onNext(session)}>{content}</button>;
   return <div {...common}>
     {content}
-    {/* 上段の低いカードは状態名と並べる幅が無いので「¥」だけにする */}
+    {/* 上段の低いカード・縦向きの細いカードは卓番や状態名と並べる幅が無いので「¥」だけにする */}
     <button className={`pay-toggle ${session.paidAt !== null ? 'paid' : ''}`} aria-pressed={session.paidAt !== null}
       aria-label={session.paidAt !== null ? 'お会計済み（押すと未払いに戻す）' : '未払い（押すとお会計済みにする）'} onClick={() => onPay(session)}>
-      {seat.rowSpan === 1 ? (session.paidAt !== null ? '¥✓' : '¥') : session.paidAt !== null ? '会計済み' : '未払い'}
+      {seat.rowSpan === 1 || seat.colSpan === 1 ? (session.paidAt !== null ? '¥✓' : '¥') : session.paidAt !== null ? '会計済み' : '未払い'}
     </button>
     {alert?.reason && <span className="alert-reason">{REASONS[alert.reason]}</span>}
     {next && <button className="next-button" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>}

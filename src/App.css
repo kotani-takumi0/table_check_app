@@ -51,7 +51,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .table.compact { padding: 4px 6px; column-gap: 4px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .table.compact .seat-number { position: absolute; left: 6px; top: 5px; }
 .table.compact .status { grid-column: 1 / -1; font-size: 18px; padding: 0 38px 0 22px; }
-.table.compact .pay-toggle { min-width: 32px; padding: 0 6px; }
+.table.compact .pay-toggle, .table.narrow .pay-toggle { min-width: 32px; padding: 0 6px; }
 .table.compact .timer { grid-column: 1; grid-row: 2; font-size: 17px; }
 .table.compact .next-button { grid-column: 2; grid-row: 2 / span 2; }
 .table.compact .alert-reason { grid-column: 1; grid-row: 3; font-size: 14px; line-height: 1; }
@@ -125,7 +125,9 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .mini .shop-timer { min-height: 28px; padding: 0 8px; font-size: 12px; }
 .mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini .floor { --gy: 4px; --gx: 4px; }
-.card.mini { padding: 2px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; overflow: hidden; line-height: 1.15; }
+/* 小さいスマホでも3行（卓番・状態・タイマー）が読める高さを確保し、足りなければフロア図を縦にスクロール */
+.mini .floor { grid-template-rows: repeat(var(--rows), minmax(44px, 1fr)); overflow-y: auto; }
+.card.mini { padding: 2px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; overflow: hidden; line-height: 1.05; }
 .card.mini .seat-number { font-size: 11px; }
 .card.mini.empty .seat-number { font-size: 14px; }
 .card.mini .status { font-size: 12px; }
