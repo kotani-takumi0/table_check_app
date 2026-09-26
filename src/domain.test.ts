@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, alertOf, clockTimeNear, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
+import { advance, alertOf, clockTimeNear, lastOrderDue, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -76,4 +76,12 @@ describe('時刻の修正', () => {
     expect(editTime(seated, 'seatedAt', 15_000, 20_000)).toEqual({ ...seated, seatedAt: 15_000 });
     expect(editTime(seated, 'seatedAt', 20_001, 20_000)).toBeNull();
   });
+});
+it('L.O.の時間を過ぎて未確認のセッションを、お通しが古い順に返す', () => {
+  const late = { ...advance(newSession('late', '12', 0), 5 * minute) };
+  const early = { ...advance(newSession('early', '11', 0), 1 * minute) };
+  expect(lastOrderDue([late, early], 5 * minute + 90 * minute - 1000).map(s => s.id)).toEqual(['early']);
+  expect(lastOrderDue([late, early], 5 * minute + 90 * minute).map(s => s.id)).toEqual(['early', 'late']);
+  expect(lastOrderDue([late, early], 200 * minute).map(s => s.id)).toEqual(['early', 'late']);
+  expect(lastOrderDue([advance(early, 2 * minute), seated], 200 * minute)).toEqual([]);
 });
