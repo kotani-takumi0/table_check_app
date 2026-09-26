@@ -6,6 +6,7 @@ interface Props {
   time: number;
   onClose(): void;
   onNext(session: Session): void;
+  onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
   onBack(session: Session): void;
   onRetime(session: Session, field: EditableTime, at: number): boolean;
   onPay(session: Session): void;
@@ -26,7 +27,7 @@ function TimeRow({ label, value, onSave }: { label: string; value: number | null
     {error && <span className="time-error" role="alert">案内 → お通し → L.O.確認・現在 の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, onPay, from, onPick, onRelease, returnFocus }: Props) {
+export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, from, onPick, onRelease, returnFocus }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -82,7 +83,8 @@ export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, 
       </div>
       <div className="panel-actions">
         <button className="panel-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
-        {next && <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>}
+        {next ? <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>
+          : session.status === 'exited' && <button className="panel-button primary" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
         <button className="panel-button" onClick={onClose}>閉じる</button>
       </div>
     </section>
