@@ -7,10 +7,11 @@ export interface SessionDoc {
   otoshiAt: number | null;
   loDoneAt: number | null;
   exitedAt: number | null;
+  paidAt: number | null;
 }
 export function toSessionDoc(session: Session): SessionDoc {
-  const { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt } = session;
-  return { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt };
+  const { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt } = session;
+  return { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt };
 }
 export function fromSessionDoc(id: string, data: unknown): Session | null {
   if (typeof data !== 'object' || data === null) return null;
@@ -21,10 +22,12 @@ export function fromSessionDoc(id: string, data: unknown): Session | null {
     && typeof s.status === 'string' && ['seated', 'otoshi', 'lo_done', 'exited'].includes(s.status)
     && timestamp(s.seatedAt)
     && [s.otoshiAt, s.loDoneAt, s.exitedAt].every(v => v === null || timestamp(v))
+    && (s.paidAt === undefined || s.paidAt === null || timestamp(s.paidAt))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(s.status) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt)))) return null;
-  return { id, ...toSessionDoc(s as unknown as Session) };
+  // お会計を入れる前の文書には paidAt が無いので未払いとして読む
+  return { id, ...toSessionDoc({ ...s, paidAt: s.paidAt ?? null } as unknown as Session) };
 }
 export function resolveSessions(tables: Record<string, string | null>, sessions: Session[]): Session[] {
   const referenced = new Set(Object.values(tables));

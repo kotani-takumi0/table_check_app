@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, alertOf, clockTimeNear, lastOrderDue, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
+import { advance, alertOf, clockTimeNear, lastOrderDue, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -7,7 +7,7 @@ const exited = advance(loDone, 40_000);
 const minute = 60_000;
 describe('状態遷移', () => {
   it('初期状態と各状態の時刻を記録し、引数を変更しない', () => {
-    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null });
+    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null });
     expect(otoshi).toEqual({ ...seated, status: 'otoshi', otoshiAt: 20_000 });
     expect(loDone).toEqual({ ...otoshi, status: 'lo_done', loDoneAt: 30_000 });
     expect(exited).toEqual({ ...loDone, status: 'exited', exitedAt: 40_000 });
@@ -84,4 +84,11 @@ it('L.O.の時間を過ぎて未確認のセッションを、お通しが古い
   expect(lastOrderDue([late, early], 5 * minute + 90 * minute).map(s => s.id)).toEqual(['early', 'late']);
   expect(lastOrderDue([late, early], 200 * minute).map(s => s.id)).toEqual(['early', 'late']);
   expect(lastOrderDue([advance(early, 2 * minute), seated], 200 * minute)).toEqual([]);
+});
+it('お会計は状態とは独立に切り替えられ、進める・戻すでは変わらない', () => {
+  const paid = togglePaid(otoshi, 70_000);
+  expect(paid).toEqual({ ...otoshi, paidAt: 70_000 });
+  expect(togglePaid(paid, 80_000)).toEqual(otoshi);
+  expect(advance(paid, 90_000).paidAt).toBe(70_000);
+  expect(revert(paid)?.paidAt).toBe(70_000);
 });

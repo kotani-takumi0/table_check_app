@@ -13,13 +13,14 @@ export interface Session {
   otoshiAt: number | null;
   loDoneAt: number | null;
   exitedAt: number | null;
+  paidAt: number | null;   // お会計済みの時刻。状態の進み・戻しとは独立
 }
 export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number): Session {
-  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null };
+  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null };
 }
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;
@@ -64,6 +65,9 @@ export function lastOrderDue(sessions: Session[], now: number): Session[] {
   return sessions
     .filter(s => s.status === 'otoshi' && s.otoshiAt !== null && now - s.otoshiAt >= RULES.lastOrderMin * MINUTE)
     .sort((a, b) => (a.otoshiAt ?? 0) - (b.otoshiAt ?? 0));
+}
+export function togglePaid(session: Session, at: number): Session {
+  return { ...session, paidAt: session.paidAt === null ? at : null };
 }
 export function isVisible(session: Session, now: number): boolean {
   return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < RULES.exitedKeepMin * MINUTE);

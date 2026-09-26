@@ -6,12 +6,14 @@ service cloud.firestore {
     function isTimeOrNull(v) { return v == null || isTime(v); }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
     function validSession(d) {
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
+      // paidAt はお会計の追加前のアプリが書かないので必須にしない
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 21
         && tableIds().hasAll(d.tableIds)
         && d.status in ['seated','otoshi','lo_done','exited']
         && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
+        && isTimeOrNull(d.get('paidAt', null))
         && d.updatedAt == request.time;
     }
     match /sessions/{id} {

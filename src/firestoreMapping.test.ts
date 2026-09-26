@@ -3,7 +3,7 @@ import { advance, newSession } from './domain';
 import { fromSessionDoc, resolveSessions, tablesToClear, tablesToWrite, toSessionDoc } from './firestoreMapping';
 
 const seated = newSession('session', '31', 10_000);
-const data = { tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null };
+const data = { tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null };
 describe('Firestore document mapping', () => {
   it('正しい形を Session に変換し、監査用フィールドを除く', () => {
     expect(fromSessionDoc('session', { ...data, updatedAt: 123 })).toEqual(seated);
@@ -17,6 +17,11 @@ describe('Firestore document mapping', () => {
     { ...data, status: 'exited', otoshiAt: 20_000, loDoneAt: 30_000 },
   ])('不正な形を拒否する: %j', value => {
     expect(fromSessionDoc('session', value)).toBeNull();
+  });
+  it('paidAt が無い古い文書は未払いとして読み、不正な paidAt は拒否する', () => {
+    expect(fromSessionDoc('session', data)?.paidAt).toBeNull();
+    expect(fromSessionDoc('session', { ...data, paidAt: 50_000 })?.paidAt).toBe(50_000);
+    expect(fromSessionDoc('session', { ...data, paidAt: 'x' })).toBeNull();
   });
   it('複数卓を許可する', () => {
     expect(fromSessionDoc('session', { ...data, tableIds: ['31', '33'] })?.tableIds).toEqual(['31', '33']);
