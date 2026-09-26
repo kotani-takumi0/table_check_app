@@ -34,7 +34,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 header { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; color: var(--muted); }
 header time { margin-left: auto; }
 header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
-.floor { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: 12px 6px; isolation: isolate; }
+.floor { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); --gy: 12px; --gx: 6px; gap: var(--gy) var(--gx); isolation: isolate; }
 .card { position: relative; min-width: 0; min-height: 0; border-radius: 8px; padding: 8px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .occupied { background: color-mix(in srgb, var(--st) 12%, var(--surface)); border: 1.5px solid color-mix(in srgb, var(--st) 45%, transparent); }
 .empty { background: transparent; border: 1.5px solid var(--line); color: var(--muted); }
@@ -42,6 +42,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .empty .seat-number { font-size: 20px; }
 .status { color: var(--st); font-size: 22px; font-weight: 700; white-space: nowrap; }
 .timer { font-size: 21px; white-space: nowrap; }
+.table.occupied:not(.compact):not(.mini) { padding-top: 40px; }
 .table.occupied { display: grid; grid-template-columns: auto 1fr; gap: 3px 6px; align-content: center; align-items: center; }
 .table .status { text-align: center; }
 .table .timer, .table .alert-reason, .table .next-button { grid-column: 1 / -1; text-align: center; }
@@ -54,7 +55,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .table.compact .timer { grid-column: 1; grid-row: 2; font-size: 17px; }
 .table.compact .next-button { grid-column: 2; grid-row: 2 / span 2; }
 .table.compact .alert-reason { grid-column: 1; grid-row: 3; font-size: 14px; line-height: 1; }
-.counter { padding: 3px 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
+.counter { padding: 3px 0; line-height: 1.15; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
 .counter .status { font-size: 15px; }
 .counter .timer { font-size: 14px; letter-spacing: -0.7px; }
 .pay-toggle { position: absolute; top: 4px; right: 4px; min-height: 32px; padding: 0 10px; border: 1px dashed var(--muted); border-radius: 16px; background: var(--surface); color: var(--muted); font-size: 13px; }
@@ -63,9 +64,9 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .pressing { outline: 3px solid var(--st); outline-offset: -3px; }
 .counter-label { grid-column: 1 / 5; grid-row: 3 / 7; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
 .line { z-index: -1; pointer-events: none; background: var(--line); }
-.line-top { grid-column: 1 / -1; grid-row: 2; height: 1px; margin-top: -6px; }
-.line-middle { grid-column: 7 / 16; grid-row: 5; height: 1px; margin-top: -6px; }
-.line-vertical { grid-row: 2 / 8; width: 1px; margin-left: -3px; }
+.line-top { grid-column: 1 / -1; grid-row: 2; height: 1px; margin-top: calc(var(--gy) / -2); }
+.line-middle { grid-column: 7 / 16; grid-row: 5; height: 1px; margin-top: calc(var(--gy) / -2); }
+.line-vertical { grid-row: 2 / 8; width: 1px; margin-left: calc(var(--gx) / -2); }
 .line-vertical.first { grid-column: 10; }
 .line-vertical.second { grid-column: 13; }
 
@@ -103,3 +104,34 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .panel-button { min-height: 50px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-size: 14px; }
 .panel-button:disabled { opacity: 0.4; cursor: default; }
 .panel-button.primary { border-color: var(--seated); background: color-mix(in srgb, var(--seated) 12%, var(--surface)); }
+
+/* 縦向き：配置を時計回りに90°回した 7列×15行。飾りも同じく回した位置に置く */
+.portrait .floor { --gy: 6px; }
+.portrait .counter-label { grid-column: 2 / 6; grid-row: 1 / 5; }
+.portrait .line-top { grid-column: 7; grid-row: 1 / -1; width: 1px; height: auto; margin: 0 0 0 calc(var(--gx) / -2); }
+.portrait .line-middle { grid-column: 4; grid-row: 7 / 16; width: 1px; height: auto; margin: 0 0 0 calc(var(--gx) / -2); }
+.portrait .line-vertical { grid-column: 1 / 7; width: auto; height: 1px; margin: calc(var(--gy) / -2) 0 0 0; }
+.portrait .line-vertical.first { grid-row: 10; }
+.portrait .line-vertical.second { grid-row: 13; }
+.portrait .toasts { grid-column: 1 / 7; grid-row: 6; }
+/* 縦向きの細いテーブル（31〜38）：短縮ラベルを1行に、会計ボタンの下から並べる */
+.table.narrow .status { grid-column: 1 / -1; font-size: 18px; }
+.table.narrow .seat-number { position: absolute; left: 8px; top: 10px; }
+.toast-more { margin-left: 8px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+
+/* スマホ：小さいカードに卓番・状態・タイマーだけ。操作はタップで開く詳細パネルで行う */
+.mini { padding: 4px 8px 8px; }
+.mini header { height: 34px; gap: 6px; }
+.mini .shop-timer { min-height: 28px; padding: 0 8px; font-size: 12px; }
+.mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mini .floor { --gy: 4px; --gx: 4px; }
+.card.mini { padding: 2px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; overflow: hidden; line-height: 1.15; }
+.card.mini .seat-number { font-size: 11px; }
+.card.mini.empty .seat-number { font-size: 14px; }
+.card.mini .status { font-size: 12px; }
+.card.mini .timer { font-size: 12px; letter-spacing: -0.5px; }
+.card.mini.table:not(.slim) .status, .card.mini.table:not(.slim) .timer { font-size: 14px; }
+.paid-inline { margin-left: 3px; font-size: 10px; font-weight: 700; color: var(--text); }
+.mini .toast { padding: 0 2px 0 8px; gap: 4px; }
+.mini .toast-message { font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mini .toast-button { min-height: 32px; padding: 0 8px; font-size: 12px; }
