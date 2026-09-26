@@ -6,18 +6,24 @@ import { Header } from './Header';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
-import type { SessionStore, SyncState } from './store';
+import { worstSyncState, type SessionStore, type SyncState } from './store';
 import { useSessions } from './useSessions';
 import { now } from './clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
   const { sessions, seat, next, back } = useSessions(store);
   const [time, setTime] = useState(now);
-  const [syncState, setSyncState] = useState<SyncState>('synced');
+  const [sessionSync, setSessionSync] = useState<SyncState>('synced');
+  const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
   useEffect(() => {
-    setSyncState('synced');
-    return store.subscribeSync?.(setSyncState);
+    setSessionSync('synced');
+    return store.subscribeSync?.(setSessionSync);
   }, [store]);
+  useEffect(() => {
+    setShopTimerSync('synced');
+    return shopTimerStore.subscribeSync?.(setShopTimerSync);
+  }, [shopTimerStore]);
+  const syncState = worstSyncState([sessionSync, shopTimerSync]);
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
@@ -34,7 +40,7 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       : [];
   });
   return <main className="app">
-    <Header time={time} syncState={syncState} showSync={Boolean(store.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />
+    <Header time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />
     <Toasts toasts={toasts} onDismiss={dismiss} />
     <section className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
