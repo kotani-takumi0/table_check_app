@@ -64,11 +64,13 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   const toasts = [...lastOrderToasts, ...shopTimerToasts];
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
+  // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
+  const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
   const startPick = useCallback((mode: 'move' | 'add') => {
     if (!openId) return;
-    setPick({ sessionId: openId, mode, from: openFrom });
+    setPick({ sessionId: openId, mode, from: moveFrom });
     setOpenId(null);
-  }, [openId, openFrom]);
+  }, [openId, moveFrom]);
   const applyPick = (tableId: string) => {
     if (pick && picked) {
       if (pick.mode === 'move') moveTo(picked, pick.from, tableId);
@@ -107,6 +109,6 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
         return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={pick ? applyPick : seat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />;
       })}
     </section>
-    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} onPay={pay} from={openFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
   </main>;
 }
