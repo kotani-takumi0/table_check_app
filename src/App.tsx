@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, type Session } from './domain';
 import { GRID, SEATS } from './layout';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
+import { DetailPanel } from './DetailPanel';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
@@ -11,7 +12,15 @@ import { useSessions } from './useSessions';
 import { now } from './clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
-  const { sessions, seat, next, back } = useSessions(store);
+  const { sessions, seat, next, back, retime } = useSessions(store);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const closePanel = useCallback(() => setOpenId(null), []);
+  // 開くと背景が inert になりフォーカスが外れるので、開く前に覚えておく
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const openPanel = useCallback((session: Session) => {
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setOpenId(session.id);
+  }, []);
   const [time, setTime] = useState(now);
   const [sessionSync, setSessionSync] = useState<SyncState>('synced');
   const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
@@ -39,9 +48,10 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       ? [{ key, message: `${timer.label}の時間です`, action: { label: '済にする', onClick: () => markShopTimerDone(timer.id) } }]
       : [];
   });
+  const opened = sessions.find(s => s.id === openId && isVisible(s, time));
   return <main className="app">
-    <Header time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />
-    <section className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
+    <Header inert={Boolean(opened)} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} />
+    <section inert={Boolean(opened)} className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />
       <div className="line line-middle" aria-hidden="true" />
@@ -51,8 +61,9 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       {SEATS.map(position => {
         const session = sessions.filter(s => s.tableIds.includes(position.id) && isVisible(s, time))
           .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
-        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onBack={back} />;
+        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onOpen={openPanel} />;
       })}
     </section>
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} returnFocus={returnFocus.current} />}
   </main>;
 }

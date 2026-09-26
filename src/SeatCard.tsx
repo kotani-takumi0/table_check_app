@@ -12,9 +12,9 @@ interface CardProps {
   time: number;
   onSeat(tableId: string): void;
   onNext(session: Session): void;
-  onBack(session: Session): void;
+  onOpen(session: Session): void;
 }
-export function SeatCard({ seat, session, time, onSeat, onNext, onBack }: CardProps) {
+export function SeatCard({ seat, session, time, onSeat, onNext, onOpen }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -34,7 +34,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onBack }: CardPr
       timeout.current = null;
       suppressClick.current = true;
       setPressing(false);
-      onBack(session);
+      onOpen(session);
     }, 600);
   };
   const captureClick = (event: MouseEvent<HTMLElement>) => {

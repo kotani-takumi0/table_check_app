@@ -79,3 +79,20 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .toast-message { flex: 1; color: var(--danger); font-size: 15px; }
 .toast-button { min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 14px; }
 .toast-button.primary { border-color: var(--danger); }
+
+.panel-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #000 40%, transparent); }
+.panel:focus { outline: none; }
+.panel { width: min(440px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 10px; background: var(--surface); color: var(--text); }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.panel-seat { font-size: 16px; font-weight: 500; }
+.panel-status { font-size: 22px; font-weight: 700; }
+.panel-head .timer { margin-left: auto; font-size: 16px; color: var(--muted); }
+.time-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 6px 10px; }
+.time-row input { min-height: 50px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: 18px 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
+.time-error { grid-column: 1 / -1; color: var(--danger); font-size: 14px; }
+.muted { color: var(--muted); }
+.panel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel-actions .panel-button { flex: 1; }
+.panel-button { min-height: 50px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-size: 14px; }
+.panel-button:disabled { opacity: 0.4; cursor: default; }
+.panel-button.primary { border-color: var(--seated); background: color-mix(in srgb, var(--seated) 12%, var(--surface)); }
