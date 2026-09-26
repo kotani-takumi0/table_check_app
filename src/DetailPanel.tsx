@@ -40,6 +40,9 @@ export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, 
   }, [onClose]);
   // 長押しで開いた直後の指離しで閉じないよう、背景で押し始めたときだけ閉じる
   const downOnBackdrop = useRef(false);
+  // 長押しで開いた直後、指を離したときのクリックが指の下のボタンに届かないよう、
+  // パネル内で押し始めたクリックだけを受け付ける（キーボード操作のクリックは detail が 0）
+  const downInPanel = useRef(false);
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
@@ -49,7 +52,10 @@ export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, 
   return <div className="panel-backdrop"
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
-    <section ref={panel} tabIndex={-1} className="panel" role="dialog" aria-modal="true" aria-label={`${session.tableIds.join('・')}番の詳細`}>
+    <section ref={panel} tabIndex={-1} className="panel"
+      onPointerDownCapture={() => { downInPanel.current = true; }}
+      onClickCapture={event => { if (!downInPanel.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); } downInPanel.current = false; }}
+      role="dialog" aria-modal="true" aria-label={`${session.tableIds.join('・')}番の詳細`}>
       <div className="panel-head">
         <span className="panel-seat">{session.tableIds.join('・')}番</span>
         <strong className="panel-status" style={{ color: `var(--${session.status})` }}>{STATUS_LABEL[session.status]}</strong>
