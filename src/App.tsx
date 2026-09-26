@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { isVisible, type Session } from './domain';
 import { GRID, SEATS } from './layout';
 import { SeatCard } from './SeatCard';
+import { Header } from './Header';
 import type { SessionStore, SyncState } from './store';
 import { useSessions } from './useSessions';
 import { now } from './clock';
@@ -18,9 +19,8 @@ export default function App({ store }: { store: SessionStore }) {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  const date = new Date(time);
   return <main className="app">
-    <header>{store.subscribeSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}<time>{`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`}</time></header>
+    <Header time={time} syncState={syncState} showSync={Boolean(store.subscribeSync)} />
     <section className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />
