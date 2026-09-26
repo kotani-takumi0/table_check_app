@@ -49,13 +49,17 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .next-button { min-height: 50px; padding: 4px; border: 1px solid color-mix(in srgb, var(--st) 40%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--st) 8%, var(--surface)); color: var(--text); font-size: 14px; }
 .table.compact { padding: 4px 6px; column-gap: 4px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .table.compact .seat-number { position: absolute; left: 6px; top: 5px; }
-.table.compact .status { grid-column: 1 / -1; font-size: 20px; padding-left: 22px; }
+.table.compact .status { grid-column: 1 / -1; font-size: 18px; padding: 0 38px 0 22px; }
+.table.compact .pay-toggle { min-width: 32px; padding: 0 6px; }
 .table.compact .timer { grid-column: 1; grid-row: 2; font-size: 17px; }
 .table.compact .next-button { grid-column: 2; grid-row: 2 / span 2; }
 .table.compact .alert-reason { grid-column: 1; grid-row: 3; font-size: 14px; line-height: 1; }
 .counter { padding: 3px 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
 .counter .status { font-size: 15px; }
 .counter .timer { font-size: 14px; letter-spacing: -0.7px; }
+.pay-toggle { position: absolute; top: 4px; right: 4px; min-height: 32px; padding: 0 10px; border: 1px dashed var(--muted); border-radius: 16px; background: var(--surface); color: var(--muted); font-size: 13px; }
+.pay-toggle.paid { border-style: solid; border-color: var(--text); background: var(--text); color: var(--surface); font-weight: 700; }
+.paid-mark { position: absolute; top: 2px; right: 3px; font-size: 11px; font-weight: 700; color: var(--text); }
 .pressing { outline: 3px solid var(--st); outline-offset: -3px; }
 .counter-label { grid-column: 1 / 5; grid-row: 3 / 7; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
 .line { z-index: -1; pointer-events: none; background: var(--line); }

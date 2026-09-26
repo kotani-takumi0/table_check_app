@@ -21,6 +21,7 @@ function validSession(value: unknown): value is Session {
     && ['seated', 'otoshi', 'lo_done', 'exited'].includes(String(s.status))
     && timestamp(s.seatedAt)
     && [s.otoshiAt, s.loDoneAt, s.exitedAt].every(v => v === null || timestamp(v))
+    && (s.paidAt === undefined || s.paidAt === null || timestamp(s.paidAt))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt));
@@ -30,7 +31,8 @@ export class LocalSessionStore implements SessionStore {
   private read(): Session[] {
     try {
       const value: unknown = JSON.parse(window.localStorage.getItem(KEY) ?? '[]');
-      return Array.isArray(value) ? value.filter(validSession) : [];
+      // お会計を入れる前に保存したデータには paidAt が無いので未払いとして読む
+      return Array.isArray(value) ? value.filter(validSession).map(s => ({ ...s, paidAt: s.paidAt ?? null })) : [];
     } catch { return []; }
   }
   private notify(sessions: Session[]): void {

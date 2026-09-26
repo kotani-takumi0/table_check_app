@@ -8,6 +8,7 @@ interface Props {
   onNext(session: Session): void;
   onBack(session: Session): void;
   onRetime(session: Session, field: EditableTime, at: number): boolean;
+  onPay(session: Session): void;
   returnFocus: HTMLElement | null;
 }
 function TimeRow({ label, value, onSave }: { label: string; value: number | null; onSave(hhmm: string): boolean }) {
@@ -22,7 +23,7 @@ function TimeRow({ label, value, onSave }: { label: string; value: number | null
     {error && <span className="time-error" role="alert">案内 → お通し → L.O.確認・現在 の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, returnFocus }: Props) {
+export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, onPay, returnFocus }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -53,6 +54,11 @@ export function DetailPanel({ session, time, onClose, onNext, onBack, onRetime, 
       </div>
       <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} onSave={save('seatedAt', session.seatedAt)} />
       <TimeRow key={`otoshi-${session.otoshiAt}`} label="お通し" value={session.otoshiAt} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
+      <div className="time-row">
+        <span>お会計</span>
+        <span className={session.paidAt === null ? '' : 'muted'}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</span>
+        <button className="panel-button" onClick={() => onPay(session)}>{session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'}</button>
+      </div>
       <div className="panel-actions">
         <button className="panel-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
         {next && <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>}

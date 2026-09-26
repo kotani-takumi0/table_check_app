@@ -6,17 +6,25 @@ service cloud.firestore {
     function isTimeOrNull(v) { return v == null || isTime(v); }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
     function validSession(d) {
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
+      // paidAt はお会計の追加前のアプリが書かないので必須にしない
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 21
         && tableIds().hasAll(d.tableIds)
         && d.status in ['seated','otoshi','lo_done','exited']
         && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
+        && isTimeOrNull(d.get('paidAt', null))
         && d.updatedAt == request.time;
+    }
+    // お会計の追加前のアプリは paidAt を書かずに文書ごと上書きするので、会計済みの記録を消させない
+    // （新しいアプリは未払いに戻すときも paidAt: null を書く）
+    function keepsPaid() {
+      return resource == null || resource.data.get('paidAt', null) == null
+        || request.resource.data.keys().hasAny(['paidAt']);
     }
     match /sessions/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && validSession(request.resource.data);
+      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid();
       allow delete: if signedIn();
     }
     match /tables/{tableId} {
