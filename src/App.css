@@ -30,7 +30,8 @@ body { margin: 0; background: var(--bg); }
 html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
-.app { height: 100vh; padding: 8px 16px 16px; display: flex; flex-direction: column; }
+/* 100vh はiPhoneのSafariでツールバーの裏まで伸びて下が切れるので、見えている高さ（dvh）に合わせる。dvh非対応の端末は100vhのまま */
+.app { height: 100vh; height: 100dvh; padding: 8px 16px 16px; display: flex; flex-direction: column; }
 header { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; color: var(--muted); }
 /* ヘッダー右端：（同期状態）バージョン 時刻 */
 .app-version { margin-left: auto; font-size: 11px; color: var(--muted); opacity: 0.8; white-space: nowrap; }
