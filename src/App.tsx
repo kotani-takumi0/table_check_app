@@ -1,14 +1,17 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { isVisible, type Session } from './domain';
 import { GRID, SEATS } from './layout';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
+import { DetailPanel } from './DetailPanel';
 import type { SessionStore, SyncState } from './store';
 import { useSessions } from './useSessions';
 import { now } from './clock';
 
 export default function App({ store }: { store: SessionStore }) {
-  const { sessions, seat, next, back } = useSessions(store);
+  const { sessions, seat, next, back, retime } = useSessions(store);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const closePanel = useCallback(() => setOpenId(null), []);
   const [time, setTime] = useState(now);
   const [syncState, setSyncState] = useState<SyncState>('synced');
   useEffect(() => {
@@ -19,6 +22,7 @@ export default function App({ store }: { store: SessionStore }) {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
+  const opened = sessions.find(s => s.id === openId && isVisible(s, time));
   return <main className="app">
     <Header time={time} syncState={syncState} showSync={Boolean(store.subscribeSync)} />
     <section className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
@@ -30,8 +34,9 @@ export default function App({ store }: { store: SessionStore }) {
       {SEATS.map(position => {
         const session = sessions.filter(s => s.tableIds.includes(position.id) && isVisible(s, time))
           .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
-        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onBack={back} />;
+        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={seat} onNext={next} onOpen={session => setOpenId(session.id)} />;
       })}
     </section>
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onBack={back} onRetime={retime} />}
   </main>;
 }
