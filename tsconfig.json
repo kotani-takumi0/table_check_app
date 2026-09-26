@@ -10,6 +10,7 @@
     "noEmit": true,
     "types": ["vite/client"],
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo"
   },
   "include": ["src"],

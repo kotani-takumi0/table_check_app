@@ -1,4 +1,5 @@
 import { formatClock } from './domain';
+import { APP_VERSION } from './version';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from './shopTimers';
 import type { SyncState } from './store';
 
@@ -23,6 +24,7 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerDone,
       })}
     </div>
     {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
+    <span className="app-version" title="このアプリのバージョン">{APP_VERSION}</span>
     <time>{formatClock(time)}</time>
   </header>;
 }
