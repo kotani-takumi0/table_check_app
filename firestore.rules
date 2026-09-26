@@ -16,9 +16,15 @@ service cloud.firestore {
         && isTimeOrNull(d.get('paidAt', null))
         && d.updatedAt == request.time;
     }
+    // お会計の追加前のアプリは paidAt を書かずに文書ごと上書きするので、会計済みの記録を消させない
+    // （新しいアプリは未払いに戻すときも paidAt: null を書く）
+    function keepsPaid() {
+      return resource == null || resource.data.get('paidAt', null) == null
+        || request.resource.data.keys().hasAny(['paidAt']);
+    }
     match /sessions/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && validSession(request.resource.data);
+      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid();
       allow delete: if signedIn();
     }
     match /tables/{tableId} {
