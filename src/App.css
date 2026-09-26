@@ -130,9 +130,11 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .card.mini { padding: 2px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; overflow: hidden; line-height: 1.05; }
 .card.mini .seat-number { font-size: 11px; }
 .card.mini.empty .seat-number { font-size: 14px; }
-.card.mini .status { font-size: 12px; }
-.card.mini .timer { font-size: 12px; letter-spacing: -0.5px; }
-.card.mini.table:not(.slim) .status, .card.mini.table:not(.slim) .timer { font-size: 14px; }
+.card.mini { container-type: inline-size; }
+/* 1列のカードは幅が48px前後しかないので、幅に合わせて縮める（タイマーは最大7文字 1:30:00、状態は最大4文字） */
+.card.mini .status { font-size: min(12px, 25cqw); }
+.card.mini .timer { font-size: min(12px, 25cqw); letter-spacing: -0.5px; }
+.card.mini.table:not(.slim) .status, .card.mini.table:not(.slim) .timer { font-size: min(14px, 25cqw); }
 .paid-inline { margin-left: 3px; font-size: 10px; font-weight: 700; color: var(--text); }
 .mini .toast { padding: 0 2px 0 8px; gap: 4px; }
 .mini .toast-message { font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
