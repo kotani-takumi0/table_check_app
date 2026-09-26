@@ -68,3 +68,28 @@ export function formatElapsed(ms: number): string {
   const tail = `${String(minutes % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
   return minutes < 60 ? tail : `${Math.floor(minutes / 60)}:${tail}`;
 }
+export function formatClock(ms: number): string {
+  const date = new Date(ms);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+// "HH:MM" を near に最も近い日付の時刻にする（日付をまたぐ営業に対応）
+export function clockTimeNear(hhmm: string, near: number): number | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(hhmm);
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return null;
+  const candidates = [-1, 0, 1].map(offset => {
+    const date = new Date(near);
+    date.setDate(date.getDate() + offset);
+    date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+    return date.getTime();
+  });
+  return candidates.reduce((best, c) => Math.abs(c - near) < Math.abs(best - near) ? c : best);
+}
+export type EditableTime = 'seatedAt' | 'otoshiAt';
+// 案内 ≤ お通し ≤ L.O.確認・退店・現在 の順を崩す修正は null
+export function editTime(session: Session, field: EditableTime, at: number, now: number): Session | null {
+  if (field === 'otoshiAt' && session.otoshiAt === null) return null;
+  const edited = { ...session, [field]: at };
+  const upper = Math.min(now, edited.loDoneAt ?? Infinity, edited.exitedAt ?? Infinity);
+  const otoshiAt = edited.otoshiAt ?? edited.seatedAt;
+  return edited.seatedAt <= otoshiAt && otoshiAt <= upper ? edited : null;
+}

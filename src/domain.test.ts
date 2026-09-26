@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, alertOf, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
+import { advance, alertOf, clockTimeNear, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -50,4 +50,30 @@ it('タイマーは状態ごとの基準時刻から計算し、負にならな�
 });
 it.each([[0, '00:00'], [3_599_000, '59:59'], [3_600_000, '1:00:00'], [3_661_000, '1:01:01'], [-1000, '00:00']])('formatElapsed(%i)', (ms, expected) => {
   expect(formatElapsed(ms)).toBe(expected);
+});
+describe('時刻の修正', () => {
+  const at = (h: number, m: number, day = 26) => new Date(2026, 8, day, h, m).getTime();
+  it('formatClock は HH:MM', () => {
+    expect(formatClock(at(9, 5))).toBe('09:05');
+  });
+  it('clockTimeNear は基準に最も近い日付の時刻を返す', () => {
+    expect(clockTimeNear('19:20', at(19, 10))).toBe(at(19, 20));
+    expect(clockTimeNear('23:50', at(0, 10, 27))).toBe(at(23, 50, 26));
+    expect(clockTimeNear('00:10', at(23, 50))).toBe(at(0, 10, 27));
+    for (const bad of ['24:00', '12:60', '1:00', '']) expect(clockTimeNear(bad, at(12, 0))).toBeNull();
+  });
+  const s = { ...newSession('s', '11', at(19, 0)), status: 'lo_done' as const, otoshiAt: at(19, 20), loDoneAt: at(20, 50) };
+  const current = at(21, 0);
+  it('案内・お通しを前後関係を保つ範囲で修正できる', () => {
+    expect(editTime(s, 'otoshiAt', at(19, 10), current)).toEqual({ ...s, otoshiAt: at(19, 10) });
+    expect(editTime(s, 'seatedAt', at(19, 20), current)).toEqual({ ...s, seatedAt: at(19, 20) });
+    expect(editTime(s, 'otoshiAt', at(18, 59), current)).toBeNull();
+    expect(editTime(s, 'otoshiAt', at(20, 51), current)).toBeNull();
+    expect(editTime(s, 'seatedAt', at(19, 21), current)).toBeNull();
+  });
+  it('未提供のお通しは修正できず、案内は現在時刻より後にできない', () => {
+    expect(editTime(seated, 'otoshiAt', 10_000, 20_000)).toBeNull();
+    expect(editTime(seated, 'seatedAt', 15_000, 20_000)).toEqual({ ...seated, seatedAt: 15_000 });
+    expect(editTime(seated, 'seatedAt', 20_001, 20_000)).toBeNull();
+  });
 });
