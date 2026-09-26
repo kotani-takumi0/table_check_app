@@ -33,6 +33,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['doneAt','updatedAt'])
         && request.resource.data.keys().hasAll(['doneAt','updatedAt'])
         && isTime(request.resource.data.doneAt)
+        // 時計が進んだ端末の未来の時刻を入れない（5分までのずれは許す）
+        && request.resource.data.doneAt <= request.time.toMillis() + 5 * 60 * 1000
         // オフラインで溜まった古い「済」が、あとから来て新しい「済」を上書きしないようにする
         && (resource == null || request.resource.data.doneAt >= resource.data.doneAt)
         && request.resource.data.updatedAt == request.time;
