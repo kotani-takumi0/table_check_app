@@ -41,30 +41,27 @@ export function revert(session: Session): Session | null {
     case 'exited': return { ...session, status: 'lo_done', exitedAt: null };
   }
 }
+// 退店までは案内から通しで数える（L.O.・お席の時間も案内が基準）
 export function timerOf(session: Session, now: number): { label: string; elapsedMs: number } {
-  const [label, at] = session.status === 'seated'
-    ? ['案内から', session.seatedAt] as const
-    : session.status === 'exited'
-      ? ['退店から', session.exitedAt] as const
-      : ['お通しから', session.otoshiAt] as const;
+  const [label, at] = session.status === 'exited'
+    ? ['退店から', session.exitedAt] as const
+    : ['案内から', session.seatedAt] as const;
   return { label, elapsedMs: Math.max(0, now - (at ?? now)) };
 }
 export function alertOf(session: Session, now: number): { level: Alert; reason: AlertReason } {
-  if (session.status === 'seated' && now - session.seatedAt >= RULES.otoshiWarnMin * MINUTE) {
-    return { level: 'now', reason: 'otoshi_missing' };
-  }
-  if ((session.status === 'otoshi' || session.status === 'lo_done') && session.otoshiAt !== null) {
-    const elapsed = now - session.otoshiAt;
-    if (elapsed >= RULES.seatLimitMin * MINUTE) return { level: 'now', reason: 'seat_limit' };
-    if (session.status === 'otoshi' && elapsed >= RULES.lastOrderMin * MINUTE) return { level: 'soon', reason: 'last_order' };
-  }
+  if (session.status === 'exited') return { level: 'none', reason: null };
+  const elapsed = now - session.seatedAt;
+  if (elapsed >= RULES.seatLimitMin * MINUTE) return { level: 'now', reason: 'seat_limit' };
+  if (session.status === 'seated' && elapsed >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
+  if (session.status === 'otoshi' && elapsed >= RULES.lastOrderMin * MINUTE) return { level: 'soon', reason: 'last_order' };
   return { level: 'none', reason: null };
 }
-// お通しから L.O. の時間を過ぎても L.O.確認済みにしていないセッション（お通しが古い順）
+// 案内から L.O. の時間を過ぎても L.O.確認済みにしていないセッション（案内が古い順）
+// お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
 export function lastOrderDue(sessions: Session[], now: number): Session[] {
   return sessions
-    .filter(s => s.status === 'otoshi' && s.otoshiAt !== null && now - s.otoshiAt >= RULES.lastOrderMin * MINUTE)
-    .sort((a, b) => (a.otoshiAt ?? 0) - (b.otoshiAt ?? 0));
+    .filter(s => s.status === 'otoshi' && now - s.seatedAt >= RULES.lastOrderMin * MINUTE)
+    .sort((a, b) => a.seatedAt - b.seatedAt);
 }
 // 卓の付け替え・追加・外す。卓番は数値順に並べる（どの端末でも同じ表示にする）
 const byNumber = (ids: string[]) => [...new Set(ids)].sort((a, b) => Number(a) - Number(b));
