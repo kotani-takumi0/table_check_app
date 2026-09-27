@@ -8,19 +8,19 @@ interface Props {
   syncState: SyncState;
   showSync: boolean;
   shopTimers: ShopTimerDone;
-  onShopTimerDone(id: ShopTimerId): void;
+  onShopTimerOpen(id: ShopTimerId): void;   // 詳細を開く（押しただけでは済にしない）
   canClearAll: boolean;
   onClearAll(): void;   // 確認ダイアログを開く（押しただけでは消さない）
   inert?: boolean;
 }
-export function Header({ time, syncState, showSync, shopTimers, onShopTimerDone, canClearAll, onClearAll, inert }: Props) {
+export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, inert }: Props) {
   return <header inert={inert}>
     <div className="shop-timers">
       {SHOP_TIMERS.map(timer => {
         // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
         const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
         const rest = state.due ? '時間です' : `あと${Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000))}分`;
-        return <button key={timer.id} className={`shop-timer ${state.due ? 'due' : ''}`} aria-label={`${timer.label} ${rest}（押すと済にする）`} title={timer.label} onClick={() => onShopTimerDone(timer.id)}>
+        return <button key={timer.id} className={`shop-timer ${state.due ? 'due' : ''}`} aria-label={`${timer.label} ${rest}（押すと詳細）`} title={timer.label} onClick={() => onShopTimerOpen(timer.id)}>
           <span className="shop-timer-icon" aria-hidden="true">{timer.icon}</span> <span className="shop-timer-rest">{rest}</span>
         </button>;
       })}
