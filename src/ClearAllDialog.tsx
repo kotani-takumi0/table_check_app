@@ -21,8 +21,8 @@ export function ClearAllDialog({ unpaidTables, onConfirm, onClose, returnFocus }
   return <div className="panel-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel" role="alertdialog" aria-modal="true" aria-labelledby="clear-all-title" aria-describedby="clear-all-message clear-all-warning">
       <strong id="clear-all-title" className="panel-status">全卓を消去しますか？</strong>
-      <p id="clear-all-message" className="clear-all-message">すべての卓の案内・時刻・お会計の記録を消します。ほかの端末の画面からも消え、元に戻せません。</p>
-      {unpaidTables > 0 && <p id="clear-all-warning" className="clear-all-warning">会計前の卓が {unpaidTables} 卓あります</p>}
+      <p id="clear-all-message" className="confirm-message">すべての卓の案内・時刻・お会計の記録を消します。ほかの端末の画面からも消え、元に戻せません。</p>
+      {unpaidTables > 0 && <p id="clear-all-warning" className="confirm-warning">会計前の卓が {unpaidTables} 卓あります</p>}
       <div className="panel-actions">
         <button ref={cancel} className="panel-button" onClick={onClose}>やめる</button>
         <button className="panel-button danger" onClick={() => { onConfirm(); onClose(); }}>全卓を消去</button>
