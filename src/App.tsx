@@ -6,6 +6,7 @@ import { SeatCard } from './SeatCard';
 import { Header } from './Header';
 import { DetailPanel } from './DetailPanel';
 import { ClearAllDialog } from './ClearAllDialog';
+import { SeatAfterExitDialog } from './SeatAfterExitDialog';
 import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
@@ -35,6 +36,10 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     setClearing(true);
   }, []);
   const closeClear = useCallback(() => setClearing(false), []);
+  // 退店済の卓にご案内するときの確認（押し間違いで前のお客さんを置き換えないため）
+  const [seatingAfterExit, setSeatingAfterExit] = useState<string | null>(null);
+  const seatReturnFocus = useRef<HTMLElement | null>(null);
+  const closeSeatAfterExit = useCallback(() => setSeatingAfterExit(null), []);
   const [time, setTime] = useState(now);
   const [sessionSync, setSessionSync] = useState<SyncState>('synced');
   const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
@@ -80,8 +85,22 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       : [];
   });
   const toasts = [...lastOrderToasts, ...shopTimerToasts];
+  // 卓に今表示しているお客さん（同じ卓に複数あれば後から案内したほう）
+  const occupantOf = (tableId: string) => sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, time))
+    .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
+  const requestSeat = (tableId: string) => {
+    if (occupantOf(tableId)?.status !== 'exited') return seat(tableId);
+    // 詳細パネルから押したときはパネルが閉じるので、パネルを開いた卓に戻す
+    const active = document.activeElement;
+    seatReturnFocus.current = active instanceof HTMLElement && !active.closest('.panel') ? active : returnFocus.current;
+    setSeatingAfterExit(tableId);
+  };
+  const exitedOccupant = seatingAfterExit === null ? undefined : occupantOf(seatingAfterExit);
+  // 確認中にほかの端末でその卓に案内されたら、確認をやめる（退店済の表示が消えただけなら続ける）
+  const seatingTaken = exitedOccupant !== undefined && exitedOccupant.status !== 'exited';
+  useEffect(() => { if (seatingTaken) setSeatingAfterExit(null); }, [seatingTaken]);
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
-  const modal = Boolean(opened) || clearing || Boolean(openedShopTimer);
+  const modal = Boolean(opened) || clearing || seatingAfterExit !== null || Boolean(openedShopTimer);
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
@@ -122,13 +141,10 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       <div className="line line-vertical first" aria-hidden="true" />
       <div className="line line-vertical second" aria-hidden="true" />
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => {
-        const session = sessions.filter(s => s.tableIds.includes(position.id) && isVisible(s, time))
-          .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
-        return <SeatCard key={position.id} seat={position} session={session} time={time} onSeat={pick ? applyPick : seat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />;
-      })}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(position.id)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />)}
     </section>
-    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={seat} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {seatingAfterExit !== null && !seatingTaken && <SeatAfterExitDialog tableId={seatingAfterExit} previousUnpaid={exitedOccupant?.paidAt === null} onConfirm={() => seat(seatingAfterExit)} onClose={closeSeatAfterExit} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
