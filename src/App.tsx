@@ -7,6 +7,7 @@ import { Header } from './Header';
 import { DetailPanel } from './DetailPanel';
 import { ClearAllDialog } from './ClearAllDialog';
 import { SeatAfterExitDialog } from './SeatAfterExitDialog';
+import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
@@ -54,6 +55,15 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
+  // ヘッダーのトイレタイマーは詳細を開き、そこから済にする（通知の「済にする」はすぐ済にする）
+  const [shopTimerOpen, setShopTimerOpen] = useState<ShopTimerId | null>(null);
+  const shopTimerReturnFocus = useRef<HTMLElement | null>(null);
+  const openShopTimer = useCallback((id: ShopTimerId) => {
+    shopTimerReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setShopTimerOpen(id);
+  }, []);
+  const closeShopTimer = useCallback(() => setShopTimerOpen(null), []);
+  const openedShopTimer = SHOP_TIMERS.find(timer => timer.id === shopTimerOpen);
   const { isDismissed, dismiss } = useDismissed();
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
@@ -90,7 +100,7 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   const seatingTaken = exitedOccupant !== undefined && exitedOccupant.status !== 'exited';
   useEffect(() => { if (seatingTaken) setSeatingAfterExit(null); }, [seatingTaken]);
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
-  const modal = Boolean(opened) || clearing || seatingAfterExit !== null;
+  const modal = Boolean(opened) || clearing || seatingAfterExit !== null || Boolean(openedShopTimer);
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
@@ -123,7 +133,7 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
-    </div> : <Header inert={modal} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} />}
+    </div> : <Header inert={modal} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} />}
     <section inert={modal} className="floor" aria-label="卓タイマー フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <div className="line line-top" aria-hidden="true" />
@@ -135,6 +145,7 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     </section>
     {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
     {seatingAfterExit !== null && !seatingTaken && <SeatAfterExitDialog tableId={seatingAfterExit} previousUnpaid={exitedOccupant?.paidAt === null} onConfirm={() => seat(seatingAfterExit)} onClose={closeSeatAfterExit} returnFocus={seatReturnFocus.current} />}
+    {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
 }
