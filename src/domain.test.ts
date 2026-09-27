@@ -26,11 +26,13 @@ describe('警告の境界', () => {
   it.each([
     [seated, seated.seatedAt + 15 * minute - 1000, 'none', null],
     [seated, seated.seatedAt + 15 * minute, 'now', 'otoshi_missing'],
-    [otoshi, 20_000 + 90 * minute - 1000, 'none', null],
-    [otoshi, 20_000 + 90 * minute, 'soon', 'last_order'],
-    [otoshi, 20_000 + 120 * minute, 'now', 'seat_limit'],
-    [loDone, 20_000 + 120 * minute - 1000, 'none', null],
-    [loDone, 20_000 + 120 * minute, 'now', 'seat_limit'],
+    [seated, seated.seatedAt + 120 * minute, 'now', 'seat_limit'],
+    [otoshi, seated.seatedAt + 90 * minute - 1000, 'none', null],
+    [otoshi, seated.seatedAt + 90 * minute, 'soon', 'last_order'],
+    [otoshi, seated.seatedAt + 120 * minute - 1000, 'soon', 'last_order'],
+    [otoshi, seated.seatedAt + 120 * minute, 'now', 'seat_limit'],
+    [loDone, seated.seatedAt + 120 * minute - 1000, 'none', null],
+    [loDone, seated.seatedAt + 120 * minute, 'now', 'seat_limit'],
     [exited, 40_000, 'none', null],
     [exited, 40_000 + 1000 * minute, 'none', null],
   ])('%s at %i', (session, time, level, reason) => {
@@ -48,9 +50,8 @@ it('会計前の卓数は、店にいて未払いの客の卓を数え、退店�
   expect(unpaidTableCount([seated, group, paid, exited], 50_000)).toBe(3);
   expect(unpaidTableCount([], 50_000)).toBe(0);
 });
-it('タイマーは状態ごとの基準時刻から計算し、負にならない', () => {
-  expect(timerOf(seated, 50_000)).toEqual({ label: '案内から', elapsedMs: 40_000 });
-  for (const session of [otoshi, loDone]) expect(timerOf(session, 50_000)).toEqual({ label: 'お通しから', elapsedMs: 30_000 });
+it('タイマーは退店までは案内から、退店後は退店から計算し、負にならない', () => {
+  for (const session of [seated, otoshi, loDone]) expect(timerOf(session, 50_000)).toEqual({ label: '案内から', elapsedMs: 40_000 });
   expect(timerOf(exited, 50_000)).toEqual({ label: '退店から', elapsedMs: 10_000 });
   for (const session of [seated, otoshi, loDone, exited]) expect(timerOf(session, 0).elapsedMs).toBe(0);
 });
@@ -83,13 +84,13 @@ describe('時刻の修正', () => {
     expect(editTime(seated, 'seatedAt', 20_001, 20_000)).toBeNull();
   });
 });
-it('L.O.の時間を過ぎて未確認のセッションを、お通しが古い順に返す', () => {
-  const late = { ...advance(newSession('late', '12', 0), 5 * minute) };
-  const early = { ...advance(newSession('early', '11', 0), 1 * minute) };
+it('案内から L.O. の時間を過ぎて未確認のお通し済セッションを、案内が古い順に返す', () => {
+  const late = advance(newSession('late', '12', 5 * minute), 30 * minute);
+  const early = advance(newSession('early', '11', 1 * minute), 40 * minute);
   expect(lastOrderDue([late, early], 5 * minute + 90 * minute - 1000).map(s => s.id)).toEqual(['early']);
   expect(lastOrderDue([late, early], 5 * minute + 90 * minute).map(s => s.id)).toEqual(['early', 'late']);
   expect(lastOrderDue([late, early], 200 * minute).map(s => s.id)).toEqual(['early', 'late']);
-  expect(lastOrderDue([advance(early, 2 * minute), seated], 200 * minute)).toEqual([]);
+  expect(lastOrderDue([advance(early, 50 * minute), newSession('seated', '13', 0)], 200 * minute)).toEqual([]);
 });
 it('お会計は状態とは独立に切り替えられ、進める・戻すでは変わらない', () => {
   const paid = togglePaid(otoshi, 70_000);

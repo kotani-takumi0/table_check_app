@@ -54,9 +54,9 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  // 「閉じる」はこの端末だけ。お通し時刻を直すと別の通知として出し直す
+  // 「閉じる」はこの端末だけ。案内時刻を直すと別の通知として出し直す
   const lastOrderToasts: Toast[] = lastOrderDue(sessions, time).flatMap(session => {
-    const key = `lo:${session.id}:${session.otoshiAt}`;
+    const key = `lo:${session.id}:${session.seatedAt}`;
     return isDismissed(key) ? [] : [{
       key, tone: 'warning' as const, message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`,
       action: { label: 'L.O.確認済みにする', onClick: () => next(session) },
