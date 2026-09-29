@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addTable, advance, alertOf, clockTimeNear, lastOrderDue, moveTable, removeTable, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf, unpaidTableCount } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, isGuestCount, lastOrderDue, moveTable, removeTable, setGuests, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf, unpaidTableCount } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -7,7 +7,7 @@ const exited = advance(loDone, 40_000);
 const minute = 60_000;
 describe('状態遷移', () => {
   it('初期状態と各状態の時刻を記録し、引数を変更しない', () => {
-    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null });
+    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null });
     expect(otoshi).toEqual({ ...seated, status: 'otoshi', otoshiAt: 20_000 });
     expect(loDone).toEqual({ ...otoshi, status: 'lo_done', loDoneAt: 30_000 });
     expect(exited).toEqual({ ...loDone, status: 'exited', exitedAt: 40_000 });
@@ -118,5 +118,25 @@ describe('卓の移動・団体', () => {
     expect(removeTable(group, '11')).toEqual({ ...group, tableIds: ['12'] });
     expect(removeTable(otoshi, '31')).toBeNull();
     expect(removeTable(group, '13')).toBeNull();
+  });
+});
+describe('人数', () => {
+  it('案内時に人数を入れられ、入れなければ未入力', () => {
+    expect(newSession('s', '12', 0, 4).guests).toBe(4);
+    expect(newSession('s', '12', 0).guests).toBeNull();
+  });
+  it('1〜99名の整数と未入力に変えられ、それ以外は変えない', () => {
+    expect(setGuests(otoshi, 8)).toEqual({ ...otoshi, guests: 8 });
+    expect(setGuests({ ...otoshi, guests: 8 }, null)).toEqual(otoshi);
+    for (const bad of [0, 100, 2.5, -1, NaN]) expect(setGuests(otoshi, bad)).toBeNull();
+    expect([1, 99].every(isGuestCount)).toBe(true);
+    expect(['3', null, undefined].some(isGuestCount)).toBe(false);
+  });
+  it('人数は状態の進み・戻し・卓の移動・追加で変わらない（団体は全員の人数のまま）', () => {
+    const four = { ...otoshi, guests: 4 };
+    expect(advance(four, 90_000).guests).toBe(4);
+    expect(revert(four)?.guests).toBe(4);
+    expect(moveTable(four, '31', '12')?.guests).toBe(4);
+    expect(addTable(four, '12')?.guests).toBe(4);
   });
 });

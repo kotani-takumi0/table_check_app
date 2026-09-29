@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { clockTimeNear, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type EditableTime, type Session } from './domain';
+import { clockTimeNear, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type EditableTime, type Session } from './domain';
+import { hasTableSeat } from './layout';
 
 interface Props {
   session: Session;
@@ -10,6 +11,7 @@ interface Props {
   onBack(session: Session): void;
   onRetime(session: Session, field: EditableTime, at: number): boolean;
   onPay(session: Session): void;
+  onGuests(session: Session, guests: number | null): void;
   from: string;                 // パネルを開いた卓（移動するのはこの卓）
   onPick(mode: 'move' | 'add'): void;
   onRelease(session: Session, tableId: string): void;
@@ -27,7 +29,7 @@ function TimeRow({ label, value, onSave }: { label: string; value: number | null
     {error && <span className="time-error" role="alert">案内 → お通し → L.O.確認・現在 の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, from, onPick, onRelease, returnFocus }: Props) {
+export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, from, onPick, onRelease, returnFocus }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -69,6 +71,14 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
         <span className={session.paidAt === null ? '' : 'muted'}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</span>
         <button className="panel-button" onClick={() => onPay(session)}>{session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'}</button>
       </div>
+      {hasTableSeat(session.tableIds) && <div className="time-row">
+        <span>人数</span>
+        <div className="guest-stepper" role="group" aria-label="人数">
+          <button className="guest-step" aria-label="1名減らす" disabled={session.guests === null || session.guests <= 1} onClick={() => onGuests(session, (session.guests ?? 1) - 1)}>−</button>
+          <span className={`guest-many ${session.guests === null ? 'muted' : ''}`} aria-live="polite">{session.guests === null ? '未入力' : `${session.guests}名`}</span>
+          <button className="guest-step" aria-label="1名増やす" disabled={session.guests !== null && session.guests >= GUESTS_MAX} onClick={() => onGuests(session, (session.guests ?? 0) + 1)}>＋</button>
+        </div>
+      </div>}
       <div className="time-row">
         <span>卓</span>
         <span className="table-chips">

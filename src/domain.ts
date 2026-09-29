@@ -14,13 +14,21 @@ export interface Session {
   loDoneAt: number | null;
   exitedAt: number | null;
   paidAt: number | null;   // お会計済みの時刻。状態の進み・戻しとは独立
+  guests: number | null;   // 人数（団体は全員の合計）。null は未入力
 }
 export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
 const MINUTE = 60_000;
-export function newSession(id: string, tableId: string, at: number): Session {
-  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null };
+export function newSession(id: string, tableId: string, at: number, guests: number | null = null): Session {
+  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests };
+}
+export const GUESTS_MAX = 99;
+export function isGuestCount(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= GUESTS_MAX;
+}
+export function setGuests(session: Session, guests: number | null): Session | null {
+  return guests === null || isGuestCount(guests) ? { ...session, guests } : null;
 }
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;

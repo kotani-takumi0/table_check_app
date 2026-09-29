@@ -5,15 +5,17 @@ service cloud.firestore {
     function isTime(v) { return v is int && v > 0; }
     function isTimeOrNull(v) { return v == null || isTime(v); }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
+    function isGuestsOrNull(v) { return v == null || (v is int && v >= 1 && v <= 99); }
     function validSession(d) {
-      // paidAt はお会計の追加前のアプリが書かないので必須にしない
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','updatedAt'])
+      // paidAt・guests はお会計・人数の追加前のアプリが書かないので必須にしない
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 21
         && tableIds().hasAll(d.tableIds)
         && d.status in ['seated','otoshi','lo_done','exited']
         && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
         && isTimeOrNull(d.get('paidAt', null))
+        && isGuestsOrNull(d.get('guests', null))
         && d.updatedAt == request.time;
     }
     // お会計の追加前のアプリは paidAt を書かずに文書ごと上書きするので、会計済みの記録を消させない
@@ -22,9 +24,14 @@ service cloud.firestore {
       return resource == null || resource.data.get('paidAt', null) == null
         || request.resource.data.keys().hasAny(['paidAt']);
     }
+    // 人数も同じく、人数の追加前のアプリの上書きで消させない（新しいアプリは未入力でも guests: null を書く）
+    function keepsGuests() {
+      return resource == null || resource.data.get('guests', null) == null
+        || request.resource.data.keys().hasAny(['guests']);
+    }
     match /sessions/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid();
+      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid() && keepsGuests();
       allow delete: if signedIn();
     }
     match /tables/{tableId} {

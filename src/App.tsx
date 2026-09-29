@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, lastOrderDue, unpaidTableCount, type Session } from './domain';
-import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from './layout';
+import { GRID, hasTableSeat, PORTRAIT_GRID, rotateClockwise, SEATS } from './layout';
 import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
 import { DetailPanel } from './DetailPanel';
 import { ClearAllDialog } from './ClearAllDialog';
-import { SeatAfterExitDialog } from './SeatAfterExitDialog';
+import { SeatDialog } from './SeatDialog';
 import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
@@ -16,7 +16,7 @@ import { useSessions } from './useSessions';
 import { now } from './clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
-  const { sessions, seat, next, back, retime, pay, moveTo, addTo, release, clearAll } = useSessions(store);
+  const { sessions, seat, next, back, retime, pay, changeGuests, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
@@ -36,10 +36,10 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     setClearing(true);
   }, []);
   const closeClear = useCallback(() => setClearing(false), []);
-  // 退店済の卓にご案内するときの確認（押し間違いで前のお客さんを置き換えないため）
-  const [seatingAfterExit, setSeatingAfterExit] = useState<string | null>(null);
+  // ご案内の確認：テーブル卓は人数を聞き、退店済の卓は前のお客さんを置き換えることを確かめる
+  const [seating, setSeating] = useState<string | null>(null);
   const seatReturnFocus = useRef<HTMLElement | null>(null);
-  const closeSeatAfterExit = useCallback(() => setSeatingAfterExit(null), []);
+  const closeSeating = useCallback(() => setSeating(null), []);
   const [time, setTime] = useState(now);
   const [sessionSync, setSessionSync] = useState<SyncState>('synced');
   const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
@@ -89,18 +89,19 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   const occupantOf = (tableId: string) => sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, time))
     .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
   const requestSeat = (tableId: string) => {
-    if (occupantOf(tableId)?.status !== 'exited') return seat(tableId);
+    // カウンターの空席は今までどおり1タップで案内する
+    if (!hasTableSeat([tableId]) && occupantOf(tableId)?.status !== 'exited') return seat(tableId);
     // 詳細パネルから押したときはパネルが閉じるので、パネルを開いた卓に戻す
     const active = document.activeElement;
     seatReturnFocus.current = active instanceof HTMLElement && !active.closest('.panel') ? active : returnFocus.current;
-    setSeatingAfterExit(tableId);
+    setSeating(tableId);
   };
-  const exitedOccupant = seatingAfterExit === null ? undefined : occupantOf(seatingAfterExit);
+  const seatingOccupant = seating === null ? undefined : occupantOf(seating);
   // 確認中にほかの端末でその卓に案内されたら、確認をやめる（退店済の表示が消えただけなら続ける）
-  const seatingTaken = exitedOccupant !== undefined && exitedOccupant.status !== 'exited';
-  useEffect(() => { if (seatingTaken) setSeatingAfterExit(null); }, [seatingTaken]);
+  const seatingTaken = seatingOccupant !== undefined && seatingOccupant.status !== 'exited';
+  useEffect(() => { if (seatingTaken) setSeating(null); }, [seatingTaken]);
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
-  const modal = Boolean(opened) || clearing || seatingAfterExit !== null || Boolean(openedShopTimer);
+  const modal = Boolean(opened) || clearing || seating !== null || Boolean(openedShopTimer);
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
@@ -143,8 +144,8 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(position.id)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />)}
     </section>
-    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
-    {seatingAfterExit !== null && !seatingTaken && <SeatAfterExitDialog tableId={seatingAfterExit} previousUnpaid={exitedOccupant?.paidAt === null} onConfirm={() => seat(seatingAfterExit)} onClose={closeSeatAfterExit} returnFocus={seatReturnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {seating !== null && !seatingTaken && <SeatDialog tableId={seating} askGuests={hasTableSeat([seating])} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={guests => seat(seating, guests)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;

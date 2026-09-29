@@ -23,6 +23,15 @@ describe('Firestore document mapping', () => {
     expect(fromSessionDoc('session', { ...data, paidAt: 50_000 })?.paidAt).toBe(50_000);
     expect(fromSessionDoc('session', { ...data, paidAt: 'x' })).toBeNull();
   });
+  it('guests が無い古い文書は人数未入力として読み、不正な guests は拒否する', () => {
+    expect(fromSessionDoc('session', data)?.guests).toBeNull();
+    expect(fromSessionDoc('session', { ...data, guests: 6 })?.guests).toBe(6);
+    for (const bad of [0, 100, 2.5, '6']) expect(fromSessionDoc('session', { ...data, guests: bad })).toBeNull();
+  });
+  it('人数が未入力でも guests: null を書く（古いアプリの上書きを見分けるため）', () => {
+    expect(toSessionDoc(seated)).toHaveProperty('guests', null);
+    expect(toSessionDoc({ ...seated, guests: 3 }).guests).toBe(3);
+  });
   it('複数卓を許可する', () => {
     expect(fromSessionDoc('session', { ...data, tableIds: ['31', '33'] })?.tableIds).toEqual(['31', '33']);
   });
