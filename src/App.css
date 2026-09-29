@@ -170,8 +170,8 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .guest-count.unknown { color: var(--muted); font-weight: 400; }
 .table.occupied:not(.compact):not(.mini):not(.narrow) .guest-count { position: absolute; left: 10px; top: 10px; margin: 0; font-size: 16px; }
 .table.compact .guest-count, .table.narrow .guest-count { display: block; margin: 2px 0 0; }
-/* スマホは細いカードで卓番の横に並ばないので、卓番の下の行にする */
-.card.mini .guest-count { display: block; margin: 0; text-align: center; }
+/* スマホの細いカードは卓番の横に並ばないので、卓番の下の行にする（横長のカードは低いので横に並べたまま） */
+.card.mini.slim .guest-count { display: block; margin: 0; text-align: center; }
 .guest-picker { display: flex; flex-direction: column; gap: 8px; }
 .guest-question { font-size: 16px; font-weight: 700; }
 .guest-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
