@@ -68,9 +68,14 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   // 団体：同じセッションの他の卓番を添える
   const others = session ? session.tableIds.filter(id => id !== seat.id) : [];
   const group = others.length > 0 ? `（${session?.tableIds.join('・')}番の団体）` : '';
+  // 人数はテーブル卓だけ。団体はどの卓にも全員の人数を出す
+  const guests = session && seat.kind === 'table' ? session.guests : undefined;
+  const guestsLabel = guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`;
   const content = <>
     {/* スマホは会計済みの印を卓番の横に並べる（小さいカードで重ならないように） */}
-    <span className="seat-number">{seat.id}{others.length > 0 && <span className="group-mark">+{others.length <= 2 ? others.join('+') : `${others.length}卓`}</span>}{mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}</span>
+    <span className="seat-number">{seat.id}{others.length > 0 && <span className="group-mark">+{others.length <= 2 ? others.join('+') : `${others.length}卓`}</span>}
+      {mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}
+      {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}>{guests === null ? '?名' : `${guests}名`}</span>}</span>
     {session && timer && <>
       {/* カウンター・スマホ・縦向きの細いテーブルは幅が無いので短縮ラベル */}
       <strong className="status">{seat.kind === 'table' && !mini && seat.colSpan > 1 ? STATUS_LABEL[session.status] : STATUS_SHORT[session.status]}</strong>
@@ -79,7 +84,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
     </>}
   </>;
   if (!session) return <button {...common} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>{content}</button>;
-  if (mini) return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>{content}</button>;
+  if (mini) return <button {...common} disabled={picking} aria-label={`${seat.id}番${group}${guestsLabel} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>{content}</button>;
   // 退店済の卓は、退店済の表示が消えるのを待たずに次のお客さんを案内できる
   const exited = session.status === 'exited';
   if (seat.kind === 'counter') return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>{content}</button>;
