@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, togglePaid, type EditableTime, type Session } from './domain';
+import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, setGuests, togglePaid, type EditableTime, type Session } from './domain';
 import type { SessionStore } from './store';
 import { now } from './clock';
 export function useSessions(store: SessionStore): {
   sessions: Session[];
-  seat(tableId: string): void;
+  seat(tableId: string, guests?: number | null): void;
   next(session: Session): void;
   back(session: Session): void;
   retime(session: Session, field: EditableTime, at: number): boolean;
   pay(session: Session): void;
+  changeGuests(session: Session, guests: number | null): void;
   moveTo(session: Session, from: string, to: string): void;
   addTo(session: Session, tableId: string): void;
   release(session: Session, tableId: string): void;
@@ -16,8 +17,8 @@ export function useSessions(store: SessionStore): {
 } {
   const [sessions, setSessions] = useState<Session[]>([]);
   useEffect(() => store.subscribe(setSessions), [store]);
-  const seat = useCallback((tableId: string) => {
-    void store.put(newSession(crypto.randomUUID(), tableId, now()));
+  const seat = useCallback((tableId: string, guests: number | null = null) => {
+    void store.put(newSession(crypto.randomUUID(), tableId, now(), guests));
   }, [store]);
   const next = useCallback((session: Session) => { void store.put(advance(session, now())); }, [store]);
   const back = useCallback((session: Session) => {
@@ -31,6 +32,10 @@ export function useSessions(store: SessionStore): {
     return edited !== null;
   }, [store]);
   const pay = useCallback((session: Session) => { void store.put(togglePaid(session, now())); }, [store]);
+  const changeGuests = useCallback((session: Session, guests: number | null) => {
+    const changed = setGuests(session, guests);
+    if (changed) void store.put(changed);
+  }, [store]);
   const moveTo = useCallback((session: Session, from: string, to: string) => {
     const moved = moveTable(session, from, to);
     if (moved) void store.put(moved);
@@ -47,5 +52,5 @@ export function useSessions(store: SessionStore): {
   const clearAll = useCallback(() => {
     for (const session of sessions) void store.remove(session.id);
   }, [store, sessions]);
-  return { sessions, seat, next, back, retime, pay, moveTo, addTo, release, clearAll };
+  return { sessions, seat, next, back, retime, pay, changeGuests, moveTo, addTo, release, clearAll };
 }

@@ -29,3 +29,7 @@ export const PORTRAIT_GRID = { cols: GRID.rows, rows: GRID.cols } as const;
 export function rotateClockwise(seat: Seat): Seat {
   return { ...seat, col: GRID.rows + 2 - seat.row - seat.rowSpan, colSpan: seat.rowSpan, row: seat.col, rowSpan: seat.colSpan };
 }
+// 人数はテーブル卓で数える（カウンターだけの客には聞かない・出さない）
+export function hasTableSeat(tableIds: string[]): boolean {
+  return tableIds.some(id => SEATS.some(seat => seat.id === id && seat.kind === 'table'));
+}
