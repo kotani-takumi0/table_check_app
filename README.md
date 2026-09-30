@@ -63,7 +63,7 @@ Firebase のプロジェクトは、営業で使う本番と、開発・練習�
 
 `npm run dev` は開発用の設定ファイルを読みます。そこに4設定のどれかが無い場合は、従来の localStorage で動きます。4設定がすべてある場合は、匿名ログインしてから Firestore を購読します。既存の localStorage のデータは移行しません。
 
-ビルド（`npm run build`・`build:dev`）は、Firebase の設定が無いと失敗します。設定が無いまま配ると、端末ごとの localStorage で動いて同期されないためです。ビルドのログに、つないだプロジェクトが `Firebase: table-check-prod（production）` のように出ます。
+ビルド（`npm run build`・`build:dev`）は、Firebase の4設定のどれかが無いとき、または設定がモードと違うプロジェクト（本番のビルドなのに `table-check-dev` など）のときに失敗します。設定が欠けたまま配ると端末ごとの localStorage で動いて同期されず、違うプロジェクトだと本番と練習のデータが混ざるためです。以前の `apps/web/.env.local` は全モードで読まれるので、残っていたら消してください。ビルドのログに、つないだプロジェクトが `Firebase: table-check-prod（production）` のように出ます。
 
 ### 設定（人間が実施）
 
