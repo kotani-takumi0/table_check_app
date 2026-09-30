@@ -19,6 +19,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .empty .seat-number { font-size: 20px; }
 .status { color: var(--st); font-size: 22px; font-weight: 700; white-space: nowrap; }
 .timer { font-size: 21px; white-space: nowrap; }
+.timer.stopped { color: var(--muted); }
 .table.occupied:not(.compact):not(.mini) { padding-top: 40px; }
 .table.occupied { display: grid; grid-template-columns: auto 1fr; gap: 3px 6px; align-content: center; align-items: center; }
 .table .status { text-align: center; }
@@ -155,3 +156,10 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .guest-step:disabled { opacity: 0.4; cursor: default; }
 .guest-many { min-width: 3.5em; text-align: center; font-size: 18px; font-weight: 700; }
 .guest-stepper .panel-button { flex: 1; }
+
+/* コース：通常＋飲み放題の区分ごとの3つから1つ選ぶ。選んでいるものは、案内したときの状態の色で囲む */
+.course-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
+.course-option { --opt: var(--seated); min-width: 0; min-height: 50px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 14px; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.course-option.course { --opt: var(--course_wait); }
+.course-option[aria-pressed="true"] { border: 2px solid var(--opt); background: color-mix(in srgb, var(--opt) 12%, var(--surface)); font-weight: 700; }
+.course-sub { font-size: 12px; white-space: nowrap; }
