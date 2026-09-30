@@ -2,6 +2,17 @@
 
 Vite + React + TypeScript による飲食店ホール用の卓タイマーです。横向き・幅1080pxのタブレットを主に想定し、縦向きやスマホでも使えます。
 
+## リポジトリの構成
+
+npm workspaces で、Web アプリと、iOS アプリとも共有するロジックを分けています。コマンドはどれもリポジトリ直下で実行します。
+
+| 場所 | 中身 |
+|---|---|
+| `apps/web` | Web アプリ（`@table-check/web`）。画面・CSS・Firebase の初期化と、Firebase を使わないときの localStorage の保存先 |
+| `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
+
+Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。
+
 ## 起動
 
 ```sh
@@ -18,7 +29,7 @@ npm run build
 npm test
 ```
 
-ビルドは TypeScript の型チェック後に `dist/` へ出力します。テストは状態遷移、警告・表示期限の境界、経過時間、21席の配置を検証します。
+ビルドは `packages/core` と `apps/web` の型チェック後に `apps/web/dist/` へ出力します。テストは両方のパッケージで動き、状態遷移、警告・表示期限の境界、経過時間、21席の配置などを検証します。
 
 ## 操作と保存
 
@@ -39,17 +50,17 @@ npm test
 - 通知はフロア図の空き（カウンター上辺の右）に出します。3件以上のときは先頭だけを出し、残りは「ほか N件」にまとめます。「閉じる」はその端末だけに記録します。
 - データは localStorage の `table-check:sessions` に保存し、同じブラウザの別タブにも反映します。保存領域が利用できない場合やJSONが壊れている場合は空配列として扱います。
 
-`SessionStore` の実装は `src/main.tsx` で注入します。Phase 2ではこの生成箇所を差し替え、`App.tsx`・`useSessions.ts`・`domain.ts` を変更せず同期実装に切り替えられます。時刻は `src/clock.ts` の `now()` に集約しています。
+`SessionStore` の実装は `apps/web/src/main.tsx` で注入します。Phase 2ではこの生成箇所を差し替え、`App.tsx`・`useSessions.ts`・`domain.ts` を変更せず同期実装に切り替えられます。時刻は `packages/core/src/clock.ts` の `now()` に集約しています。
 
 ## Phase 2: Firebase 同期
 
-`.env.local` がない場合、または以下の4設定のいずれかが空の場合は、従来の localStorage で動きます。4設定がすべてある場合は匿名ログイン後に Firestore を購読します。既存の localStorage データは移行しません。
+`apps/web/.env.local` がない場合、または以下の4設定のいずれかが空の場合は、従来の localStorage で動きます。4設定がすべてある場合は匿名ログイン後に Firestore を購読します。既存の localStorage データは移行しません。
 
 ### 設定（人間が実施）
 
 1. Firebase Console で練習用プロジェクトと Web アプリを作成します。
 2. Authentication のログイン方法で「匿名」を有効にし、Cloud Firestore のデータベースを作成します。
-3. `.env.example` を `.env.local` にコピーし、Web アプリの設定から `VITE_FIREBASE_API_KEY`、`VITE_FIREBASE_AUTH_DOMAIN`、`VITE_FIREBASE_PROJECT_ID`、`VITE_FIREBASE_APP_ID` を記入します。
+3. `apps/web/.env.example` を `apps/web/.env.local` にコピーし、Web アプリの設定から `VITE_FIREBASE_API_KEY`、`VITE_FIREBASE_AUTH_DOMAIN`、`VITE_FIREBASE_PROJECT_ID`、`VITE_FIREBASE_APP_ID` を記入します。
 4. `.firebaserc` の `__PROJECT_ID__` を同じ練習用プロジェクトの ID に変更します。
 5. 開発サーバーを再起動します。Hosting 向けの設定はビルド時に取り込まれます。
 
@@ -83,18 +94,18 @@ npm run deploy
 - 卓の移動・案内の取り消しでは、卓の参照を空に戻す書き込みをしません（オフラインから復帰したときに、他の端末の案内を消さないため）。古い参照は上の条件で空席として扱います。
 - Firestore の永続キャッシュを複数タブで共有します。書き込みはバッチでキューに入り、オフライン時もサーバーの応答を待たず操作を完了します。
 - ヘッダーの時刻の左に「送信待ち」または「オフライン（声かけに戻ってください）」を表示します。キャッシュ由来の状態を優先してオフラインと表示します。同期完了時は表示しません。
-- 起動時と10分ごとにサーバーとの時差を計測し、最後に成功した補正値を `table-check:offset` に保存します。
+- 起動時と10分ごとにサーバーとの時差を計測し、最後に成功した補正値を `table-check:offset` に保存します。保存先は `startServerClock` に渡します（Web は localStorage）。
 - 人間のログインとデプロイ後、2つのブラウザで同じ卓の操作が同期されること、オフラインで操作後に復帰すると送信されること、未認証の REST 書き込みが拒否されることを確認してください。
 
 ## バージョンとリリース
 
-- バージョンは `package.json` の `version` で管理し、画面のヘッダー右上（時刻の左）に `v1.1.0` のように表示します（幅の狭いスマホでは非表示）。端末ごとにどの版が動いているかはここで確認します。
+- バージョンはリポジトリ直下の `package.json` の `version` で管理し、画面のヘッダー右上（時刻の左）に `v1.1.0` のように表示します（幅の狭いスマホでは非表示）。端末ごとにどの版が動いているかはここで確認します。
 - 機能ごとの対応バージョンは Notion「機能追加」DB の「バージョン」で管理します。
 - `index.html` はキャッシュせず（`no-cache`）、ファイル名にハッシュが付く `assets/` は1年キャッシュします。デプロイ後、端末で開き直すと新しい版になります。
 
 リリースの手順：
 
-1. リリース用のブランチで `npm version <新しい版> --no-git-tag-version` を実行し、PR を出してマージする
+1. リリース用のブランチで、リポジトリ直下で `npm version <新しい版> --no-git-tag-version` を実行し、PR を出してマージする
 2. main のマージコミットに `v<版>` のタグを付けて push する（`git tag v1.1.0 <コミット>` → `git push origin v1.1.0`）
 3. main で `npm run deploy:preview`（練習用）または `npm run deploy`（本番）を実行する
 4. 各端末で開き直し、ヘッダーの表示が新しい版になっていることを確認する
