@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addTable, advance, alertOf, clockTimeNear, isGuestCount, lastOrderDue, moveTable, removeTable, setGuests, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf, unpaidTableCount } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, COURSES, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, setCourse, setGuests, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf, unpaidTableCount } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -7,7 +7,7 @@ const exited = advance(loDone, 40_000);
 const minute = 60_000;
 describe('状態遷移', () => {
   it('初期状態と各状態の時刻を記録し、引数を変更しない', () => {
-    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null });
+    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null });
     expect(otoshi).toEqual({ ...seated, status: 'otoshi', otoshiAt: 20_000 });
     expect(loDone).toEqual({ ...otoshi, status: 'lo_done', loDoneAt: 30_000 });
     expect(exited).toEqual({ ...loDone, status: 'exited', exitedAt: 40_000 });
@@ -138,5 +138,58 @@ describe('人数', () => {
     expect(revert(four)?.guests).toBe(4);
     expect(moveTable(four, '31', '12')?.guests).toBe(4);
     expect(addTable(four, '12')?.guests).toBe(4);
+  });
+});
+describe('コース', () => {
+  // 19:00 に案内、全員が揃って 19:20 にファーストドリンク
+  const waiting = newSession('c', '12', 0, 6, 'drinks');
+  const started = advance(waiting, 20 * minute);
+  it('案内時にコースを入れられ、入れなければ通常', () => {
+    expect(waiting.course).toBe('drinks');
+    expect(newSession('s', '12', 0).course).toBeNull();
+    expect(COURSES.every(isCourse)).toBe(true);
+    for (const bad of ['', 'course', null, undefined, 1]) expect(isCourse(bad)).toBe(false);
+  });
+  it('表示は開始待ち → ファーストドリンク提供済み → 以降は通常と同じ', () => {
+    expect(['seated', 'otoshi', 'lo_done', 'exited'].map(s => displayOf(s as typeof seated.status, 'no_drinks')))
+      .toEqual(['course_wait', 'first_drink', 'lo_done', 'exited']);
+    expect(['seated', 'otoshi', 'lo_done', 'exited'].map(s => displayOf(s as typeof seated.status, null)))
+      .toEqual(['seated', 'otoshi', 'lo_done', 'exited']);
+  });
+  it('開始待ちの間はタイマーを進めず、ファーストドリンクから数える', () => {
+    expect(startOf(waiting)).toBeNull();
+    expect(timerOf(waiting, 60 * minute)).toEqual({ label: 'ファーストドリンクから', elapsedMs: null });
+    expect(startOf(started)).toBe(20 * minute);
+    expect(timerOf(started, 50 * minute)).toEqual({ label: 'ファーストドリンクから', elapsedMs: 30 * minute });
+    const exitedCourse = advance(advance(started, 100 * minute), 130 * minute);
+    expect(timerOf(exitedCourse, 131 * minute)).toEqual({ label: '退店から', elapsedMs: minute });
+  });
+  it('開始待ちは何分たっても警告しない（お通し未提供も出さない）', () => {
+    expect(alertOf(waiting, 15 * minute)).toEqual({ level: 'none', reason: null });
+    expect(alertOf(waiting, 500 * minute)).toEqual({ level: 'none', reason: null });
+  });
+  it.each([
+    [20 * minute + 90 * minute - 1000, 'none', null],
+    [20 * minute + 90 * minute, 'soon', 'last_order'],
+    [20 * minute + 120 * minute - 1000, 'soon', 'last_order'],
+    [20 * minute + 120 * minute, 'now', 'seat_limit'],
+  ])('L.O.・お席の時間はファーストドリンクから数える: %i', (time, level, reason) => {
+    expect(alertOf(started, time)).toEqual({ level, reason });
+  });
+  it('L.O. の通知もファーストドリンクから数え、数え始めが古い順に並べる', () => {
+    const normal = advance(newSession('normal', '11', 10 * minute), 15 * minute);
+    expect(lastOrderDue([started, normal, waiting], 100 * minute + 1000).map(s => s.id)).toEqual(['normal']);
+    expect(lastOrderDue([started, normal, waiting], 110 * minute).map(s => s.id)).toEqual(['normal', 'c']);
+    expect(lastOrderDue([waiting], 1000 * minute)).toEqual([]);
+  });
+  it('あとから通常とコースを直せて、状態・時刻・人数は変わらない', () => {
+    expect(setCourse(started, null)).toEqual({ ...started, course: null });
+    expect(setCourse(otoshi, 'premium_drinks')).toEqual({ ...otoshi, course: 'premium_drinks' });
+    expect(setCourse(otoshi, 'x' as never)).toBeNull();
+  });
+  it('コースは状態の進み・戻し・卓の移動で変わらない', () => {
+    expect(revert(started)).toEqual(waiting);
+    expect(moveTable(started, '12', '13')?.course).toBe('drinks');
+    expect(togglePaid(started, 30 * minute).course).toBe('drinks');
   });
 });

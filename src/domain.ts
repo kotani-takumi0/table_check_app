@@ -1,10 +1,28 @@
 export type Status = 'seated' | 'otoshi' | 'lo_done' | 'exited';
-export const STATUS_LABEL: Record<Status, string> = {
+// コースは通常の「ご案内済み」「お通し提供済み」の位置に「開始待ち」「ファーストドリンク提供済み」が入る。
+// 状態の値は同じものを使い、表示（名前・色）だけ変える。L.O.確認済み以降は通常と同じ
+export type Display = Status | 'course_wait' | 'first_drink';
+export const STATUS_LABEL: Record<Display, string> = {
   seated: 'ご案内済み', otoshi: 'お通し提供済み', lo_done: 'L.O.確認済み', exited: '退店済み',
+  course_wait: '開始待ち', first_drink: 'ファーストドリンク提供済み',
 };
-export const STATUS_SHORT: Record<Status, string> = {
+// 卓カードの状態名・次へのボタン。「ファーストドリンク提供済み」はカードに入らないので縮める（詳細パネルは正式名）
+export const STATUS_CARD: Record<Display, string> = { ...STATUS_LABEL, first_drink: 'ファースト済み' };
+export const STATUS_SHORT: Record<Display, string> = {
   seated: '案内済', otoshi: 'お通し済', lo_done: 'L.O.済', exited: '退店済',
+  course_wait: '開始待', first_drink: 'FD済',
 };
+// 飲み放題の区分。飲み放題の中でも出せるドリンクが違うので分けて持つ
+export type Course = 'no_drinks' | 'drinks' | 'premium_drinks';
+export const COURSES: Course[] = ['no_drinks', 'drinks', 'premium_drinks'];
+export const COURSE_LABEL: Record<Course, string> = { no_drinks: '飲み放題なし', drinks: '飲み放題', premium_drinks: 'プレミアム飲み放題' };
+export function isCourse(value: unknown): value is Course {
+  return COURSES.includes(value as Course);
+}
+export function displayOf(status: Status, course: Course | null): Display {
+  if (course === null) return status;
+  return status === 'seated' ? 'course_wait' : status === 'otoshi' ? 'first_drink' : status;
+}
 export interface Session {
   id: string;
   tableIds: string[];
@@ -15,13 +33,14 @@ export interface Session {
   exitedAt: number | null;
   paidAt: number | null;   // お会計済みの時刻。状態の進み・戻しとは独立
   guests: number | null;   // 人数（団体は全員の合計）。null は未入力
+  course: Course | null;   // null は通常。コースは otoshiAt にファーストドリンクの時刻を入れる
 }
 export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
 const MINUTE = 60_000;
-export function newSession(id: string, tableId: string, at: number, guests: number | null = null): Session {
-  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests };
+export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null): Session {
+  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -29,6 +48,10 @@ export function isGuestCount(value: unknown): value is number {
 }
 export function setGuests(session: Session, guests: number | null): Session | null {
   return guests === null || isGuestCount(guests) ? { ...session, guests } : null;
+}
+// 案内のあとで通常とコースを直す。時刻はそのまま（コースにするとお通しの時刻をファーストドリンクとして読む）
+export function setCourse(session: Session, course: Course | null): Session | null {
+  return course === null || isCourse(course) ? { ...session, course } : null;
 }
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;
@@ -49,27 +72,34 @@ export function revert(session: Session): Session | null {
     case 'exited': return { ...session, status: 'lo_done', exitedAt: null };
   }
 }
-// 退店までは案内から通しで数える（L.O.・お席の時間も案内が基準）
-export function timerOf(session: Session, now: number): { label: string; elapsedMs: number } {
-  const [label, at] = session.status === 'exited'
-    ? ['退店から', session.exitedAt] as const
-    : ['案内から', session.seatedAt] as const;
-  return { label, elapsedMs: Math.max(0, now - (at ?? now)) };
+// L.O.・お席の時間を数え始める時刻。通常は案内、コースはファーストドリンク（全員が揃うまでは数えない）
+export function startOf(session: Session): number | null {
+  return session.course === null ? session.seatedAt : session.otoshiAt;
+}
+// 退店までは startOf から通しで数える。コースの開始待ちは null（タイマーを進めない）
+export function timerOf(session: Session, now: number): { label: string; elapsedMs: number | null } {
+  if (session.status === 'exited') return { label: '退店から', elapsedMs: Math.max(0, now - (session.exitedAt ?? now)) };
+  const start = startOf(session);
+  return { label: session.course === null ? '案内から' : 'ファーストドリンクから', elapsedMs: start === null ? null : Math.max(0, now - start) };
 }
 export function alertOf(session: Session, now: number): { level: Alert; reason: AlertReason } {
-  if (session.status === 'exited') return { level: 'none', reason: null };
-  const elapsed = now - session.seatedAt;
+  const start = startOf(session);
+  if (session.status === 'exited' || start === null) return { level: 'none', reason: null };
+  const elapsed = now - start;
   if (elapsed >= RULES.seatLimitMin * MINUTE) return { level: 'now', reason: 'seat_limit' };
-  if (session.status === 'seated' && elapsed >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
+  // コースはお通しを出さないので「お通し未提供」は出さない
+  if (session.status === 'seated' && session.course === null && elapsed >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
   if (session.status === 'otoshi' && elapsed >= RULES.lastOrderMin * MINUTE) return { level: 'soon', reason: 'last_order' };
   return { level: 'none', reason: null };
 }
-// 案内から L.O. の時間を過ぎても L.O.確認済みにしていないセッション（案内が古い順）
+// L.O. の時間を過ぎても L.O.確認済みにしていないセッション（数え始めが古い順）
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
+// （コースはファーストドリンクから数えるので、開始待ちの卓はそもそも時間が来ない）
 export function lastOrderDue(sessions: Session[], now: number): Session[] {
   return sessions
-    .filter(s => s.status === 'otoshi' && now - s.seatedAt >= RULES.lastOrderMin * MINUTE)
-    .sort((a, b) => a.seatedAt - b.seatedAt);
+    .flatMap(s => { const start = startOf(s); return s.status === 'otoshi' && start !== null && now - start >= RULES.lastOrderMin * MINUTE ? [{ s, start }] : []; })
+    .sort((a, b) => a.start - b.start)
+    .map(({ s }) => s);
 }
 // 卓の付け替え・追加・外す。卓番は数値順に並べる（どの端末でも同じ表示にする）
 const byNumber = (ids: string[]) => [...new Set(ids)].sort((a, b) => Number(a) - Number(b));
