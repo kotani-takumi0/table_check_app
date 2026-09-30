@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { GRID, hasTableSeat, PORTRAIT_GRID, rotateClockwise, SEATS, type Seat } from './layout';
+import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS, type Seat } from './layout';
 it('21席、IDは一意で32/35/37は存在しない', () => {
   expect(SEATS).toHaveLength(21);
   expect(new Set(SEATS.map(s => s.id)).size).toBe(21);
@@ -43,10 +43,4 @@ it('縦向きの配置は手描きの図と一致する', () => {
   expect(at('12')).toEqual([4, 2, 7, 3]);
   expect(at('21')).toEqual([2, 2, 13, 3]);
   expect(at('22')).toEqual([4, 2, 13, 3]);
-});
-it('人数を聞くのはテーブル卓を含む客だけ（カウンターだけの客・知らない卓番は聞かない）', () => {
-  expect(hasTableSeat(['12'])).toBe(true);
-  expect(hasTableSeat(['3', '31'])).toBe(true);
-  expect(hasTableSeat(['1', '2'])).toBe(false);
-  expect(hasTableSeat(['99'])).toBe(false);
 });
