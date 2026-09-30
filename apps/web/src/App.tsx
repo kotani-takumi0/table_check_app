@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { isVisible, lastOrderDue, occupantOf, startOf, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { isVisible, occupantOf, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from '@table-check/core/layout';
 import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
@@ -10,7 +11,7 @@ import { SeatDialog } from './SeatDialog';
 import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
-import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
+import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
 import { worstSyncState, type SessionStore, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
 import { now } from '@table-check/core/clock';
@@ -69,22 +70,11 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  // 「閉じる」はこの端末だけ。数え始めの時刻（案内・ファーストドリンク）を直すと別の通知として出し直す
-  const lastOrderToasts: Toast[] = lastOrderDue(sessions, time).flatMap(session => {
-    const key = `lo:${session.id}:${startOf(session)}`;
-    return isDismissed(key) ? [] : [{
-      key, tone: 'warning' as const, message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`,
-      action: { label: 'L.O.確認済みにする', onClick: () => next(session) },
-    }];
-  });
-  const shopTimerToasts: Toast[] = SHOP_TIMERS.flatMap(timer => {
-    const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
-    const key = `${timer.id}:${state.dueAt}`;
-    return state.due && !isDismissed(key)
-      ? [{ key, tone: 'danger' as const, message: `${timer.label}の時間です`, action: { label: '済にする', onClick: () => markShopTimerDone(timer.id) } }]
-      : [];
-  });
-  const toasts = [...lastOrderToasts, ...shopTimerToasts];
+  // 「閉じる」はこの端末だけ
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time).filter(notice => !isDismissed(notice.key)).map(notice => ({
+    key: notice.key, tone: notice.tone, message: notice.message,
+    action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? next(notice.session) : markShopTimerDone(notice.timerId) },
+  }));
   // 卓に今表示しているお客さん（同じ卓に複数あれば後から案内したほう）
   const requestSeat = (tableId: string) => {
     // 詳細パネルから押したときはパネルが閉じるので、パネルを開いた卓に戻す
