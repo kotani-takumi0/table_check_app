@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addTable, advance, alertOf, clockTimeNear, COURSES, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, setCourse, setGuests, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, revert, timerOf, unpaidTableCount } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, COURSES, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, setCourse, setGuests, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -192,4 +192,16 @@ describe('コース', () => {
     expect(moveTable(started, '12', '13')?.course).toBe('drinks');
     expect(togglePaid(started, 30 * minute).course).toBe('drinks');
   });
+});
+it('卓には、その卓を含む表示中のお客さんのうち最後に案内したものを出す', () => {
+  const minute = 60_000;
+  const early = newSession('a', '11', 0);
+  const late = newSession('b', '11', 10 * minute);
+  const other = newSession('c', '12', 20 * minute);
+  expect(occupantOf([late, early, other], '11', 30 * minute)?.id).toBe('b');
+  expect(occupantOf([early, other], '13', 30 * minute)).toBeUndefined();
+  // 退店から5分を過ぎたお客さんは出さない
+  const gone = { ...advance(advance(advance(late, 11 * minute), 12 * minute), 13 * minute) };
+  expect(gone.status).toBe('exited');
+  expect(occupantOf([early, gone], '11', 13 * minute + 5 * minute)?.id).toBe('a');
 });

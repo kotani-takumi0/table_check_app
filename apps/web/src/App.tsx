@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { isVisible, lastOrderDue, startOf, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { isVisible, lastOrderDue, occupantOf, startOf, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from '@table-check/core/layout';
 import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
@@ -86,15 +86,13 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
   });
   const toasts = [...lastOrderToasts, ...shopTimerToasts];
   // 卓に今表示しているお客さん（同じ卓に複数あれば後から案内したほう）
-  const occupantOf = (tableId: string) => sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, time))
-    .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
   const requestSeat = (tableId: string) => {
     // 詳細パネルから押したときはパネルが閉じるので、パネルを開いた卓に戻す
     const active = document.activeElement;
     seatReturnFocus.current = active instanceof HTMLElement && !active.closest('.panel') ? active : returnFocus.current;
     setSeating(tableId);
   };
-  const seatingOccupant = seating === null ? undefined : occupantOf(seating);
+  const seatingOccupant = seating === null ? undefined : occupantOf(sessions, seating, time);
   // 確認中にほかの端末でその卓に案内されたら、確認をやめる（退店済の表示が消えただけなら続ける）
   const seatingTaken = seatingOccupant !== undefined && seatingOccupant.status !== 'exited';
   useEffect(() => { if (seatingTaken) setSeating(null); }, [seatingTaken]);
@@ -140,7 +138,7 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       <div className="line line-vertical first" aria-hidden="true" />
       <div className="line line-vertical second" aria-hidden="true" />
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(position.id)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />)}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />)}
     </section>
     {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course) => seat(seating, guests, course)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
