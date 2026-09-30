@@ -41,7 +41,7 @@ function Floor({ services: { store, shopTimerStore, projectId } }: { services: S
   return (
     <>
       <View style={styles.header}>
-        <Text style={styles.title}>卓タイマー</Text>
+        <Text style={styles.title}>Minopal</Text>
         {sync && <Text style={styles.sync}>{sync}</Text>}
         <Text style={styles.meta}>v{version} · {projectId}</Text>
       </View>

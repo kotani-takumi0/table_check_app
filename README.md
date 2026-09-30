@@ -112,7 +112,7 @@ npm run deploy:preview  # 開発：table-check-dev の test プレビューチ�
 2. iPhone か iPad に App Store から「Expo Go」を入れ、Mac と同じ Wi-Fi につなぎます。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます。
 
-画面には卓ごとの状態・人数・タイマーが出ます。ヘッダー右の `v1.2.0 · table-check-dev` で、版とつないでいるプロジェクトを確かめられます。Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が、数秒以内に反映されます。
+ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面には卓ごとの状態・人数・タイマーが出ます。ヘッダー右の `v1.2.0 · table-check-dev` で、版とつないでいるプロジェクトを確かめられます。Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が、数秒以内に反映されます。
 
 ### Web と違うところ
 
