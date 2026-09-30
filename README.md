@@ -1,6 +1,6 @@
-# 卓タイマー v1 — Phase 1
+# Minopal
 
-Vite + React + TypeScript による飲食店ホール用の卓タイマーです。横向き・幅1080pxのタブレットを主に想定し、縦向きやスマホでも使えます。
+Minopal（ミノパル。分 minute ＋ nopal ウチワサボテン）は、飲食店ホール用の卓タイマーです。Web 版は Vite + React + TypeScript で作っています。横向き・幅1080pxのタブレットを主に想定し、縦向きやスマホでも使えます。
 
 ## リポジトリの構成
 
@@ -12,7 +12,7 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 | `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。今は土台だけで、卓ごとの状態を一覧で出す（操作と見た目は Notion No.057） |
 | `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
 
-Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。
+Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンは Notion の Top ページと同じ画像で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
 
 ## 起動
 

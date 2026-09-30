@@ -1,4 +1,4 @@
-/* 卓タイマー デザインシステム — アプリの src/App.css をそのまま持ち込んだスタイルシート。
+/* Minopal デザインシステム — アプリの src/App.css をそのまま持ち込んだスタイルシート。
    色トークンは tokens.css が :root に出すので、ここでは宣言しない。 */
 :root { font-family: var(--font-sans, 'Zen Kaku Gothic New', sans-serif); font-size: 14px; color: var(--text); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
