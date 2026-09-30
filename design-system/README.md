@@ -1,6 +1,6 @@
 # design-system
 
-アプリの見た目の決めごとを1か所に置いた場所です。`src/App.css` と React コンポーネントから起こしたもので、アプリのビルドには入りません。読み物と定義だけです。
+アプリの見た目の決めごとを1か所に置いた場所です。`apps/web/src/App.css` と React コンポーネントから起こしたもので、アプリのビルドには入りません。読み物と定義だけです。
 
 中身の本体は [project/README.md](project/README.md)。色の使い分け、コントラストの実測値、面の重ね方はそこに書いてあります。まずそれを読んでください。
 
@@ -21,13 +21,13 @@ claude.ai のデザインシステム・アーティファクトの `project/` �
 | `project/tokens.json` | トークン本体。色13・書体3群・余白7・角丸7・寸法8・枠4・不透明度3・z-index 2 |
 | `project/README.md` | ブランドブック。守っていること、コントラスト実測 |
 | `project/density.md` | 卓カードの密度4段（標準 / compact / narrow / mini） |
-| `project/components/bundle.css` | `src/App.css` を持ち込んだスタイルシート |
+| `project/components/bundle.css` | `apps/web/src/App.css` を持ち込んだスタイルシート |
 | `project/components/<部品>/` | 部品ごとの README とプレビューHTML（12部品） |
 | `SKILL.md` | アーティファクトタイプの仕様書。書き換える前に読む |
 
 ## アプリとの関係
 
-`project/components/bundle.css` は `src/App.css` の写しです。両方を手で直すと必ずずれます。**アプリの見た目を変えるときは `src/App.css` を直し、そのあとこちらへ写す**順で進めてください。逆はやらない。
+`project/components/bundle.css` は `apps/web/src/App.css` の写しです。両方を手で直すと必ずずれます。**アプリの見た目を変えるときは `apps/web/src/App.css` を直し、そのあとこちらへ写す**順で進めてください。逆はやらない。
 
 `project/tokens.json` の `meta.paths` と `meta.components` に、どのトークンがどのファイルから来たかを書いてあります。
 

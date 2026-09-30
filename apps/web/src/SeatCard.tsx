@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Display, type Session } from './domain';
-import type { Seat } from './layout';
+import { alertOf, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Display, type Session } from '@table-check/core/domain';
+import type { Seat } from '@table-check/core/layout';
 
 function stateColor(display: Display, alert: Alert): string {
   return `var(--${alert === 'none' ? display : alert === 'soon' ? 'warning' : 'danger'})`;
