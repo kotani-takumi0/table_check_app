@@ -6,9 +6,10 @@ service cloud.firestore {
     function isTimeOrNull(v) { return v == null || isTime(v); }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
     function isGuestsOrNull(v) { return v == null || (v is int && v >= 1 && v <= 99); }
+    function isCourseOrNull(v) { return v == null || v in ['no_drinks','drinks','premium_drinks']; }
     function validSession(d) {
-      // paidAt・guests はお会計・人数の追加前のアプリが書かないので必須にしない
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','updatedAt'])
+      // paidAt・guests・course はお会計・人数・コースの追加前のアプリが書かないので必須にしない
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 21
         && tableIds().hasAll(d.tableIds)
@@ -16,6 +17,7 @@ service cloud.firestore {
         && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
         && isTimeOrNull(d.get('paidAt', null))
         && isGuestsOrNull(d.get('guests', null))
+        && isCourseOrNull(d.get('course', null))
         && d.updatedAt == request.time;
     }
     // お会計の追加前のアプリは paidAt を書かずに文書ごと上書きするので、会計済みの記録を消させない
@@ -29,9 +31,14 @@ service cloud.firestore {
       return resource == null || resource.data.get('guests', null) == null
         || request.resource.data.keys().hasAny(['guests']);
     }
+    // コースも同じく、コースの追加前のアプリの上書きで通常に戻させない（新しいアプリは通常でも course: null を書く）
+    function keepsCourse() {
+      return resource == null || resource.data.get('course', null) == null
+        || request.resource.data.keys().hasAny(['course']);
+    }
     match /sessions/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid() && keepsGuests();
+      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid() && keepsGuests() && keepsCourse();
       allow delete: if signedIn();
     }
     match /tables/{tableId} {

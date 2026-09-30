@@ -18,7 +18,7 @@ claude.ai のデザインシステム・アーティファクトの `project/` �
 | パス | 役割 |
 | --- | --- |
 | `project/design-system.json` | 索引。`title` が系の名前。**更新は必ず最後** |
-| `project/tokens.json` | トークン本体。色11・書体3群・余白7・角丸7・寸法8・枠4・不透明度3・z-index 2 |
+| `project/tokens.json` | トークン本体。色13・書体3群・余白7・角丸7・寸法8・枠4・不透明度3・z-index 2 |
 | `project/README.md` | ブランドブック。守っていること、コントラスト実測 |
 | `project/density.md` | 卓カードの密度4段（標準 / compact / narrow / mini） |
 | `project/components/bundle.css` | `src/App.css` を持ち込んだスタイルシート |

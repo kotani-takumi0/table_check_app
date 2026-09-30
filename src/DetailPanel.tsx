@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { clockTimeNear, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type EditableTime, type Session } from './domain';
-import { hasTableSeat } from './layout';
+import { clockTimeNear, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from './domain';
+import { CoursePicker } from './CoursePicker';
 
 interface Props {
   session: Session;
@@ -12,12 +12,13 @@ interface Props {
   onRetime(session: Session, field: EditableTime, at: number): boolean;
   onPay(session: Session): void;
   onGuests(session: Session, guests: number | null): void;
+  onCourse(session: Session, course: Course | null): void;
   from: string;                 // パネルを開いた卓（移動するのはこの卓）
   onPick(mode: 'move' | 'add'): void;
   onRelease(session: Session, tableId: string): void;
   returnFocus: HTMLElement | null;
 }
-function TimeRow({ label, value, onSave }: { label: string; value: number | null; onSave(hhmm: string): boolean }) {
+function TimeRow({ label, value, order, onSave }: { label: string; value: number | null; order: string; onSave(hhmm: string): boolean }) {
   const [draft, setDraft] = useState(value === null ? '' : formatClock(value));
   const [error, setError] = useState(false);
   if (value === null) return <div className="time-row"><span>{label}</span><span className="muted">未提供</span></div>;
@@ -26,10 +27,10 @@ function TimeRow({ label, value, onSave }: { label: string; value: number | null
     <label htmlFor={`time-${label}`}>{label}</label>
     <input id={`time-${label}`} type="time" value={draft} onChange={event => { setDraft(event.target.value); setError(false); }} />
     <button className="panel-button" disabled={!changed} onClick={() => setError(!onSave(draft))}>修正</button>
-    {error && <span className="time-error" role="alert">案内 → お通し → L.O.確認・現在 の順になる時刻にしてください</span>}
+    {error && <span className="time-error" role="alert">{order} の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, from, onPick, onRelease, returnFocus }: Props) {
+export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, from, onPick, onRelease, returnFocus }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -48,6 +49,10 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
   const downInPanel = useRef(false);
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
+  const display = displayOf(session.status, session.course);
+  // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
+  const otoshiLabel = session.course === null ? 'お通し' : 'ドリンク';
+  const order = `案内 → ${session.course === null ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
@@ -61,24 +66,28 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
       role="dialog" aria-modal="true" aria-label={`${session.tableIds.join('・')}番の詳細`}>
       <div className="panel-head">
         <span className="panel-seat">{session.tableIds.join('・')}番</span>
-        <strong className="panel-status" style={{ color: `var(--${session.status})` }}>{STATUS_LABEL[session.status]}</strong>
-        <span className="timer">{timer.label} {formatElapsed(timer.elapsedMs)}</span>
+        <strong className="panel-status" style={{ color: `var(--${display})` }}>{STATUS_LABEL[display]}</strong>
+        <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</span>
       </div>
-      <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} onSave={save('seatedAt', session.seatedAt)} />
-      <TimeRow key={`otoshi-${session.otoshiAt}`} label="お通し" value={session.otoshiAt} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
+      <div className="time-row">
+        <span id="panel-course">コース</span>
+        <CoursePicker value={session.course} onChange={course => onCourse(session, course)} labelledBy="panel-course" />
+      </div>
+      <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
+      <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
       <div className="time-row">
         <span>お会計</span>
         <span className={session.paidAt === null ? '' : 'muted'}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</span>
         <button className="panel-button" onClick={() => onPay(session)}>{session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'}</button>
       </div>
-      {hasTableSeat(session.tableIds) && <div className="time-row">
+      <div className="time-row">
         <span>人数</span>
         <div className="guest-stepper" role="group" aria-label="人数">
           <button className="guest-step" aria-label="1名減らす" disabled={session.guests === null || session.guests <= 1} onClick={() => onGuests(session, (session.guests ?? 1) - 1)}>−</button>
           <span className={`guest-many ${session.guests === null ? 'muted' : ''}`} aria-live="polite">{session.guests === null ? '未入力' : `${session.guests}名`}</span>
           <button className="guest-step" aria-label="1名増やす" disabled={session.guests !== null && session.guests >= GUESTS_MAX} onClick={() => onGuests(session, (session.guests ?? 0) + 1)}>＋</button>
         </div>
-      </div>}
+      </div>
       <div className="time-row">
         <span>卓</span>
         <span className="table-chips">
@@ -93,7 +102,7 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
       </div>
       <div className="panel-actions">
         <button className="panel-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
-        {next ? <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>
+        {next ? <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course)]}</button>
           : session.status === 'exited' && <button className="panel-button primary" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
         <button className="panel-button" onClick={onClose}>閉じる</button>
       </div>

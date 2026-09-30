@@ -32,6 +32,15 @@ describe('Firestore document mapping', () => {
     expect(toSessionDoc(seated)).toHaveProperty('guests', null);
     expect(toSessionDoc({ ...seated, guests: 3 }).guests).toBe(3);
   });
+  it('course が無い古い文書は通常として読み、不正な course は拒否する', () => {
+    expect(fromSessionDoc('session', data)?.course).toBeNull();
+    expect(fromSessionDoc('session', { ...data, course: 'premium_drinks' })?.course).toBe('premium_drinks');
+    for (const bad of ['', 'course', 1, true]) expect(fromSessionDoc('session', { ...data, course: bad })).toBeNull();
+  });
+  it('通常でも course: null を書く（古いアプリの上書きを見分けるため）', () => {
+    expect(toSessionDoc(seated)).toHaveProperty('course', null);
+    expect(toSessionDoc({ ...seated, course: 'drinks' }).course).toBe('drinks');
+  });
   it('複数卓を許可する', () => {
     expect(fromSessionDoc('session', { ...data, tableIds: ['31', '33'] })?.tableIds).toEqual(['31', '33']);
   });

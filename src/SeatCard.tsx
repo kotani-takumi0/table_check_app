@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, formatElapsed, nextStatus, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Session, type Status } from './domain';
+import { alertOf, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Display, type Session } from './domain';
 import type { Seat } from './layout';
 
-function stateColor(status: Status, alert: Alert): string {
-  return `var(--${alert === 'none' ? status : alert === 'soon' ? 'warning' : 'danger'})`;
+function stateColor(display: Display, alert: Alert): string {
+  return `var(--${alert === 'none' ? display : alert === 'soon' ? 'warning' : 'danger'})`;
 }
 const REASONS = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
 interface CardProps {
@@ -50,10 +50,15 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   const alert = session ? alertOf(session, time) : null;
   const timer = session ? timerOf(session, time) : null;
   const next = session ? nextStatus(session.status) : null;
+  // コースの「開始待ち」「ファーストドリンク提供済み」は通常と色・名前を変える
+  const display = session ? displayOf(session.status, session.course) : null;
+  // コースの開始待ちはタイマーを進めない
+  const timerText = timer ? timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs) : '';
+  const timerLabel = timer ? timer.elapsedMs === null ? 'タイマー停止中' : `${timer.label} ${timerText}` : '';
   const style = {
     gridColumn: `${seat.col} / span ${seat.colSpan}`,
     gridRow: `${seat.row} / span ${seat.rowSpan}`,
-    ...(session && alert ? { '--st': stateColor(session.status, alert.level) } : {}),
+    ...(display && alert ? { '--st': stateColor(display, alert.level) } : {}),
   } as CSSProperties;
   const common = {
     style,
@@ -76,18 +81,18 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
     <span className="seat-number">{seat.id}{others.length > 0 && <span className="group-mark">+{others.length <= 2 ? others.join('+') : `${others.length}卓`}</span>}
       {mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}
       {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}>{guests === null ? '?名' : `${guests}名`}</span>}</span>
-    {session && timer && <>
+    {session && timer && display && <>
       {/* カウンター・スマホ・縦向きの細いテーブルは幅が無いので短縮ラベル */}
-      <strong className="status">{seat.kind === 'table' && !mini && seat.colSpan > 1 ? STATUS_LABEL[session.status] : STATUS_SHORT[session.status]}</strong>
-      <span className="timer" aria-label={`${timer.label} ${formatElapsed(timer.elapsedMs)}`} title={timer.label}>{formatElapsed(timer.elapsedMs)}</span>
+      <strong className="status">{seat.kind === 'table' && !mini && seat.colSpan > 1 ? STATUS_CARD[display] : STATUS_SHORT[display]}</strong>
+      <span className={`timer ${timer.elapsedMs === null ? 'stopped' : ''}`} aria-label={timerLabel} title={timer.label}>{timerText}</span>
       {seat.kind === 'counter' && !mini && session.paidAt !== null && <span className="paid-mark" aria-hidden="true">¥✓</span>}
     </>}
   </>;
   if (!session) return <button {...common} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>{content}</button>;
-  if (mini) return <button {...common} disabled={picking} aria-label={`${seat.id}番${group}${guestsLabel} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>{content}</button>;
+  if (mini) return <button {...common} disabled={picking} aria-label={`${seat.id}番${group}${guestsLabel} ${display ? STATUS_LABEL[display] : ''} ${timerLabel}${alert?.reason ? ` ${REASONS[alert.reason]}` : ''}${session.paidAt !== null ? ' お会計済み' : ''}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>{content}</button>;
   // 退店済の卓は、退店済の表示が消えるのを待たずに次のお客さんを案内できる
   const exited = session.status === 'exited';
-  if (seat.kind === 'counter') return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${STATUS_LABEL[session.status]} ${timer ? formatElapsed(timer.elapsedMs) : ''}${session.paidAt !== null ? ' お会計済み' : ''}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>{content}</button>;
+  if (seat.kind === 'counter') return <button {...common} disabled={picking} aria-label={`${seat.id}番${group} ${display ? STATUS_LABEL[display] : ''} ${timerLabel}${session.paidAt !== null ? ' お会計済み' : ''}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>{content}</button>;
   return <div {...common} inert={picking}>
     {content}
     {/* 上段の低いカード・縦向きの細いカードは卓番や状態名と並べる幅が無いので「¥」だけにする */}
@@ -96,7 +101,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
       {seat.rowSpan === 1 || seat.colSpan === 1 ? (session.paidAt !== null ? '¥✓' : '¥') : session.paidAt !== null ? '会計済み' : '未払い'}
     </button>
     {alert?.reason && <span className="alert-reason">{REASONS[alert.reason]}</span>}
-    {next ? <button className="next-button" onClick={() => onNext(session)}>{STATUS_LABEL[next]}</button>
+    {next ? <button className="next-button" onClick={() => onNext(session)}>{STATUS_CARD[displayOf(next, session.course)]}</button>
       : exited && <button className="next-button" aria-label={`${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>ご案内</button>}
   </div>;
 }
