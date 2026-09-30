@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { randomUUID } from 'expo-crypto';
 import { useKeepAwake } from 'expo-keep-awake';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { now } from '@table-check/core/clock';
@@ -37,7 +38,7 @@ export default function App() {
 function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, moveTo, addTo, release, clearAll } = useSessions(store);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
   const [time, setTime] = useState(now);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
