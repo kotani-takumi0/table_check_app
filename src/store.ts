@@ -1,4 +1,4 @@
-import { isGuestCount, type Session } from './domain';
+import { isCourse, isGuestCount, type Session } from './domain';
 
 export type SyncState = 'synced' | 'pending' | 'offline';
 // 複数の購読のうち、いちばん悪い状態を表示する
@@ -23,6 +23,7 @@ function validSession(value: unknown): value is Session {
     && [s.otoshiAt, s.loDoneAt, s.exitedAt].every(v => v === null || timestamp(v))
     && (s.paidAt === undefined || s.paidAt === null || timestamp(s.paidAt))
     && (s.guests === undefined || s.guests === null || isGuestCount(s.guests))
+    && (s.course === undefined || s.course === null || isCourse(s.course))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt));
@@ -32,8 +33,8 @@ export class LocalSessionStore implements SessionStore {
   private read(): Session[] {
     try {
       const value: unknown = JSON.parse(window.localStorage.getItem(KEY) ?? '[]');
-      // お会計・人数を入れる前に保存したデータには paidAt・guests が無いので、未払い・人数未入力として読む
-      return Array.isArray(value) ? value.filter(validSession).map(s => ({ ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null })) : [];
+      // お会計・人数・コースを入れる前に保存したデータには paidAt・guests・course が無いので、未払い・人数未入力・通常として読む
+      return Array.isArray(value) ? value.filter(validSession).map(s => ({ ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null, course: s.course ?? null })) : [];
     } catch { return []; }
   }
   private notify(sessions: Session[]): void {
