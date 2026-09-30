@@ -1,4 +1,4 @@
-import { COURSE_LABEL, COURSES, type Course } from './domain';
+import { COURSE_LABEL, COURSES, type Course } from '@table-check/core/domain';
 
 const OPTIONS: { value: Course | null; sub: string | null }[] = [
   { value: null, sub: null },

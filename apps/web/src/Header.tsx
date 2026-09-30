@@ -1,7 +1,7 @@
-import { formatClock } from './domain';
+import { formatClock } from '@table-check/core/domain';
 import { APP_VERSION } from './version';
-import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from './shopTimers';
-import type { SyncState } from './store';
+import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
+import type { SyncState } from '@table-check/core/store';
 
 interface Props {
   time: number;

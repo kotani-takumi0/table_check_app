@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { GUESTS_MAX, type Course } from './domain';
+import { GUESTS_MAX, type Course } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 
 interface Props {

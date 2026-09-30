@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { isVisible, lastOrderDue, startOf, unpaidTableCount, type Session } from './domain';
-import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from './layout';
+import { isVisible, lastOrderDue, startOf, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from '@table-check/core/layout';
 import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
@@ -10,10 +10,10 @@ import { SeatDialog } from './SeatDialog';
 import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { useDismissed } from './useDismissed';
-import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
-import { worstSyncState, type SessionStore, type SyncState } from './store';
-import { useSessions } from './useSessions';
-import { now } from './clock';
+import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
+import { worstSyncState, type SessionStore, type SyncState } from '@table-check/core/store';
+import { useSessions } from '@table-check/core/useSessions';
+import { now } from '@table-check/core/clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
   const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, moveTo, addTo, release, clearAll } = useSessions(store);

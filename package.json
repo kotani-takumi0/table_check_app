@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @table-check/web",
-    "build": "npm run build -w @table-check/web",
+    "build": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web",
     "test": "npm test --workspaces --if-present",
     "deploy:preview": "npm run build && firebase hosting:channel:deploy test --expires 7d",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules"

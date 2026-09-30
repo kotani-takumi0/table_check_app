@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { formatClock } from './domain';
+import { formatClock } from '@table-check/core/domain';
 
 interface Props {
   label: string;

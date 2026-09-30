@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { clockTimeNear, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from './domain';
+import { clockTimeNear, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 
 interface Props {
