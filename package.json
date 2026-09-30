@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "npm run dev -w @table-check/web",
     "ios": "npm run start -w @table-check/ios",
+    "ios:tunnel": "npm run start -w @table-check/ios -- --tunnel",
     "build": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web",
     "build:dev": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web -- --mode development",
     "test": "npm test --workspaces --if-present",
