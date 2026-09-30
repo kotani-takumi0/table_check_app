@@ -1,0 +1,25 @@
+{
+ "v": 3,
+ "assetGroups": {},
+ "blobs": {},
+ "createdOnFiles": {
+  "at": "2026-09-30T04:05:29Z",
+  "v": 1
+ },
+ "docs": {
+  "readme": "project/README.md",
+  "sections": []
+ },
+ "groups": [],
+ "lastChange": {
+  "at": "2026-09-30T04:10:16Z",
+  "by": "Claude",
+  "via": "Claude Code",
+  "note": "プレビューの表示寸法を実機の比率に修正（状態名のはみ出しを解消）"
+ },
+ "layout": "files",
+ "libraries": [],
+ "namespace": "TakuTimer",
+ "sections": {},
+ "title": "卓タイマー"
+}

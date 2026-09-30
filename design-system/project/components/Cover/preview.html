@@ -1,0 +1,41 @@
+<!-- @dsCard height=300 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+ body{margin:0;background:var(--bg)}
+ svg{display:block;width:960px;height:300px}
+ .t-seated{fill:var(--seated)}.t-otoshi{fill:var(--otoshi)}.t-lodone{fill:var(--lo_done)}
+ .t-exited{fill:var(--exited)}.t-warning{fill:var(--warning)}.t-danger{fill:var(--danger)}
+ .tile{rx:8px}.chip{rx:6px}
+ .rule{stroke:var(--line);stroke-width:1}
+ .name{fill:var(--text);font-family:var(--font-sans,'Zen Kaku Gothic New',sans-serif);font-weight:700;font-size:76px;letter-spacing:-1px}
+ .tag{fill:var(--muted);font-family:var(--font-sans,'Zen Kaku Gothic New',sans-serif);font-weight:400;font-size:14px}
+</style>
+<!-- 導出
+ blocks: seated/otoshi/lo_done を 140×48 と 140×116 の大板、exited を 44 角、warning・danger は信号なので 44 角 1 枚ずつ
+ arrangement: 実際のフロア図の写し。上段に3スパンのテーブル帯、左にカウンターの小片、下に2行ぶんの大卓
+ pattern: 「密なUI・角丸で切り出したタイル、一部を横に連結」の行。加えて .line-top と .line-vertical と同じ位置に hairline を3本
+ scales: gap は space-sm 6px と space-lg 12px、角丸は radius-md 8px と radius-sm 6px、hairline は border-hairline 1px
+-->
+<svg viewBox="0 0 960 300" xmlns="http://www.w3.org/2000/svg" aria-label="卓タイマー デザインシステム">
+  <rect class="tile t-seated"  x="500" y="28"  width="140" height="48"/>
+  <rect class="tile t-otoshi"  x="646" y="28"  width="140" height="48"/>
+  <rect class="tile t-lodone"  x="792" y="28"  width="140" height="48"/>
+
+  <line class="rule" x1="500" y1="82" x2="932" y2="82"/>
+  <line class="rule" x1="789" y1="88" x2="789" y2="260"/>
+  <line class="rule" x1="643" y1="88" x2="643" y2="260"/>
+
+  <rect class="chip t-exited"  x="500" y="88" width="44" height="44"/>
+  <rect class="chip t-exited"  x="550" y="88" width="44" height="44"/>
+  <rect class="chip t-warning" x="600" y="88" width="44" height="44"/>
+  <rect class="chip t-exited"  x="650" y="88" width="44" height="44"/>
+  <rect class="chip t-danger"  x="888" y="88" width="44" height="44"/>
+
+  <rect class="tile t-otoshi"  x="500" y="144" width="140" height="116"/>
+  <rect class="tile t-lodone"  x="646" y="144" width="140" height="116"/>
+  <rect class="tile t-seated"  x="792" y="144" width="140" height="116"/>
+
+  <text class="name" x="64" y="192">卓タイマー</text>
+  <text class="tag"  x="66" y="224">フロアを一瞥で読むための系</text>
+</svg>
