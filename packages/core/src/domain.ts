@@ -121,6 +121,11 @@ export function togglePaid(session: Session, at: number): Session {
 export function isVisible(session: Session, now: number): boolean {
   return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < RULES.exitedKeepMin * MINUTE);
 }
+// 卓に出すお客さん：その卓を含む表示中のセッションのうち、最後に案内したもの
+export function occupantOf(sessions: Session[], tableId: string, now: number): Session | undefined {
+  return sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, now))
+    .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
+}
 // 全卓消去の警告用：まだお店にいて会計していない客の卓数（退店済は数えない）
 export function unpaidTableCount(sessions: Session[], now: number): number {
   return sessions.filter(s => isVisible(s, now) && s.status !== 'exited' && s.paidAt === null)

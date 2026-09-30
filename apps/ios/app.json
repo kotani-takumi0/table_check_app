@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Minopal",
+    "slug": "minopal",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    }
+  }
+}

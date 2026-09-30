@@ -9,9 +9,11 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @table-check/web",
+    "ios": "npm run start -w @table-check/ios",
     "build": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web",
     "build:dev": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web -- --mode development",
     "test": "npm test --workspaces --if-present",
+    "typecheck:ios": "npm run typecheck -w @table-check/ios",
     "deploy:preview": "npm run build:dev && firebase hosting:channel:deploy test --expires 7d -P dev",
     "deploy:dev": "npm run build:dev && firebase deploy --only hosting,firestore:rules -P dev",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules -P prod"
