@@ -9,6 +9,7 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 | 場所 | 中身 |
 |---|---|
 | `apps/web` | Web アプリ（`@table-check/web`）。画面・CSS・Firebase の初期化と、Firebase を使わないときの localStorage の保存先 |
+| `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。今は土台だけで、卓ごとの状態を一覧で出す（操作と見た目は Notion No.057） |
 | `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
 
 Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。
@@ -27,9 +28,10 @@ npm run dev
 ```sh
 npm run build
 npm test
+npm run typecheck:ios
 ```
 
-ビルドは `packages/core` と `apps/web` の型チェック後に `apps/web/dist/` へ出力します。テストは両方のパッケージで動き、状態遷移、警告・表示期限の境界、経過時間、21席の配置などを検証します。
+ビルドは `packages/core` と `apps/web` の型チェック後に `apps/web/dist/` へ出力します。`typecheck:ios` は iOS アプリの型チェックです。テストは両方のパッケージで動き、状態遷移、警告・表示期限の境界、経過時間、21席の配置などを検証します。
 
 ## 操作と保存
 
@@ -99,6 +101,26 @@ npm run deploy:preview  # 開発：table-check-dev の test プレビューチ�
 - ヘッダーの時刻の左に「送信待ち」または「オフライン（声かけに戻ってください）」を表示します。キャッシュ由来の状態を優先してオフラインと表示します。同期完了時は表示しません。
 - 起動時と10分ごとにサーバーとの時差を計測し、最後に成功した補正値を `table-check:offset` に保存します。保存先は `startServerClock` に渡します（Web は localStorage）。
 - 人間のログインとデプロイ後、2つのブラウザで同じ卓の操作が同期されること、オフラインで操作後に復帰すると送信されること、未認証の REST 書き込みが拒否されることを確認してください。
+
+## iOS アプリ（Expo）
+
+`apps/ios` は Expo（React Native）のアプリです。ロジックは `packages/core` を Web と共有し、Firestore には Firebase の JS SDK でつなぎます。
+
+### 実機で動かす（Expo Go）
+
+1. `apps/ios/.env.example` を `apps/ios/.env.development.local` にコピーし、開発用プロジェクト（`table-check-dev`）の値を記入します。値は Web の `apps/web/.env.development.local` と同じで、変数名の頭が `VITE_` ではなく `EXPO_PUBLIC_` になります。
+2. iPhone か iPad に App Store から「Expo Go」を入れ、Mac と同じ Wi-Fi につなぎます。
+3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます。
+
+画面には卓ごとの状態・人数・タイマーが出ます。ヘッダー右の `v1.2.0 · table-check-dev` で、版とつないでいるプロジェクトを確かめられます。Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が、数秒以内に反映されます。
+
+### Web と違うところ
+
+- ログイン状態は AsyncStorage に保存し、アプリを開き直しても同じ匿名の利用者になります。
+- Firestore のキャッシュはメモリだけです（React Native では IndexedDB が使えないため）。開いている間は電波が切れても動きますが、圏外のままアプリを起動し直すと空になります。
+- 時計合わせの時差は AsyncStorage に保存します。
+- React は Expo の SDK が決めた版（今は 19.2.3）を使います。Web（19.3）と版が違いますが、iOS のアプリの中では1つにまとまります（Expo の autolinking による解決）。`npx expo-doctor` は、この違いを「重複」として報告します。
+- 依存を足すときは、`apps/ios` で `npx expo install <パッケージ>` を使います。SDK に合う版を選んでくれます。
 
 ## バージョンとリリース
 
