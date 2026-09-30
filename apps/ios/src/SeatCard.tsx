@@ -48,13 +48,18 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
   const cardStyle = [frame, styles.card, { backgroundColor: mix(st, 12), borderColor: fade(st, 45) }, picking && styles.pickDisabled];
   const label = `${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''} ${STATUS_LABEL[display]} ${timer.label} ${timerText}${alert.reason ? ` ${REASONS[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const open = () => { feedback.open(); onOpen(session, seat.id); };
+  const guestLabel = guests === undefined ? null : guests === null ? '?名' : `${guests}名`;
+  const guestStyle = [styles.guests, guests === null && styles.unknown, mini && styles.miniGuests];
+  // スマホの横長のカードは低いので、人数を卓番の横に並べる（細いカードだけ卓番の下の行）
+  const guestsInline = mini && seat.colSpan > 1;
   const number = (
-    <Text style={[styles.number, mini && styles.miniNumber]}>
+    <Text style={[styles.number, mini && styles.miniNumber]} numberOfLines={1}>
       {seat.id}{groupMark !== '' && <Text style={[styles.group, { color: st }]}> {groupMark}</Text>}
       {mini && paid && <Text style={styles.paidInline}> ¥✓</Text>}
+      {guestsInline && guestLabel && <Text style={guestStyle}> {guestLabel}</Text>}
     </Text>
   );
-  const guestText = guests === undefined ? null : <Text style={[styles.guests, guests === null && styles.unknown, mini && styles.miniGuests]}>{guests === null ? '?名' : `${guests}名`}</Text>;
+  const guestText = guestLabel === null || guestsInline ? null : <Text style={guestStyle}>{guestLabel}</Text>;
   const timerView = <Text style={[styles.timer, mini && styles.miniTimer, seat.kind === 'counter' && !mini && styles.counterTimer, timer.elapsedMs === null && styles.stopped, TABULAR]} numberOfLines={1} adjustsFontSizeToFit>{timerText}</Text>;
 
   if (mini) {
@@ -96,7 +101,8 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
   return (
     <Pressable accessibilityLabel={label} accessibilityHint="長押しで詳細" onLongPress={open} delayLongPress={600} disabled={picking}
       style={({ pressed }) => [...cardStyle, styles.table, compact && styles.compact, pressed && { borderColor: st, borderWidth: 3 }]}>
-      <View style={styles.corner}>{number}{guestText}</View>
+      {/* 上段の低いカード・縦向きの細いカードは、人数を卓番の下に重ねる（状態名と横に並ぶ幅が無い） */}
+      <View style={[styles.corner, (compact || narrow) && styles.cornerStacked]}>{number}{guestText}</View>
       <Pressable accessibilityRole="button" accessibilityState={{ selected: paid }} disabled={picking}
         accessibilityLabel={paid ? 'お会計済み（押すと未払いに戻す）' : '未払い（押すとお会計済みにする）'}
         onPress={() => { feedback.tap(); onPay(session); }} hitSlop={6}
@@ -142,10 +148,11 @@ const styles = StyleSheet.create({
   reason: { fontSize: 14, fontWeight: '700', textAlign: 'center' },
   table: { padding: 8, paddingTop: 40, justifyContent: 'center', gap: 3 },
   compact: { paddingHorizontal: 6, paddingTop: 4, paddingBottom: 4, gap: 2 },
-  compactStatus: { fontSize: 18, paddingLeft: 22, paddingRight: 38 },
+  compactStatus: { fontSize: 18, paddingLeft: 34, paddingRight: 38 },
   compactRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
-  compactLeft: { flex: 1, alignItems: 'center' },
+  compactLeft: { flex: 1, alignItems: 'center', paddingLeft: 30 },
   corner: { position: 'absolute', left: 8, top: 6, right: 80, flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  cornerStacked: { left: 6, top: 5, right: undefined, flexDirection: 'column', alignItems: 'flex-start', gap: 2 },
   pay: { position: 'absolute', top: 4, right: 4, minHeight: 32, paddingHorizontal: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.muted, borderRadius: 16, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   payShort: { minWidth: 32, paddingHorizontal: 6 },
   paid: { borderStyle: 'solid', borderColor: COLORS.text, backgroundColor: COLORS.text },
