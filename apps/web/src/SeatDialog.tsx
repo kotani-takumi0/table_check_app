@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { GUESTS_MAX, type Course } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
+import { MenuPicker } from './MenuPicker';
 
 interface Props {
   tableId: string;
   exited: boolean;           // 退店済の卓への案内
   previousUnpaid: boolean;   // 退店した前のお客さんがお会計前のまま
-  onSeat(guests: number | null, course: Course | null): void;
+  onSeat(guests: number | null, course: Course | null, menu: string | null): void;
   onClose(): void;
   returnFocus: HTMLElement | null;
 }
@@ -17,6 +18,8 @@ const QUICK_GUESTS = [1, 2, 3, 4, 5, 6, 7, 8];
 export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, returnFocus }: Props) {
   const cancel = useRef<HTMLButtonElement>(null);
   const [course, setCourse] = useState<Course | null>(null);
+  // どのコースか。コースを選んだときだけ聞く（任意）
+  const [menu, setMenu] = useState<string | null>(null);
   // 「9名以上」を押したら −／＋ で選ぶ
   const [many, setMany] = useState<number | null>(null);
   useEffect(() => {
@@ -28,7 +31,7 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, r
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  const seat = (guests: number | null) => { onSeat(guests, course); onClose(); };
+  const seat = (guests: number | null) => { onSeat(guests, course, course === null ? null : menu); onClose(); };
   const describedBy = [exited && 'seat-dialog-message', exited && previousUnpaid && 'seat-dialog-warning'].filter(Boolean).join(' ') || undefined;
   return <div className="panel-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel" role={exited ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="seat-dialog-title" aria-describedby={describedBy}>
@@ -38,6 +41,10 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, r
       <div className="guest-picker">
         <span id="seat-dialog-course" className="guest-question">コース</span>
         <CoursePicker value={course} onChange={setCourse} labelledBy="seat-dialog-course" />
+        {course !== null && <>
+          <span id="seat-dialog-menu" className="menu-question">どのコースですか？（あとでも選べます）</span>
+          <MenuPicker value={menu} onChange={setMenu} labelledBy="seat-dialog-menu" />
+        </>}
       </div>
       <div className="guest-picker" role="group" aria-labelledby="seat-dialog-guests">
         <span id="seat-dialog-guests" className="guest-question">何名様ですか？</span>

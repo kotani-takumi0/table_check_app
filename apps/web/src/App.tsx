@@ -17,7 +17,7 @@ import { useSessions } from '@table-check/core/useSessions';
 import { now } from '@table-check/core/clock';
 
 export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, moveTo, addTo, release, clearAll } = useSessions(store);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
@@ -130,8 +130,8 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />)}
     </section>
-    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
-    {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course) => seat(seating, guests, course)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
