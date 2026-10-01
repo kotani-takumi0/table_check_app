@@ -113,7 +113,7 @@ npm run deploy:preview  # 開発：table-check-dev の test プレビューチ�
    - 実機の iPhone／iPad では、**Expo Go と Mac の Expo CLI が同じ Expo アカウントでログインしていないと開けません**。アカウント（無料）を https://expo.dev/signup で作り、Mac で `apps/ios` に移って `npx expo login` を実行し、Expo Go でも右上のアイコンから同じアカウントでログインします。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます（Expo Go を入れていないと「使用可能なデータがありません」と出ます）。`apps/ios` 以外で `npx expo start` を実行すると、その場所に `tsconfig.json` と `.expo/` が作られるので注意してください。
 
-ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v1.2.0` で版を確かめられます。開発中は開発用プロジェクト（`table-check-dev`）につながるので、Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が数秒以内に反映されます。
+ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。開発中は開発用プロジェクト（`table-check-dev`）につながるので、Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が数秒以内に反映されます。
 
 #### つながらないとき（トンネル接続）
 
