@@ -41,6 +41,21 @@ describe('Firestore document mapping', () => {
     expect(toSessionDoc(seated)).toHaveProperty('course', null);
     expect(toSessionDoc({ ...seated, course: 'drinks' }).course).toBe('drinks');
   });
+  it('menu・dishesServed が無い古い文書はコース未選択・まだ出していないとして読み、不正な値は拒否する', () => {
+    const course = { ...data, course: 'drinks' };
+    expect(fromSessionDoc('session', course)).toMatchObject({ menu: null, dishesServed: 0 });
+    expect(fromSessionDoc('session', { ...course, menu: 'cheese', dishesServed: 3 })).toMatchObject({ menu: 'cheese', dishesServed: 3 });
+    for (const bad of [{ menu: 'x' }, { menu: 1 }, { dishesServed: -1 }, { dishesServed: 1.5 }, { dishesServed: '1' }]) {
+      expect(fromSessionDoc('session', { ...course, ...bad })).toBeNull();
+    }
+  });
+  it('通常の卓のメニューは読まず、出した品数はメニューの品数までに収める', () => {
+    expect(fromSessionDoc('session', { ...data, menu: 'cheese', dishesServed: 3 })).toMatchObject({ menu: null, dishesServed: 0 });
+    expect(fromSessionDoc('session', { ...data, course: 'drinks', menu: 'nijikai', dishesServed: 20 })?.dishesServed).toBe(5);
+  });
+  it('未選択でも menu: null と dishesServed を書く（古いアプリの上書きを見分けるため）', () => {
+    expect(toSessionDoc(seated)).toMatchObject({ menu: null, dishesServed: 0 });
+  });
   it('複数卓を許可する', () => {
     expect(fromSessionDoc('session', { ...data, tableIds: ['31', '33'] })?.tableIds).toEqual(['31', '33']);
   });
