@@ -89,23 +89,27 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
   // テーブル：カードの中の「次の状態」ボタンで進め、右上で会計を切り替える
   const payLabel = compact || narrow ? (paid ? '¥✓' : '¥') : paid ? '会計済み' : '未払い';
   const nextButton = next
-    ? <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onNext(session); }} disabled={picking}
+    ? <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onNext(session); }} onLongPress={open} delayLongPress={600} disabled={picking}
       style={({ pressed }) => [styles.next, { borderColor: fade(st, 40), backgroundColor: mix(st, 8) }, compact && styles.compactNext, pressed && styles.nextPressed]}>
       <Text style={styles.nextLabel} numberOfLines={2} adjustsFontSizeToFit>{STATUS_CARD[displayOf(next, session.course)]}</Text>
     </Pressable>
-    : exited && <Pressable accessibilityRole="button" accessibilityLabel={`${seat.id}番 ご案内`} onPress={() => { feedback.tap(); onSeat(seat.id); }} disabled={picking}
+    : exited && <Pressable accessibilityRole="button" accessibilityLabel={`${seat.id}番 ご案内`} onPress={() => { feedback.tap(); onSeat(seat.id); }} onLongPress={open} delayLongPress={600} disabled={picking}
       style={({ pressed }) => [styles.next, { borderColor: fade(st, 40), backgroundColor: mix(st, 8) }, compact && styles.compactNext, pressed && styles.nextPressed]}>
       <Text style={styles.nextLabel}>ご案内</Text>
     </Pressable>;
   const reason = alert.reason && <Text style={[styles.reason, { color: st }]} numberOfLines={1} adjustsFontSizeToFit>{REASONS[alert.reason]}</Text>;
   return (
-    <Pressable accessibilityLabel={label} accessibilityHint="長押しで詳細" onLongPress={open} delayLongPress={600} disabled={picking}
+    // カードの中のボタンも長押しで詳細を開く（指を離しても進めたり会計したりしない）。
+    // VoiceOver では、カード全体を1つにまとめず、卓の情報（ダブルタップで詳細）・会計・次の状態を別々に読む
+    <Pressable accessible={false} onLongPress={open} delayLongPress={600} disabled={picking}
       style={({ pressed }) => [...cardStyle, styles.table, compact && styles.compact, pressed && { borderColor: st, borderWidth: 3 }]}>
       {/* 上段の低いカード・縦向きの細いカードは、人数を卓番の下に重ねる（状態名と横に並ぶ幅が無い） */}
-      <View style={[styles.corner, (compact || narrow) && styles.cornerStacked]}>{number}{guestText}</View>
+      <View accessible accessibilityRole="button" accessibilityLabel={label} accessibilityHint="ダブルタップで詳細" accessibilityState={{ disabled: picking }}
+        accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={() => { if (!picking) open(); }}
+        style={[styles.corner, (compact || narrow) && styles.cornerStacked]}>{number}{guestText}</View>
       <Pressable accessibilityRole="button" accessibilityState={{ selected: paid }} disabled={picking}
         accessibilityLabel={paid ? 'お会計済み（押すと未払いに戻す）' : '未払い（押すとお会計済みにする）'}
-        onPress={() => { feedback.tap(); onPay(session); }} hitSlop={6}
+        onPress={() => { feedback.tap(); onPay(session); }} onLongPress={open} delayLongPress={600} hitSlop={6}
         style={({ pressed }) => [styles.pay, (compact || narrow) && styles.payShort, paid && styles.paid, pressed && { opacity: 0.6 }]}>
         <Text style={[styles.payLabel, paid && styles.paidLabel]}>{payLabel}</Text>
       </Pressable>
