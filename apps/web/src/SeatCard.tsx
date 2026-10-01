@@ -80,7 +80,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
     {/* スマホは会計済みの印を卓番の横に並べる（小さいカードで重ならないように） */}
     <span className="seat-number">{seat.id}{others.length > 0 && <span className="group-mark">+{others.length <= 2 ? others.join('+') : `${others.length}卓`}</span>}
       {mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}
-      {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}>{guests === null ? '?名' : `${guests}名`}</span>}</span>
+      {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
     {session && timer && display && <>
       {/* カウンター・スマホ・縦向きの細いテーブルは幅が無いので短縮ラベル */}
       <strong className="status">{seat.kind === 'table' && !mini && seat.colSpan > 1 ? STATUS_CARD[display] : STATUS_SHORT[display]}</strong>
