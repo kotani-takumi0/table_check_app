@@ -4,12 +4,23 @@
 export interface CourseMenu {
   id: string;
   name: string;
-  short: string;      // 選ぶボタン用の短い名前
+  price: number;      // 税込の値段（円）。お店ではコースを値段で呼ぶので、選ぶボタンは値段を大きく出す
+  short: string;      // 選ぶボタン用の短い名前（同じ値段のコースを見分ける）
   dishes: string[];   // 提供順
 }
+// 選ぶボタンに並べる順（値段の安い順）
 export const COURSE_MENUS: readonly CourseMenu[] = [
   {
-    id: 'casual', name: 'カジュアルメキシカンコース', short: 'カジュアル', dishes: [
+    id: 'nijikai', price: 1500, name: '二次会Mexicanコース', short: '二次会', dishes: [
+      'プレミアムアボカドのワカモレ・フレスコ＆トルティーヤチップ',
+      'チチャロン＆2種の自家製テーブルサルサ',
+      '新鮮魚介のメキシカンクラシック・セビーチェ',
+      '4種のチーズ ケサディーヤ',
+      'MUCHO特製フラワートルティーヤのメキシカンタコス',
+    ],
+  },
+  {
+    id: 'casual', price: 3000, name: 'カジュアルメキシカンコース', short: 'カジュアル', dishes: [
       'プレミアムアボカドのワカモレ・フレスコ＆トルティーヤチップ',
       'チチャロン＆2種の自家製テーブルサルサ',
       '新鮮魚介のセビーチェ',
@@ -21,7 +32,7 @@ export const COURSE_MENUS: readonly CourseMenu[] = [
     ],
   },
   {
-    id: 'meat_share', name: 'TEX-MEX ミートシェアコース', short: 'ミートシェア', dishes: [
+    id: 'meat_share', price: 4000, name: 'TEX-MEX ミートシェアコース', short: 'ミートシェア', dishes: [
       '2種のテーブルサルサ＆プレミアムアボカドのワカモレ・フレスコ',
       '新鮮魚介のセビーチェ',
       '具沢山コブサラダ',
@@ -33,7 +44,7 @@ export const COURSE_MENUS: readonly CourseMenu[] = [
     ],
   },
   {
-    id: 'cheese', name: 'メキシカンチーズコース', short: 'チーズ', dishes: [
+    id: 'cheese', price: 4000, name: 'メキシカンチーズコース', short: 'チーズ', dishes: [
       'プレミアムアボカドのワカモレ・フレスコ＆トルティーヤチップ',
       '新鮮魚介のセビーチェ',
       'チチャロン＆2種の自家製テーブルサルサ',
@@ -46,7 +57,7 @@ export const COURSE_MENUS: readonly CourseMenu[] = [
     ],
   },
   {
-    id: 'premium', name: 'プレミアムメキシカンコース', short: 'プレミアム', dishes: [
+    id: 'premium', price: 5000, name: 'プレミアムメキシカンコース', short: 'プレミアム', dishes: [
       'プレミアムアボカドのワカモレ・フレスコ＆トルティーヤチップ',
       '新鮮魚介のセビーチェ・クラシコ',
       '神の海老のメキシカン・シュリンプカクテル',
@@ -58,18 +69,13 @@ export const COURSE_MENUS: readonly CourseMenu[] = [
       'バニラアイス with メキシカンスパイス Tajin',
     ],
   },
-  {
-    id: 'nijikai', name: '二次会Mexicanコース', short: '二次会', dishes: [
-      'プレミアムアボカドのワカモレ・フレスコ＆トルティーヤチップ',
-      'チチャロン＆2種の自家製テーブルサルサ',
-      '新鮮魚介のメキシカンクラシック・セビーチェ',
-      '4種のチーズ ケサディーヤ',
-      'MUCHO特製フラワートルティーヤのメキシカンタコス',
-    ],
-  },
 ];
 export function menuOf(id: string | null): CourseMenu | null {
   return COURSE_MENUS.find(menu => menu.id === id) ?? null;
+}
+export function priceLabel(menu: CourseMenu): string {
+  // iOS（Hermes）でも同じ表示になるよう、桁区切りは自分で入れる
+  return `${String(menu.price).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}円`;
 }
 export function isMenuId(value: unknown): value is string {
   return typeof value === 'string' && menuOf(value) !== null;

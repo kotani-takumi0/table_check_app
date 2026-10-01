@@ -210,7 +210,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 /* どのコースか：未定＋5コース。コースの欄の下（詳細パネルは「料理」の行）に出す */
 .menu-question { font-size: 14px; color: var(--muted); }
 .menu-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
-.menu-picker .course-option { font-size: 13px; word-break: keep-all; }
+.menu-picker .course-option { font-size: 15px; word-break: keep-all; }
 /* 料理の進み：出した料理に ✓、次に出す料理を太字で囲む */
 .dish-section { display: flex; flex-direction: column; gap: 8px; }
 .dish-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
