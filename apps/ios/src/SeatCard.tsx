@@ -48,7 +48,9 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
   const cardStyle = [frame, styles.card, { backgroundColor: mix(st, 12), borderColor: fade(st, 45) }, picking && styles.pickDisabled];
   const label = `${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''} ${STATUS_LABEL[display]} ${timer.label} ${timerText}${alert.reason ? ` ${REASONS[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const open = () => { feedback.open(); onOpen(session, seat.id); };
-  const guestLabel = guests === undefined ? null : guests === null ? '?名' : `${guests}名`;
+  // ひと目で読めるよう、数字だけを大きく太くし「名」は小さく添える
+  const guestLabel = guests === undefined ? null
+    : <><Text style={[styles.guestNum, (compact || narrow) && styles.stackedGuestNum, mini && styles.miniGuestNum, guests === null && styles.unknownNum, TABULAR]}>{guests ?? '?'}</Text>名</>;
   const guestStyle = [styles.guests, guests === null && styles.unknown, mini && styles.miniGuests];
   // スマホの横長のカードは低いので、人数を卓番の横に並べる（細いカードだけ卓番の下の行）
   const guestsInline = mini && seat.colSpan > 1;
@@ -140,9 +142,13 @@ const styles = StyleSheet.create({
   number: { fontSize: 14, fontWeight: '500', color: COLORS.text },
   miniNumber: { fontSize: 11, lineHeight: 13 },
   group: { fontSize: 12, fontWeight: '700' },
-  guests: { fontSize: 13, fontWeight: '700', color: COLORS.text },
-  miniGuests: { fontSize: 10, lineHeight: 13 },
-  unknown: { color: COLORS.muted, fontWeight: '400' },
+  guests: { fontSize: 15, fontWeight: '500', color: COLORS.text },
+  guestNum: { fontSize: 28, fontWeight: '900' },
+  stackedGuestNum: { fontSize: 20 },
+  miniGuests: { fontSize: 10, lineHeight: 15 },
+  miniGuestNum: { fontSize: 13 },
+  unknown: { color: COLORS.muted },
+  unknownNum: { fontWeight: '500' },
   timer: { fontSize: 21, color: COLORS.text, textAlign: 'center' },
   counterTimer: { fontSize: 14 },
   miniTimer: { fontSize: 12, lineHeight: 13 },
