@@ -2,7 +2,7 @@
 
 アプリの見た目の決めごとを1か所に置いた場所です。`apps/web/src/App.css` と React コンポーネントから起こしたもので、アプリのビルドには入りません。読み物と定義だけです。
 
-中身の本体は [project/README.md](project/README.md)。色の使い分け、コントラストの実測値、面の重ね方はそこに書いてあります。まずそれを読んでください。
+中身の本体は [project/README.md](project/README.md)。色はアイコンのウチワサボテンから作った4色（地・操作・いま対応・もうすぐ）の役割だけで、状態ごとの色は使わず段階は文字で出します。色の使い分け、コントラストの実測値、面の重ね方はそこに書いてあります。まずそれを読んでください。
 
 ## どこから来たか
 
@@ -18,7 +18,7 @@ claude.ai のデザインシステム・アーティファクトの `project/` �
 | パス | 役割 |
 | --- | --- |
 | `project/design-system.json` | 索引。`title` が系の名前。**更新は必ず最後** |
-| `project/tokens.json` | トークン本体。色13・書体3群・余白7・角丸7・寸法8・枠4・不透明度3・z-index 2 |
+| `project/tokens.json` | トークン本体。色（役割20＋4色×12段のスケール）・書体3群・余白7・角丸7・寸法8・枠4・不透明度3・z-index 2 |
 | `project/README.md` | ブランドブック。守っていること、コントラスト実測 |
 | `project/density.md` | 卓カードの密度4段（標準 / compact / narrow / mini） |
 | `project/components/bundle.css` | `apps/web/src/App.css` を持ち込んだスタイルシート |
@@ -41,4 +41,4 @@ claude.ai のデザインシステム・アーティファクトの `project/` �
 
 ## ローカルで見るとき
 
-プレビューHTMLは `var(--seated)` などを参照していますが、それを `:root` に出す `tokens.css` はアーティファクト側の生成物なので、ここにはありません。ブラウザで直接開くと色が出ません。確認したいときは `project/tokens.json` からローカル用の `tokens.css` を作ってください。
+プレビューHTMLは `var(--action)` などを参照していますが、それを `:root` に出す `tokens.css` はアーティファクト側の生成物なので、ここにはありません。ブラウザで直接開くと色が出ません。確認したいときは `project/tokens.json` からローカル用の `tokens.css` を作ってください。
