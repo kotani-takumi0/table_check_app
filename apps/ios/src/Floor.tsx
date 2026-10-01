@@ -48,7 +48,8 @@ export function Floor({ sessions, time, portrait, mini, picking, onSeat, onNext,
   const gy = mini ? 4 : portrait ? 6 : 12;
   const cellW = (size.width - gx * (grid.cols - 1)) / grid.cols;
   // スマホは3行（卓番・状態・タイマー）が読める高さを確保し、足りなければ縦にスクロール
-  const cellH = Math.max(mini ? 44 : 0, (size.height - gy * (grid.rows - 1)) / grid.rows);
+  // 3行の行の高さ（13pt×3）と余白・枠で 48pt あれば足りる（SeatCard の mini の行の高さを変えたらここも合わせる）
+  const cellH = Math.max(mini ? 48 : 0, (size.height - gy * (grid.rows - 1)) / grid.rows);
   const contentHeight = cellH * grid.rows + gy * (grid.rows - 1);
   const x = (col: number) => (col - 1) * (cellW + gx);
   const y = (row: number) => (row - 1) * (cellH + gy);
