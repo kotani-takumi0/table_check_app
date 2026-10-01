@@ -1,0 +1,21 @@
+import { lastOrderDue, startOf, type Session } from './domain';
+import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from './shopTimers';
+
+// 閉じるまで画面に残す通知。key は「閉じる」をその端末に覚えるのに使う
+export type Notice =
+  | { key: string; tone: 'warning'; message: string; kind: 'last_order'; session: Session }
+  | { key: string; tone: 'danger'; message: string; kind: 'shop_timer'; timerId: ShopTimerId };
+// 通知の中のボタン。L.O.確認済みにする・トイレを済にする
+export const NOTICE_ACTION: Record<Notice['kind'], string> = { last_order: 'L.O.確認済みにする', shop_timer: '済にする' };
+// L.O. の通知（数え始めが古い順）のあとに、トイレの通知を並べる
+// 数え始めの時刻（案内・ファーストドリンク）を直したら、閉じた通知も別の通知として出し直す
+export function noticesOf(sessions: Session[], shopTimers: ShopTimerDone, now: number): Notice[] {
+  const lastOrder = lastOrderDue(sessions, now).map((session): Notice => ({
+    key: `lo:${session.id}:${startOf(session)}`, tone: 'warning', message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`, kind: 'last_order', session,
+  }));
+  const shop = SHOP_TIMERS.flatMap((timer): Notice[] => {
+    const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], now);
+    return state.due ? [{ key: `${timer.id}:${state.dueAt}`, tone: 'danger', message: `${timer.label}の時間です`, kind: 'shop_timer', timerId: timer.id }] : [];
+  });
+  return [...lastOrder, ...shop];
+}

@@ -9,7 +9,7 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 | 場所 | 中身 |
 |---|---|
 | `apps/web` | Web アプリ（`@table-check/web`）。画面・CSS・Firebase の初期化と、Firebase を使わないときの localStorage の保存先 |
-| `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。今は土台だけで、卓ごとの状態を一覧で出す（操作と見た目は Notion No.057） |
+| `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。Web と同じフロア図と操作を、iOS の部品（シート・時刻ピッカー・触覚フィードバック）で作る |
 | `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
 
 Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンは Notion の Top ページと同じ画像で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
@@ -113,7 +113,7 @@ npm run deploy:preview  # 開発：table-check-dev の test プレビューチ�
    - 実機の iPhone／iPad では、**Expo Go と Mac の Expo CLI が同じ Expo アカウントでログインしていないと開けません**。アカウント（無料）を https://expo.dev/signup で作り、Mac で `apps/ios` に移って `npx expo login` を実行し、Expo Go でも右上のアイコンから同じアカウントでログインします。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます（Expo Go を入れていないと「使用可能なデータがありません」と出ます）。`apps/ios` 以外で `npx expo start` を実行すると、その場所に `tsconfig.json` と `.expo/` が作られるので注意してください。
 
-ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面には卓ごとの状態・人数・タイマーが出ます。ヘッダー右の `v1.2.0 · table-check-dev` で、版とつないでいるプロジェクトを確かめられます。Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が、数秒以内に反映されます。
+ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v1.2.0` で版を確かめられます。開発中は開発用プロジェクト（`table-check-dev`）につながるので、Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が数秒以内に反映されます。
 
 #### つながらないとき（トンネル接続）
 
@@ -126,6 +126,12 @@ LAN より読み込みが遅くなります。トンネルの URL は誰でも�
 
 ### Web と違うところ
 
+- ご案内・詳細パネル・トイレ・全卓消去は、下から出る iOS のシートで開きます。詳細パネルからご案内に移るときは、同じシートの中で切り替えます。
+- 時刻の修正は iOS の時刻ピッカーで選び、「修正」で保存します。
+- 案内・状態を進める・長押し・会計などで触覚フィードバックを返します。開いている間は画面がスリープしません。
+- 長押しは Web と同じ 600ms です。
+- 色はライトモードだけです（Web は端末の設定でダークモードにもなります）。
+- お客さんの ID は `expo-crypto` で作ります（React Native には `crypto.randomUUID` が無いため）。
 - ログイン状態は AsyncStorage に保存し、アプリを開き直しても同じ匿名の利用者になります。
 - Firestore のキャッシュはメモリだけです（React Native では IndexedDB が使えないため）。開いている間は電波が切れても動きますが、圏外のままアプリを起動し直すと空になります。
 - 時計合わせの時差は AsyncStorage に保存します。

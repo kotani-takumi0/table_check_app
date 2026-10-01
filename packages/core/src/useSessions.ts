@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, setCourse, setGuests, togglePaid, type Course, type EditableTime, type Session } from './domain';
 import type { SessionStore } from './store';
 import { now } from './clock';
-export function useSessions(store: SessionStore): {
+// createId はお客さん（セッション）の ID を作る。React Native には crypto.randomUUID が無いので、iOS は expo-crypto を渡す
+const randomId = () => crypto.randomUUID();
+export function useSessions(store: SessionStore, createId: () => string = randomId): {
   sessions: Session[];
   seat(tableId: string, guests?: number | null, course?: Course | null): void;
   next(session: Session): void;
@@ -19,8 +21,8 @@ export function useSessions(store: SessionStore): {
   const [sessions, setSessions] = useState<Session[]>([]);
   useEffect(() => store.subscribe(setSessions), [store]);
   const seat = useCallback((tableId: string, guests: number | null = null, course: Course | null = null) => {
-    void store.put(newSession(crypto.randomUUID(), tableId, now(), guests, course));
-  }, [store]);
+    void store.put(newSession(createId(), tableId, now(), guests, course));
+  }, [store, createId]);
   const next = useCallback((session: Session) => { void store.put(advance(session, now())); }, [store]);
   const back = useCallback((session: Session) => {
     const previous = revert(session);
