@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { alertOf, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Session } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Session } from '@table-check/core/domain';
 import type { Seat } from '@table-check/core/layout';
 import { COLORS, fade, mix, stateColor, TABULAR } from './theme';
 import { feedback } from './feedback';
@@ -62,6 +62,10 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
     </Text>
   );
   const guestText = guestLabel === null || guestsInline ? null : <Text style={guestStyle}>{guestLabel}</Text>;
+  // コースの料理の進み（3/8）。人数と同じくテーブル卓だけ、スマホの小さいカードには出さない。
+  // 上段の低いカード・縦向きの細いカードは幅が無いので「料理」を付けない
+  const progress = seat.kind === 'table' && !mini ? dishProgress(session) : null;
+  const dishText = progress && <Text style={[styles.dishes, TABULAR]}>{compact || narrow ? '' : <Text style={styles.dishLabel}>料理 </Text>}{progress.served}/{progress.total}</Text>;
   const timerView = <Text style={[styles.timer, mini && styles.miniTimer, seat.kind === 'counter' && !mini && styles.counterTimer, timer.elapsedMs === null && styles.stopped, TABULAR]} numberOfLines={1} adjustsFontSizeToFit>{timerText}</Text>;
 
   if (mini) {
@@ -108,7 +112,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
       {/* 上段の低いカード・縦向きの細いカードは、人数を卓番の下に重ねる（状態名と横に並ぶ幅が無い） */}
       <View accessible accessibilityRole="button" accessibilityLabel={label} accessibilityHint="ダブルタップで詳細" accessibilityState={{ disabled: picking }}
         accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={() => { if (!picking) open(); }}
-        style={[styles.corner, (compact || narrow) && styles.cornerStacked]}>{number}{guestText}</View>
+        style={[styles.corner, (compact || narrow) && styles.cornerStacked]}>{number}{guestText}{dishText}</View>
       <Pressable accessibilityRole="button" accessibilityState={{ selected: paid }} disabled={picking}
         accessibilityLabel={paid ? 'お会計済み（押すと未払いに戻す）' : '未払い（押すとお会計済みにする）'}
         onPress={() => { feedback.tap(); onPay(session); }} onLongPress={open} delayLongPress={600} hitSlop={6}
@@ -149,6 +153,8 @@ const styles = StyleSheet.create({
   miniGuestNum: { fontSize: 13 },
   unknown: { color: COLORS.muted },
   unknownNum: { fontWeight: '500' },
+  dishes: { fontSize: 14, fontWeight: '700', color: COLORS.first_drink },
+  dishLabel: { fontSize: 11, fontWeight: '500' },
   timer: { fontSize: 21, color: COLORS.text, textAlign: 'center' },
   counterTimer: { fontSize: 14 },
   miniTimer: { fontSize: 12, lineHeight: 13 },

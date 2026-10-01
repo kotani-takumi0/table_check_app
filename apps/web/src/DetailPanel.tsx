@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { clockTimeNear, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from '@table-check/core/domain';
+import { clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
+import { MenuPicker } from './MenuPicker';
+import { menuOf } from '@table-check/core/courseMenus';
 
 interface Props {
   session: Session;
@@ -13,6 +15,9 @@ interface Props {
   onPay(session: Session): void;
   onGuests(session: Session, guests: number | null): void;
   onCourse(session: Session, course: Course | null): void;
+  onMenu(session: Session, menu: string | null): void;
+  onServe(session: Session): void;     // コースの次の料理を出した
+  onUnserve(session: Session): void;   // 1品戻す
   from: string;                 // パネルを開いた卓（移動するのはこの卓）
   onPick(mode: 'move' | 'add'): void;
   onRelease(session: Session, tableId: string): void;
@@ -30,7 +35,7 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
     {error && <span className="time-error" role="alert">{order} の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, from, onPick, onRelease, returnFocus }: Props) {
+export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -53,6 +58,8 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
   const otoshiLabel = session.course === null ? 'お通し' : 'ドリンク';
   const order = `案内 → ${session.course === null ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
+  const progress = dishProgress(session);
+  const dishes = menuOf(session.menu)?.dishes ?? [];
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
@@ -73,6 +80,24 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
         <span id="panel-course">コース</span>
         <CoursePicker value={session.course} onChange={course => onCourse(session, course)} labelledBy="panel-course" />
       </div>
+      {session.course !== null && <div className="time-row">
+        <span id="panel-menu">料理</span>
+        <MenuPicker value={session.menu} onChange={menu => onMenu(session, menu)} labelledBy="panel-menu" />
+      </div>}
+      {/* 料理はメニューの順に1品ずつ進める。出した料理に印を付け、次に出す料理を目立たせる */}
+      {progress && <div className="dish-section">
+        <ol className="dish-list" aria-label={`料理 ${progress.total}品中${progress.served}品提供済み`}>
+          {dishes.map((dish, i) => <li key={i} className={i < progress.served ? 'served' : i === progress.served ? 'next' : ''} aria-current={i === progress.served ? 'step' : undefined}>
+            <span className="dish-mark" aria-hidden="true">{i < progress.served ? '✓' : i + 1}</span>{dish}
+          </li>)}
+        </ol>
+        <div className="panel-actions">
+          <button className="panel-button" disabled={progress.served === 0} onClick={() => onUnserve(session)}>1品戻す</button>
+          <button className="panel-button primary" disabled={progress.next === null} onClick={() => onServe(session)}>
+            {progress.next === null ? '全部出しました' : `${progress.served + 1}品目を出した`}
+          </button>
+        </div>
+      </div>}
       <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
       <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
       <div className="time-row">
