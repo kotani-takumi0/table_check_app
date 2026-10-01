@@ -26,7 +26,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
           return (
             <Pressable key={timer.id} accessibilityRole="button" accessibilityLabel={`${timer.label} ${rest}（押すと詳細）`} onPress={() => onShopTimerOpen(timer.id)}
               style={({ pressed }) => [styles.chip, mini && styles.miniChip, state.due && styles.due, pressed && styles.pressed]}>
-              <Text style={[styles.chipLabel, mini && styles.miniChipLabel, state.due && styles.dueLabel, TABULAR]} numberOfLines={1}>{timer.icon} {rest}</Text>
+              <Text style={[styles.chipLabel, mini && styles.miniChipLabel, state.due && styles.dueLabel, TABULAR]} numberOfLines={1} ellipsizeMode="tail">{timer.icon} {rest}</Text>
             </Pressable>
           );
         })}
@@ -46,8 +46,9 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
 const styles = StyleSheet.create({
   header: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
   miniHeader: { height: 36, gap: 6 },
-  shopTimers: { flexDirection: 'row', gap: 8, flexShrink: 1 },
-  chip: { minHeight: 34, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.line, borderRadius: 17, justifyContent: 'center' },
+  shopTimers: { flexDirection: 'row', gap: 8, flexShrink: 1, minWidth: 0 },
+  // 幅が足りないときはチップごと縮め、文字を省略する（Web の .shop-timer と同じ）
+  chip: { flexShrink: 1, minWidth: 0, minHeight: 34, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.line, borderRadius: 17, justifyContent: 'center' },
   miniChip: { minHeight: 28, paddingHorizontal: 8 },
   chipLabel: { fontSize: 13, color: COLORS.muted },
   miniChipLabel: { fontSize: 12 },
