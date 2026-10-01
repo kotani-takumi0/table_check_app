@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { clockTimeNear, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from '@table-check/core/domain';
+import { clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session } from '@table-check/core/domain';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
 import { PanelButton } from '../ui';
+import { menuOf } from '@table-check/core/courseMenus';
 import { CoursePicker } from './CoursePicker';
+import { MenuPicker } from './MenuPicker';
 import { GuestStepper } from './GuestStepper';
 import { sheet } from './common';
 
@@ -20,6 +22,9 @@ interface Props {
   onPay(session: Session): void;
   onGuests(session: Session, guests: number | null): void;
   onCourse(session: Session, course: Course | null): void;
+  onMenu(session: Session, menu: string | null): void;
+  onServe(session: Session): void;     // コースの次の料理を出した
+  onUnserve(session: Session): void;   // 1品戻す
   from: string;                   // パネルを開いた卓（移動するのはこの卓）
   onPick(mode: 'move' | 'add'): void;
   onRelease(session: Session, tableId: string): void;
@@ -44,13 +49,15 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
   );
 }
 // Web の DetailPanel と同じ中身
-export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, from, onPick, onRelease }: Props) {
+export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
   const display = displayOf(session.status, session.course);
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
   const otoshiLabel = session.course === null ? 'お通し' : 'ドリンク';
   const order = `案内 → ${session.course === null ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
+  const progress = dishProgress(session);
+  const dishes = menuOf(session.menu)?.dishes ?? [];
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
@@ -65,6 +72,30 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
       <Text style={sheet.rowLabel}>コース</Text>
       <CoursePicker value={session.course} onChange={course => onCourse(session, course)} />
     </View>
+    {session.course !== null && <View style={sheet.row}>
+      <Text style={sheet.rowLabel}>料理</Text>
+      <MenuPicker value={session.menu} onChange={menu => onMenu(session, menu)} />
+    </View>}
+    {/* 料理はメニューの順に1品ずつ進める。出した料理に印を付け、次に出す料理を目立たせる */}
+    {progress && <View style={styles.dishes}>
+      <View accessibilityLabel={`料理 ${progress.total}品中${progress.served}品提供済み`}>
+        {dishes.map((dish, i) => {
+          const served = i < progress.served;
+          const next = i === progress.served;
+          return (
+            <View key={i} style={[styles.dish, next && styles.nextDish]}>
+              <Text style={[styles.dishMark, served && sheet.muted, TABULAR]}>{served ? '✓' : i + 1}</Text>
+              <Text style={[styles.dishName, served && sheet.muted, next && styles.nextDishName]}>{dish}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <View style={sheet.actions}>
+        <PanelButton label="1品戻す" disabled={progress.served === 0} onPress={() => { feedback.step(); onUnserve(session); }} style={sheet.action} />
+        <PanelButton label={progress.next === null ? '全部出しました' : `${progress.served + 1}品目を出した`} tone="primary" disabled={progress.next === null}
+          onPress={() => { feedback.step(); onServe(session); }} style={sheet.action} />
+      </View>
+    </View>}
     <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
     <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
     <View style={sheet.row}>
@@ -113,6 +144,12 @@ const styles = StyleSheet.create({
   fix: { marginLeft: 'auto', minWidth: 72 },
   error: { fontSize: 14, color: COLORS.danger },
   grow: { flex: 1 },
+  dishes: { gap: 8 },
+  dish: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 2, borderColor: 'transparent' },
+  nextDish: { borderColor: COLORS.first_drink },
+  dishMark: { minWidth: 20, fontSize: 14, color: COLORS.text, textAlign: 'center' },
+  dishName: { flex: 1, fontSize: 14, lineHeight: 19, color: COLORS.text },
+  nextDishName: { fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 36, paddingLeft: 12, paddingRight: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 18 },
   chipAlone: { paddingRight: 12 },

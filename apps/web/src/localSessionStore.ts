@@ -1,4 +1,6 @@
+import { isMenuId } from '@table-check/core/courseMenus';
 import { isCourse, isGuestCount, type Session } from '@table-check/core/domain';
+import { withDefaults } from '@table-check/core/firestoreMapping';
 import type { SessionStore } from '@table-check/core/store';
 
 // Firebase の設定が無いときに使う、この端末のブラウザだけの保存先
@@ -15,6 +17,8 @@ function validSession(value: unknown): value is Session {
     && (s.paidAt === undefined || s.paidAt === null || timestamp(s.paidAt))
     && (s.guests === undefined || s.guests === null || isGuestCount(s.guests))
     && (s.course === undefined || s.course === null || isCourse(s.course))
+    && (s.menu === undefined || s.menu === null || isMenuId(s.menu))
+    && (s.dishesServed === undefined || (Number.isInteger(s.dishesServed) && (s.dishesServed as number) >= 0))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt));
@@ -24,8 +28,8 @@ export class LocalSessionStore implements SessionStore {
   private read(): Session[] {
     try {
       const value: unknown = JSON.parse(window.localStorage.getItem(KEY) ?? '[]');
-      // お会計・人数・コースを入れる前に保存したデータには paidAt・guests・course が無いので、未払い・人数未入力・通常として読む
-      return Array.isArray(value) ? value.filter(validSession).map(s => ({ ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null, course: s.course ?? null })) : [];
+      // お会計・人数・コース・料理を入れる前に保存したデータには無い項目があるので、Firestore と同じく補って読む
+      return Array.isArray(value) ? value.filter(validSession).map(s => withDefaults(s as unknown as Record<string, unknown>)) : [];
     } catch { return []; }
   }
   private notify(sessions: Session[]): void {

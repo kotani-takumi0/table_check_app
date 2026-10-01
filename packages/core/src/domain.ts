@@ -1,3 +1,5 @@
+import { menuOf } from './courseMenus';
+
 export type Status = 'seated' | 'otoshi' | 'lo_done' | 'exited';
 // コースは通常の「ご案内済み」「お通し提供済み」の位置に「開始待ち」「ファーストドリンク提供済み」が入る。
 // 状態の値は同じものを使い、表示（名前・色）だけ変える。L.O.確認済み以降は通常と同じ
@@ -34,13 +36,16 @@ export interface Session {
   paidAt: number | null;   // お会計済みの時刻。状態の進み・戻しとは独立
   guests: number | null;   // 人数（団体は全員の合計）。null は未入力
   course: Course | null;   // null は通常。コースは otoshiAt にファーストドリンクの時刻を入れる
+  menu: string | null;     // どのコースか（courseMenus の id）。コースのときだけ。null は未選択
+  dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
 }
 export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
 const MINUTE = 60_000;
-export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null): Session {
-  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course };
+export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
+  return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course,
+    menu: course !== null && menuOf(menu) ? menu : null, dishesServed: 0 };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -49,9 +54,34 @@ export function isGuestCount(value: unknown): value is number {
 export function setGuests(session: Session, guests: number | null): Session | null {
   return guests === null || isGuestCount(guests) ? { ...session, guests } : null;
 }
-// 案内のあとで通常とコースを直す。時刻はそのまま（コースにするとお通しの時刻をファーストドリンクとして読む）
+// 案内のあとで通常とコースを直す。時刻はそのまま（コースにするとお通しの時刻をファーストドリンクとして読む）。
+// 通常に戻したら、どのコースか・料理の進みも消す
 export function setCourse(session: Session, course: Course | null): Session | null {
-  return course === null || isCourse(course) ? { ...session, course } : null;
+  if (course === null) return { ...session, course, menu: null, dishesServed: 0 };
+  return isCourse(course) ? { ...session, course } : null;
+}
+// どのコースかを選び直す。選び間違いを直すときのために、出した品数はそのまま（新しいメニューの品数までに収める）
+export function setMenu(session: Session, menu: string | null): Session | null {
+  if (menu === null) return { ...session, menu, dishesServed: 0 };
+  const chosen = menuOf(menu);
+  if (session.course === null || !chosen) return null;
+  return { ...session, menu, dishesServed: Math.min(session.dishesServed, chosen.dishes.length) };
+}
+// コースの料理の進み。served 品目まで出していて、next が次に出す料理（全部出したら null）
+export function dishProgress(session: Session): { served: number; total: number; next: string | null } | null {
+  const menu = session.course === null ? null : menuOf(session.menu);
+  if (!menu) return null;
+  const served = Math.min(session.dishesServed, menu.dishes.length);
+  return { served, total: menu.dishes.length, next: menu.dishes[served] ?? null };
+}
+// 料理はメニューの順に1品ずつ進める・戻す
+export function serveDish(session: Session): Session | null {
+  const progress = dishProgress(session);
+  return progress && progress.next !== null ? { ...session, dishesServed: progress.served + 1 } : null;
+}
+export function unserveDish(session: Session): Session | null {
+  const progress = dishProgress(session);
+  return progress && progress.served > 0 ? { ...session, dishesServed: progress.served - 1 } : null;
 }
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;

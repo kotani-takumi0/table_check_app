@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Display, type Session } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Display, type Session } from '@table-check/core/domain';
 import type { Seat } from '@table-check/core/layout';
 
 function stateColor(display: Display, alert: Alert): string {
@@ -76,11 +76,16 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   // 人数はテーブル卓だけ。団体はどの卓にも全員の人数を出す
   const guests = session && seat.kind === 'table' ? session.guests : undefined;
   const guestsLabel = guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`;
+  // コースの料理の進み。人数と同じくテーブル卓だけ
+  const progress = session && seat.kind === 'table' ? dishProgress(session) : null;
   const content = <>
     {/* スマホは会計済みの印を卓番の横に並べる（小さいカードで重ならないように） */}
     <span className="seat-number">{seat.id}{others.length > 0 && <span className="group-mark">+{others.length <= 2 ? others.join('+') : `${others.length}卓`}</span>}
       {mini && session?.paidAt != null && <span className="paid-inline" aria-hidden="true">¥✓</span>}
-      {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
+      {guests !== undefined && <span className="card-meta">
+        <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>
+        {progress && !mini && <span className="dish-progress" title={`料理 ${progress.total}品中${progress.served}品提供済み`}><span className="dish-label">料理</span>{progress.served}/{progress.total}</span>}
+      </span>}</span>
     {session && timer && display && <>
       {/* カウンター・スマホ・縦向きの細いテーブルは幅が無いので短縮ラベル */}
       <strong className="status">{seat.kind === 'table' && !mini && seat.colSpan > 1 ? STATUS_CARD[display] : STATUS_SHORT[display]}</strong>

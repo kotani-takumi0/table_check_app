@@ -38,7 +38,7 @@ export default function App() {
 function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
   const [time, setTime] = useState(now);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
@@ -99,10 +99,10 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   let content: ReactNode = null;
   if (seating !== null && !seatingTaken) {
     content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
-      onSeat={(guests, course) => seat(seating, guests, course)} onClose={closeSheet} />;
+      onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSheet} />;
   } else if (opened) {
     content = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
-      onPay={pay} onGuests={changeGuests} onCourse={changeCourse} from={moveFrom} onPick={startPick} onRelease={release} />;
+      onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
   } else if (openedShopTimer) {
     content = <ShopTimerSheet label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeSheet} />;
   } else if (clearing) {
