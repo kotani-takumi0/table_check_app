@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { Dial } from './Dial';
 
-const REASONS = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
 interface CardProps {
   seat: Seat;
   session?: Session;
@@ -86,11 +85,11 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
     : exited ? '押すとご案内'
       : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
-  const label = `${seat.id}番${group}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASONS[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
+  const label = `${seat.id}番${group}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const className = `card ${shape} occupied ${tone} ${modes}`;
   // 段階：警告のときは理由の札（塗り）、ふだんは段階名
   const stage = alert.reason
-    ? <span className="badge">{REASONS[alert.reason]}</span>
+    ? <span className="badge">{REASON_LABEL[alert.reason]}</span>
     : <strong className="status">{STATUS_SHORT[display]}</strong>;
   const number = <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}</span>;
   const time_ = dial.elapsedMin === null ? '--:--' : formatHourMinute(dial.elapsedMin);
@@ -109,7 +108,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>
       {number}
       <span className="dial-box"><Dial dial={dial} label={meter} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
-      <strong className="status">{alert.reason ? REASONS[alert.reason] : STATUS_SHORT[display]}</strong>
+      <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
   // 右上：人数・コース（料理の進み）・会計済。低い卓・細い卓は1行に収まるよう「3/8」「¥✓」と短くする

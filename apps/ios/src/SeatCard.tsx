@@ -1,12 +1,11 @@
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { cardTone, COLORS, TABULAR } from './theme';
 import { Dial } from './Dial';
 import { feedback } from './feedback';
 
-const REASONS = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
 interface Props {
   seat: Seat;
   session?: Session;
@@ -57,7 +56,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
   const corner = remaining ? remainingLabel(remaining)
     : exited ? '押すとご案内' : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
-  const label = `${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASONS[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
+  const label = `${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const open = () => { feedback.open(); onOpen(session, seat.id); };
   const number = (size: number) => (
     <Text style={[styles.number, { fontSize: size }]} numberOfLines={1}>
@@ -74,7 +73,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
   // 段階：警告のときは理由の札（塗り）、ふだんは段階名
   const stage = alert.reason
     ? <View style={[styles.badge, { backgroundColor: alert.level === 'soon' ? COLORS.soon : COLORS.now }]}>
-      <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASONS[alert.reason]}</Text>
+      <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASON_LABEL[alert.reason]}</Text>
     </View>
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
   const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} />;
@@ -106,7 +105,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
         style={({ pressed }) => [frame, styles.counter, faded, picking && styles.pickDisabled, pressed && styles.pressed]}>
         {wide ? <View style={styles.counterRow}>{number(14)}{dialView(size)}</View> : <>{number(14)}{dialView(size)}</>}
         {paid && <Text style={styles.paidMark}>¥✓</Text>}
-        <Text style={[styles.counterStatus, { color: tone.text }]} numberOfLines={1}>{alert.reason ? REASONS[alert.reason] : STATUS_SHORT[display]}</Text>
+        <Text style={[styles.counterStatus, { color: tone.text }]} numberOfLines={1}>{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</Text>
       </Pressable>
     );
   }
