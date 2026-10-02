@@ -17,8 +17,9 @@ import { useDismissed } from './useDismissed';
 import { Header, TOOLBAR_HEIGHT } from './Header';
 import { Popover } from './Popover';
 import { LIQUID_GLASS } from './Glass';
-// フロアの上端。ツールバー（上から4、高さ TOOLBAR_HEIGHT）の下に卓の上端が少しもぐる
-const FLOOR_TOP = { regular: 40, mini: 34 } as const;
+// フロアの上端。ツールバー（上から4、高さ TOOLBAR_HEIGHT）の下に卓の上端が少しもぐる。
+// 縦向きは上の段がカウンター席で、卓番が丸の上にあるので、もぐらせない
+const FLOOR_TOP = { regular: 40, portrait: TOOLBAR_HEIGHT.regular + 12, mini: 34 } as const;
 import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { TableList } from './TableList';
@@ -127,7 +128,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   return (
     <View style={[styles.hall, mini && styles.miniHall]}>
       {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
-      <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : FLOOR_TOP.regular }]}>
+      <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
         <Floor sessions={sessions} time={time} portrait={portrait} mini={mini} picking={Boolean(pick)}
           onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
           toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
