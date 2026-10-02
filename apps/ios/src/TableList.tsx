@@ -11,7 +11,7 @@ import { feedback } from './feedback';
 export function TableList({ sessions, time, onOpen, mini }: { sessions: Session[]; time: number; onOpen(session: Session, from: string): void; mini: boolean }) {
   const rows = urgentOrder(sessions, time);
   return (
-    <Glass style={[styles.list, mini && styles.miniList]}>
+    <Glass tint={0.84} style={[styles.list, mini && styles.miniList]}>
       <Text style={styles.title} accessibilityRole="header">全卓一覧 <Text style={styles.count}>{rows.length}組</Text></Text>
       {rows.length === 0 ? <Text style={styles.empty}>ご案内中の卓はありません</Text> : (
         <ScrollView contentContainerStyle={styles.rows}>

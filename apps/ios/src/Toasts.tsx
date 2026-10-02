@@ -18,7 +18,7 @@ export function Toasts({ toasts, onDismiss, rows, mini }: { toasts: Toast[]; onD
   return <>
     {shown.map(toast => {
       return (
-        <Glass key={toast.key} style={[styles.toast, { flex: 1 / rows }, mini && styles.miniToast]}>
+        <Glass key={toast.key} tint={0.82} style={[styles.toast, { flex: 1 / rows }, mini && styles.miniToast]}>
           <View accessibilityRole="alert" style={styles.inner}>
           <View style={[styles.dot, { backgroundColor: DOT[toast.tone] }]} />
           <Text style={[styles.message, mini && styles.miniMessage]} numberOfLines={mini ? 1 : 2}>
@@ -35,7 +35,7 @@ export function Toasts({ toasts, onDismiss, rows, mini }: { toasts: Toast[]; onD
       );
     })}
     {rows === 2 && rest.length > 0 && (
-      <Glass style={[styles.toast, { flex: 1 / rows }]}>
+      <Glass tint={0.82} style={[styles.toast, { flex: 1 / rows }]}>
         <View style={styles.inner}>
           <View style={[styles.dot, { backgroundColor: restDot }]} />
           <Text style={styles.message} numberOfLines={1}>ほか {rest.length}件：{rest.map(t => t.message).join('／')}</Text>

@@ -152,7 +152,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
             listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
       </View>
       {popover && <Popover anchor={clearing ? 'end' : 'start'} mini={mini} onClose={closeSheet}>{popover}</Popover>}
-      {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を透明にしてガラスを見せる */}
+      {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
         <ScrollView style={[styles.sheet, LIQUID_GLASS && styles.glassSheet]} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
           {content ?? lastContent.current}
@@ -178,6 +178,6 @@ const styles = StyleSheet.create({
   miniPickText: { fontSize: 12 },
   pickCancel: { minHeight: 34, backgroundColor: COLORS.surface, borderColor: COLORS.line },
   sheet: { flex: 1, backgroundColor: COLORS.surface },
-  glassSheet: { backgroundColor: 'transparent' },
+  glassSheet: { backgroundColor: 'rgba(254, 253, 252, 0.84)' },
   sheetContent: { padding: 24, gap: 16 },
 });
