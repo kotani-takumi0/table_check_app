@@ -47,7 +47,7 @@ export default function App() {
 function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, trial } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
   const [time, setTime] = useState(now);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
@@ -135,7 +135,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSheet} />;
   } else if (opened) {
     const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} timeLimitOff={timeLimitOff} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
-      onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
+      onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }
   if (content === null && popover === null && openedShopTimer) {

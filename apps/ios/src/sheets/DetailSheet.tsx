@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { alertOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
 import { CloseButton, PanelButton } from '../ui';
@@ -23,6 +23,7 @@ interface Props {
   onRetime(session: Session, field: EditableTime, at: number): boolean;
   onPay(session: Session): void;
   onGuests(session: Session, guests: number | null): void;
+  onLeaveAt(session: Session, at: number | null): boolean;   // この卓の退店の時刻を決める（null でふつうに戻す）
   onCourse(session: Session, course: Course | null): void;
   onMenu(session: Session, menu: string | null): void;
   onServe(session: Session): void;     // コースの次の料理を出した
@@ -51,7 +52,36 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
   );
 }
 // Web の DetailPanel と同じ中身
-export function DetailSheet({ session, time, othersEditing = false, timeLimitOff, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
+// 退店の時刻（Web の LeaveRow と同じ。No.80）：早めに退店してもらう卓だけ決める。L.O.はその30分前になる
+function LeaveRow({ session, onSave }: { session: Session; onSave(at: number | null): boolean }) {
+  const limits = limitsOf(session);
+  const value = limits?.seatEndAt ?? null;
+  const [draft, setDraft] = useState(value === null ? null : new Date(value));
+  const [error, setError] = useState(false);
+  if (value === null || draft === null || limits === null) return <View style={sheet.row}><Text style={sheet.rowLabel}>退店</Text><Text style={[sheet.text, sheet.muted]}>ファーストドリンクのあとで決められます</Text></View>;
+  const hhmm = formatClock(draft.getTime());
+  const changed = hhmm !== formatClock(value);
+  // 決める：時刻が読めないか案内より前なら保存しない。ふつうに戻す：null を保存する
+  const save = (at: number | null, reset = false) => { const ok = at === null && !reset ? false : onSave(at); setError(!ok); if (ok) feedback.done(); else feedback.warn(); };
+  return (
+    <View style={styles.timeRow}>
+      <View style={sheet.row}>
+        <Text style={sheet.rowLabel}>退店</Text>
+        <DateTimePicker value={draft} mode="time" display="compact" locale="ja-JP" themeVariant="light" accentColor={COLORS.action}
+          onValueChange={(_event, date) => { setDraft(date); setError(false); }} />
+        <PanelButton label="決める" disabled={!changed} onPress={() => save(clockTimeNear(hhmm, value))} style={styles.fix} />
+      </View>
+      <View style={styles.leaveHelp}>
+        <Text style={[sheet.text, sheet.muted, styles.helpText]}>{session.leaveAt === null ? 'ふつう（120分）。早めに退店してもらう卓だけ決めます' : `L.O.は ${formatClock(limits.lastOrderAt)}`}</Text>
+        {session.leaveAt !== null && <Pressable accessibilityRole="button" onPress={() => save(null, true)} style={({ pressed }) => [styles.textButton, pressed && { opacity: 0.6 }]}>
+          <Text style={styles.textButtonLabel}>ふつうに戻す</Text>
+        </Pressable>}
+      </View>
+      {error && <Text style={styles.error} accessibilityRole="alert">案内より後の時刻にしてください</Text>}
+    </View>
+  );
+}
+export function DetailSheet({ session, time, othersEditing = false, timeLimitOff, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const [changing, setChanging] = useState(false);
   const [showDishes, setShowDishes] = useState(false);
   const timer = timerOf(session, time);
@@ -77,6 +107,8 @@ export function DetailSheet({ session, time, othersEditing = false, timeLimitOff
       </Text>
       <Text style={[styles.timer, TABULAR]}>{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}{remaining ? `  ・ ${remainingLabel(remaining)}` : ''}</Text>
       {othersEditing && <Text style={styles.editing} accessibilityRole="alert">ほかの端末でもこの卓を開いています。操作がぶつからないよう声をかけてください</Text>}
+      {/* 退店の時刻を決めた卓は、変更するを開かなくても分かるように出す */}
+      {session.leaveAt !== null && <View style={styles.leave}><Text style={[styles.leaveLabel, TABULAR]}>退店 {formatClock(session.leaveAt)}</Text></View>}
       {alert.reason && <View style={[styles.badge, { backgroundColor: alert.level === 'soon' ? COLORS.soon : COLORS.now }]}>
         <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]}>{REASON_LABEL[alert.reason]}</Text>
       </View>}
@@ -137,6 +169,7 @@ export function DetailSheet({ session, time, othersEditing = false, timeLimitOff
         {session.course !== null && progress && <SelectField label="料理" value={session.menu} options={MENU_OPTIONS} onChange={menu => onMenu(session, menu)} />}
         <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
         <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
+        <LeaveRow key={`leave-${limitsOf(session)?.seatEndAt}`} session={session} onSave={at => onLeaveAt(session, at)} />
         <View style={sheet.row}>
           <Text style={sheet.rowLabel}>卓</Text>
           <View style={styles.chips}>
@@ -188,6 +221,10 @@ const styles = StyleSheet.create({
   fix: { marginLeft: 'auto', minWidth: 72 },
   error: { fontSize: 14, color: COLORS.nowText },
   editing: { alignSelf: 'stretch', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: COLORS.actionBg, color: COLORS.actionText, fontSize: 14, fontWeight: '700' },
+  leaveHelp: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, paddingLeft: 4 },
+  helpText: { fontSize: 13 },
+  leave: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 2, borderWidth: 1, borderColor: COLORS.soonLine, borderRadius: 999, backgroundColor: COLORS.soonBg },
+  leaveLabel: { fontSize: 14, fontWeight: '700', color: COLORS.soonText },
   grow: { flex: 1 },
   dishes: { gap: 8 },
   dish: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 2, borderColor: 'transparent' },

@@ -19,6 +19,7 @@ function validSession(value: unknown): value is Session {
     && (s.course === undefined || s.course === null || isCourse(s.course))
     && (s.menu === undefined || s.menu === null || isMenuId(s.menu))
     && (s.dishesServed === undefined || (Number.isInteger(s.dishesServed) && (s.dishesServed as number) >= 0))
+    && (s.leaveAt === undefined || s.leaveAt === null || timestamp(s.leaveAt))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt));
