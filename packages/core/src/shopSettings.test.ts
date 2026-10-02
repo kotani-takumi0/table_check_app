@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { advance, alertOf, displayOf, isVisible, lastOrderDue, limitsOf, newSession, RULES } from './domain';
 import { bandOf, dialOf, remainingLabel, remainingOf } from './dial';
 import { noticesOf } from './notices';
-import { DEFAULT_SHOP_SETTINGS, MemoryShopSettingsStore, parseShopSettings, stepMinutes, type ShopSettings } from './shopSettings';
+import { DEFAULT_SHOP_SETTINGS, MemoryShopSettingsStore, newDrinkPlanId, parseShopSettings, stepMinutes, type ShopSettings } from './shopSettings';
 
 const minute = 60_000;
 const seated = newSession('s', '12', 0);
@@ -92,5 +92,19 @@ describe('店ごとの時間のルール（No.14）', () => {
     expect(displayOf('otoshi', null, noOtoshi)).toBe('first_drink');
     expect(displayOf('seated', null, noOtoshi)).toBe('seated');
     expect(displayOf('otoshi', null)).toBe('otoshi');
+  });
+});
+describe('飲み放題の区分（No.90）', () => {
+  it('無い・壊れた一覧は最初の一覧、壊れた項目と同じ id は落とし、空の一覧はそのまま読む', () => {
+    expect(parseShopSettings({}).drinkPlans).toEqual(DEFAULT_SHOP_SETTINGS.drinkPlans);
+    expect(parseShopSettings({ drinkPlans: 'x' }).drinkPlans).toEqual(DEFAULT_SHOP_SETTINGS.drinkPlans);
+    expect(parseShopSettings({ drinkPlans: [] }).drinkPlans).toEqual([]);
+    expect(parseShopSettings({ drinkPlans: [{ id: 'plan_a', name: '2時間' }, { id: 'plan_a', name: '重複' }, { id: 'Bad-id', name: 'x' }, { id: 'plan_b', name: '' }, null] }).drinkPlans)
+      .toEqual([{ id: 'plan_a', name: '2時間' }]);
+  });
+  it('新しい区分の id は既存と重ならない', () => {
+    const id = newDrinkPlanId([], 1000);
+    expect(id).toMatch(/^plan_[a-z0-9]+$/);
+    expect(newDrinkPlanId([{ id, name: 'a' }], 1000)).not.toBe(id);
   });
 });

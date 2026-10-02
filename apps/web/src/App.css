@@ -404,7 +404,10 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .minutes-stepper { flex-shrink: 0; display: grid; grid-template-columns: 44px 72px 44px; align-items: center; gap: 6px; }
 .minutes-stepper strong { text-align: center; font-size: 17px; font-variant-numeric: tabular-nums; }
 .minutes-stepper .panel-button.small { min-height: 44px; padding: 0; }
-.shop-name { flex: 0 1 240px; min-width: 0; }
+.setting-input { flex: 0 1 240px; min-width: 0; }
+.drink-plan-row .setting-input { flex: 1 1 auto; }
+.drink-plan-row .panel-button.small { min-height: 44px; }
+.add-plan { width: 100%; margin-top: 4px; }
 .settings-note { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.5; }
 /* スイッチ（iOS の切り替えと同じ形）：オンは操作の緑 */
 .switch { position: relative; flex-shrink: 0; width: 52px; height: 32px; padding: 0; border: none; border-radius: 16px; background: color-mix(in srgb, var(--text) 18%, transparent); transition: background 0.15s; }

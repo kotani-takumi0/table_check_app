@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clockTimeNear, COURSES, dishProgress, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -199,8 +199,13 @@ describe('コース', () => {
   it('案内時にコースを入れられ、入れなければ通常', () => {
     expect(waiting.course).toBe('drinks');
     expect(newSession('s', '12', 0).course).toBeNull();
-    expect(COURSES.every(isCourse)).toBe(true);
-    for (const bad of ['', 'course', null, undefined, 1]) expect(isCourse(bad)).toBe(false);
+    expect(DEFAULT_DRINK_PLANS.map(plan => plan.id).every(isCourse)).toBe(true);
+    for (const bad of ['', 'Drinks', 'a-b', 'x'.repeat(25), null, undefined, 1]) expect(isCourse(bad)).toBe(false);
+  });
+  it('区分の名前は店の一覧から引き、消した区分は「消した区分」と出す（No.90）', () => {
+    expect(drinkPlanName(DEFAULT_DRINK_PLANS, 'premium_drinks')).toBe('プレミアム飲み放題');
+    expect(drinkPlanName([{ id: 'plan_a', name: '2時間飲み放題' }], 'plan_a')).toBe('2時間飲み放題');
+    expect(drinkPlanName([], 'drinks')).toBe('消した区分');
   });
   it('表示は開始待ち → ファーストドリンク提供済み → 以降は通常と同じ', () => {
     expect(['seated', 'otoshi', 'lo_done', 'exited'].map(s => displayOf(s as typeof seated.status, 'no_drinks')))
@@ -237,7 +242,7 @@ describe('コース', () => {
   it('あとから通常とコースを直せて、状態・時刻・人数は変わらない', () => {
     expect(setCourse(started, null)).toEqual({ ...started, course: null });
     expect(setCourse(otoshi, 'premium_drinks')).toEqual({ ...otoshi, course: 'premium_drinks' });
-    expect(setCourse(otoshi, 'x' as never)).toBeNull();
+    expect(setCourse(otoshi, 'X-1')).toBeNull();
   });
   it('通常に戻すと、どのコースか・料理の進みも消す', () => {
     const served = { ...started, menu: 'cheese', dishesServed: 3 };

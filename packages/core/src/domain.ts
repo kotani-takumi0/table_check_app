@@ -14,12 +14,21 @@ export const STATUS_SHORT: Record<Display, string> = {
   seated: '案内済', otoshi: 'お通し済', lo_done: 'L.O.済', exited: '退店済',
   course_wait: '開始待', first_drink: 'FD済',
 };
-// 飲み放題の区分。飲み放題の中でも出せるドリンクが違うので分けて持つ
-export type Course = 'no_drinks' | 'drinks' | 'premium_drinks';
-export const COURSES: Course[] = ['no_drinks', 'drinks', 'premium_drinks'];
-export const COURSE_LABEL: Record<Course, string> = { no_drinks: '飲み放題なし', drinks: '飲み放題', premium_drinks: 'プレミアム飲み放題' };
+// 飲み放題の区分。飲み放題の中でも出せるドリンクが違うので分けて持つ。区分を選ぶとその卓はコースになる（null は通常）。
+// 区分の一覧は店が設定で決める（No.90。ShopSettings の drinkPlans）。セッションには区分の id を保存する
+export type Course = string;
+export interface DrinkPlan { id: string; name: string }
+// 最初の一覧（No.90 より前から使っている id なので変えない）
+export const DEFAULT_DRINK_PLANS: DrinkPlan[] = [
+  { id: 'no_drinks', name: '飲み放題なし' }, { id: 'drinks', name: '飲み放題' }, { id: 'premium_drinks', name: 'プレミアム飲み放題' },
+];
+// id は英小文字・数字・_ の24文字まで（firestore.rules の isDrinkPlanOrNull と同じ）
 export function isCourse(value: unknown): value is Course {
-  return COURSES.includes(value as Course);
+  return typeof value === 'string' && /^[a-z0-9_]{1,24}$/.test(value);
+}
+// 区分の名前。設定で消した区分を使っている卓は「消した区分」と出す
+export function drinkPlanName(plans: DrinkPlan[], id: Course): string {
+  return plans.find(plan => plan.id === id)?.name ?? '消した区分';
 }
 // お通しを出さない店（rules.otoshi が false）は、2段目を「ファーストドリンク提供済み」と呼ぶ（段はそのまま残す。No.14）
 export function displayOf(status: Status, course: Course | null, rules: Rules = RULES): Display {

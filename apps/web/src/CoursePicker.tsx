@@ -1,9 +1,11 @@
-import { COURSE_LABEL, COURSES, type Course } from '@table-check/core/domain';
+import { drinkPlanName, type Course, type DrinkPlan } from '@table-check/core/domain';
 
-// 通常とコース（飲み放題の区分ごと）の4つから1つ選ぶドロップダウン。ご案内と詳細パネルで同じものを使う（No.71：大きなボタンを並べない）
-export function CoursePicker({ id, value, onChange }: { id: string; value: Course | null; onChange(course: Course | null): void }) {
-  return <select id={id} className="field-select" value={value ?? ''} onChange={event => onChange(event.target.value === '' ? null : event.target.value as Course)}>
+// 通常とコース（飲み放題の区分ごと）から1つ選ぶドロップダウン。ご案内と詳細パネルで同じものを使う（No.71：大きなボタンを並べない）。
+// 区分は店が設定で決める（No.90）。設定で消した区分を使っている卓は、その区分も残して出す
+export function CoursePicker({ id, value, plans, onChange }: { id: string; value: Course | null; plans: DrinkPlan[]; onChange(course: Course | null): void }) {
+  const ids = value === null || plans.some(plan => plan.id === value) ? plans.map(plan => plan.id) : [...plans.map(plan => plan.id), value];
+  return <select id={id} className="field-select" value={value ?? ''} onChange={event => onChange(event.target.value === '' ? null : event.target.value)}>
     <option value="">通常</option>
-    {COURSES.map(course => <option key={course} value={course}>コース（{COURSE_LABEL[course]}）</option>)}
+    {ids.map(course => <option key={course} value={course}>コース（{drinkPlanName(plans, course)}）</option>)}
   </select>;
 }
