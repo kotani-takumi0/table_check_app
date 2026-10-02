@@ -15,11 +15,19 @@ interface Props {
   canClearAll: boolean;
   onClearAll(): void;
   mini: boolean;
+  listOpen: boolean;   // 全卓一覧を開いているか
+  onToggleList(): void;
 }
-// フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左にトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini }: Props) {
+// フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
+export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, listOpen, onToggleList }: Props) {
   return (
     <View style={[styles.toolbar, mini && styles.miniToolbar]} pointerEvents="box-none">
+      <Glass style={[styles.group, styles.listGroup, mini && styles.miniGroup]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="全卓一覧" accessibilityState={{ expanded: listOpen }} onPress={onToggleList}
+          style={({ pressed }) => [styles.listToggle, mini && styles.miniListToggle, listOpen && styles.listToggleOpen, pressed && styles.pressed]}>
+          <Text style={[styles.listLabel, mini && styles.miniListLabel, listOpen && styles.listLabelOpen]}>≡ 一覧</Text>
+        </Pressable>
+      </Glass>
       <Glass style={[styles.group, styles.shopTimers, mini && styles.miniGroup]}>
         {SHOP_TIMERS.map(timer => {
           // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
@@ -57,6 +65,13 @@ const styles = StyleSheet.create({
   group: { height: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 6, borderRadius: 24 },
   miniGroup: { gap: 4, paddingHorizontal: 4, borderRadius: 20 },
   shopTimers: { flexShrink: 1, minWidth: 0 },
+  listGroup: { flexShrink: 0 },
+  listToggle: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: 'center' },
+  miniListToggle: { minHeight: 30, paddingHorizontal: 10 },
+  listToggleOpen: { backgroundColor: COLORS.actionBg },
+  listLabel: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  miniListLabel: { fontSize: 13 },
+  listLabelOpen: { color: COLORS.actionText },
   // 狭い画面でオフラインの長い文言が出ても、右のまとまりは60%までに縮め、文言を省略してトイレのボタンの場所を残す
   right: { marginLeft: 'auto', flexShrink: 1, minWidth: 0, maxWidth: '60%', gap: 10, paddingLeft: 14 },
   // 幅が足りないときはチップごと縮め、文字を省略する（Web の .shop-timer と同じ）

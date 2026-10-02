@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { randomUUID } from 'expo-crypto';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -17,6 +17,7 @@ import { useDismissed } from './useDismissed';
 import { Header, TOOLBAR_HEIGHT } from './Header';
 import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
+import { TableList } from './TableList';
 import { PanelButton } from './ui';
 import { SeatSheet } from './sheets/SeatSheet';
 import { DetailSheet } from './sheets/DetailSheet';
@@ -61,6 +62,8 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   const [clearing, setClearing] = useState(false);
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
   const [pick, setPick] = useState<{ sessionId: string; mode: 'move' | 'add'; from: string } | null>(null);
+  // 全卓一覧（左から出す）。最初はしまっておく
+  const [listOpen, setListOpen] = useState(false);
 
   const openPanel = useCallback((session: Session, from: string) => { setOpenId(session.id); setOpenFrom(from); }, []);
   // 詳細パネルから案内したときは、同じシートの中で案内の確認に切り替える
@@ -76,6 +79,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   const startPick = useCallback((mode: 'move' | 'add') => {
     if (!openId) return;
     setPick({ sessionId: openId, mode, from: moveFrom });
+    setListOpen(false);
     setOpenId(null);
   }, [openId, moveFrom]);
   const applyPick = (tableId: string) => {
@@ -121,6 +125,13 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
           onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
           toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
       </View>
+      {/* 全卓一覧：フロアの上に重ねる。外側のタップは後ろの透明な面で受けて閉じる */}
+      {listOpen && !pick && <>
+        <Pressable accessibilityLabel="全卓一覧を閉じる" style={StyleSheet.absoluteFill} onPress={() => setListOpen(false)} />
+        <View style={[styles.listArea, { top: (mini ? TOOLBAR_HEIGHT.mini + 6 : TOOLBAR_HEIGHT.regular + 12) }, mini && styles.miniListArea]} pointerEvents="box-none">
+          <TableList sessions={sessions} time={time} onOpen={openPanel} mini={mini} />
+        </View>
+      </>}
       <View style={[styles.overlay, mini && styles.miniOverlay]} pointerEvents="box-none">
         {pick && picked
           ? <View style={styles.pickBar} accessibilityRole="alert">
@@ -130,7 +141,8 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
             <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
           </View>
           : <Header time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
-            canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini} />}
+            canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini}
+            listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
       </View>
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
         <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
@@ -150,6 +162,8 @@ const styles = StyleSheet.create({
   // ツールバー・移動先を選ぶ帯を浮かべる層（hall の左右の余白に合わせる）
   overlay: { position: 'absolute', top: 4, left: 16, right: 16, height: TOOLBAR_HEIGHT.regular },
   miniOverlay: { left: 8, right: 8, height: TOOLBAR_HEIGHT.mini },
+  listArea: { position: 'absolute', left: 16, right: 16, bottom: 12 },
+  miniListArea: { left: 8, right: 8, bottom: 8 },
   pickBar: { height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 4, borderWidth: 1.5, borderColor: COLORS.action, borderRadius: 24, backgroundColor: COLORS.actionBg },
   pickText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.actionText },
   miniPickText: { fontSize: 12 },
