@@ -75,7 +75,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
-  const { isDismissed, dismiss } = useDismissed();
+  const { isDismissed, dismiss } = useDismissed(account);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');

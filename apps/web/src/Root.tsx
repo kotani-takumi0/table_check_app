@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { currentAccount, LOGIN_MODE_KEY, loginErrorMessage, parseLoginMode, signInAsGuest, signInWithEmail, signOutAccount, type LoginMode } from '@table-check/core/auth';
 import { firestoreStores, type ShopStores } from '@table-check/core/firestoreServices';
 import { newDeviceId } from '@table-check/core/firestoreEditing';
@@ -51,6 +52,12 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
     else if (mode === 'account') void currentAccount(auth).then(user => user ? startAccount(user) : setPhase({ kind: 'choose' }), () => setPhase({ kind: 'choose' }));
     else setPhase({ kind: 'choose' });
   }, [auth, startGuest, startAccount]);
+  // ほかのタブでログアウト・別のアカウントでログインしたら、ログインした店の画面を閉じて最初の画面に戻る
+  const account = phase.kind === 'ready' ? phase.account : null;
+  useEffect(() => {
+    if (!account) return;
+    return onAuthStateChanged(auth, user => { if (user?.uid !== account.uid) setPhase({ kind: 'choose' }); });
+  }, [auth, account]);
   // サーバーの時刻とのずれを測る（端末の時計がずれていても、全端末で同じ経過を出す）
   const userReady = phase.kind === 'ready' ? phase.userReady : null;
   useEffect(() => {

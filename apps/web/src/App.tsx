@@ -95,7 +95,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   }, []);
   const closeShopTimer = useCallback(() => setShopTimerOpen(null), []);
   const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
-  const { isDismissed, dismiss } = useDismissed();
+  const { isDismissed, dismiss } = useDismissed(account);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
