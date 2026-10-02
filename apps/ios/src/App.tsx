@@ -71,7 +71,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   // 全卓一覧（左から出す）。最初はしまっておく
   const [listOpen, setListOpen] = useState(false);
 
-  const openPanel = useCallback((session: Session, from: string) => { setOpenId(session.id); setOpenFrom(from); }, []);
+  // 詳細は押した場所のそばに出す（No.71）。スマホは幅が足りないので、今までどおり下からのシート
+  const [openAt, setOpenAt] = useState<{ x: number; y: number } | undefined>(undefined);
+  const openPanel = useCallback((session: Session, from: string, at?: { x: number; y: number }) => { setOpenId(session.id); setOpenFrom(from); setOpenAt(at); }, []);
   // 詳細パネルから案内したときは、同じシートの中で案内の確認に切り替える
   const requestSeat = useCallback((tableId: string) => { setOpenId(null); setSeating(tableId); }, []);
   const seatingOccupant = seating === null ? undefined : occupantOf(sessions, seating, time);
@@ -113,26 +115,28 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   }));
   const openedShopTimer = SHOP_TIMERS.find(timer => timer.id === shopTimerOpen);
   const closeSheet = useCallback(() => { setSeating(null); setOpenId(null); setShopTimerOpen(null); setClearing(false); }, []);
+  const { portrait, mini } = useScreen();
   let content: ReactNode = null;
+  // トイレ・全卓消去は iOS 26 のアラートのように、押したボタンのそばからポップオーバーで出す。詳細（iPad）は押した卓のそばに出す
+  let popover: ReactNode = null;
+  let popoverAt: { x: number; y: number } | undefined;
   if (seating !== null && !seatingTaken) {
     content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSheet} />;
   } else if (opened) {
-    content = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
+    if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }
-  // トイレ・全卓消去は iOS 26 のアラートのように、押したボタンのそばからポップオーバーで出す
-  let popover: ReactNode = null;
-  if (content === null && openedShopTimer) {
+  if (content === null && popover === null && openedShopTimer) {
     popover = <ShopTimerSheet label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeSheet} />;
-  } else if (content === null && clearing) {
+  } else if (content === null && popover === null && clearing) {
     popover = <ClearAllSheet unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeSheet} />;
   }
   // シートが下がっていく間も、閉じる前の中身を出しておく
   const lastContent = useRef<ReactNode>(null);
   if (content) lastContent.current = content;
 
-  const { portrait, mini } = useScreen();
   return (
     <View style={[styles.hall, mini && styles.miniHall]}>
       {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
@@ -160,7 +164,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
             canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini}
             listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
       </View>
-      {popover && <Popover anchor={clearing ? 'end' : 'start'} mini={mini} onClose={closeSheet}>{popover}</Popover>}
+      {popover && <Popover key={popoverAt ? `detail-${openId}` : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
       {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
         <ScrollView style={[styles.sheet, LIQUID_GLASS && styles.glassSheet]} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">

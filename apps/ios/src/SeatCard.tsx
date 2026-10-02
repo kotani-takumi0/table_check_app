@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
@@ -13,7 +13,7 @@ interface Props {
   frame: ViewStyle & { width: number; height: number };   // フロア図の中の位置と大きさ
   onSeat(tableId: string): void;
   onNext(session: Session): void;
-  onOpen(session: Session, from: string): void;
+  onOpen(session: Session, from: string, at?: { x: number; y: number }): void;   // at：押した場所（詳細をそのそばに出す）
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
@@ -58,7 +58,7 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
     : exited ? '押すとご案内' : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
   const label = `${editing ? 'ほかの端末で編集中 ' : ''}${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
-  const open = () => { feedback.open(); onOpen(session, seat.id); };
+  const open = (event?: GestureResponderEvent) => { feedback.open(); onOpen(session, seat.id, event ? { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY } : undefined); };
   const number = (size: number) => (
     <Text style={[styles.number, { fontSize: size }]} numberOfLines={1}>
       {seat.id}{groupMark !== '' && <Text style={[styles.group, { color: tone.text }]}> {groupMark}</Text>}
@@ -119,7 +119,7 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
   const full = isFull;
   const narrow = seat.colSpan === 1;
   const card = ({ pressed }: { pressed: boolean }) => [frame, styles.card, { backgroundColor: tone.bg }, faded, picking && styles.pickDisabled, pressed && styles.pressed];
-  const press = () => { if (exited) { feedback.tap(); onSeat(seat.id); } else open(); };
+  const press = (event: GestureResponderEvent) => { if (exited) { feedback.tap(); onSeat(seat.id); } else open(event); };
   const a11y = `${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`;
   if (full) {
     // 大きい卓：四隅（左上 卓番／右上 人数・コース・会計済／左下 段階か札／右下 残り時間）と真ん中の文字盤

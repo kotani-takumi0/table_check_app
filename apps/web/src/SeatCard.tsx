@@ -58,6 +58,8 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onNext,
     onPointerCancel: cancel,
     onClickCapture: captureClick,
     onContextMenu: (event: MouseEvent<HTMLElement>) => event.preventDefault(),
+    // 詳細をこの卓のそばに出すため、App が位置を探す目印
+    'data-seat': seat.id,
   };
   const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''}`;
   if (!session) {

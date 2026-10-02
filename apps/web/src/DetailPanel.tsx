@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { alertOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { alertOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
+import { GuestPicker } from './GuestPicker';
+import { remainingLabel, remainingOf } from '@table-check/core/dial';
 import { CloseButton } from './CloseButton';
 import { menuOf } from '@table-check/core/courseMenus';
 
@@ -25,6 +27,7 @@ interface Props {
   onPick(mode: 'move' | 'add'): void;
   onRelease(session: Session, tableId: string): void;
   returnFocus: HTMLElement | null;
+  anchor: DOMRect | null;       // 押した卓の位置。そのそばに出す（無ければ真ん中）
 }
 function TimeRow({ label, value, order, onSave }: { label: string; value: number | null; order: string; onSave(hhmm: string): boolean }) {
   const [draft, setDraft] = useState(value === null ? '' : formatClock(value));
@@ -38,7 +41,27 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
     {error && <span className="time-error" role="alert">{order} の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, othersEditing = false, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus }: Props) {
+// 押した卓のそばに出すときの位置（No.71）。卓の右に入らなければ左、どちらにも入らない狭い画面（スマホ）は真ん中に出す
+// TOP はツールバー（上から8＋高さ48）の下から出す
+const POPOVER_WIDTH = 360, GAP = 14, EDGE = 8, TOP = 64;
+function placeBeside(anchor: DOMRect | null, height: number): { panel: CSSProperties; arrow: CSSProperties; side: 'left' | 'right' } | null {
+  if (!anchor) return null;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const right = anchor.right + GAP, left = anchor.left - GAP - POPOVER_WIDTH;
+  const side = right + POPOVER_WIDTH <= vw - EDGE ? 'right' : left >= EDGE ? 'left' : null;
+  if (side === null) return null;
+  const center = anchor.top + anchor.height / 2;
+  const top = Math.min(Math.max(TOP, center - height / 2), Math.max(TOP, vh - height - EDGE));
+  // 矢印は卓の真ん中を指す（パネルの角の丸みにかからない範囲で）。パネルは中をスクロールするので、矢印はパネルの外に描く
+  const arrowTop = top + Math.min(Math.max(28, center - top), height - 28);
+  const panelLeft = side === 'right' ? right : left;
+  return {
+    side,
+    panel: { position: 'absolute', top, left: panelLeft, width: POPOVER_WIDTH },
+    arrow: { top: arrowTop - 8, left: side === 'right' ? panelLeft - 8 : panelLeft + POPOVER_WIDTH - 8 },
+  };
+}
+export function DetailPanel({ session, time, othersEditing = false, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -68,33 +91,42 @@ export function DetailPanel({ session, time, othersEditing = false, onClose, onN
     return at !== null && onRetime(session, field, at);
   };
   const alert = alertOf(session, time);
+  const remaining = remainingOf(session, time);
   const paid = session.paidAt !== null;
-  return <div className="panel-backdrop"
+  // 押した卓のそばに出す。高さは中身で変わる（変更するを開くなど）ので、描いたあとに測って位置を決め直す
+  const [height, setHeight] = useState(0);
+  useLayoutEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const place = placeBeside(anchor, height);
+  return <div className={`panel-backdrop ${place ? 'beside' : ''}`}
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
-    <section ref={panel} tabIndex={-1} className="panel"
+    <section ref={panel} tabIndex={-1} className={`panel detail-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel}
       onPointerDownCapture={() => { downInPanel.current = true; }}
       onClickCapture={event => { if (!downInPanel.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); } downInPanel.current = false; }}
       role="dialog" aria-modal="true" aria-labelledby="panel-title">
-      {/* よく使う順：状態と経過 → 段階を進める・戻す → お会計 → 料理 → 変更する（折りたたみ） */}
+      {/* No.71：いちばん見てほしいのは「次にやること」1つ。大きいボタンはそれだけにし、戻す・お会計は小さく、ほかは「変更する」にしまう */}
       <div className={`panel-head ${alert.level !== 'none' ? `alert-${alert.level}` : ''}`}>
         <h2 id="panel-title" className="panel-title"><span className="panel-seat">{session.tableIds.join('・')}番</span> <span className="panel-status">{STATUS_LABEL[display]}</span></h2>
-        <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</span>
+        <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}{remaining && <span className="panel-remaining"> ・ {remainingLabel(remaining)}</span>}</span>
         {othersEditing && <p className="panel-editing" role="status">ほかの端末でもこの卓を開いています。操作がぶつからないよう声をかけてください</p>}
         {alert.reason && <span className="badge">{REASON_LABEL[alert.reason]}</span>}
       </div>
-      <div className="panel-actions">
-        <button className="panel-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
-        {next ? <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course)]}</button>
-          : session.status === 'exited' && <button className="panel-button primary" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
+      {next ? <button className="panel-button primary panel-next" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course)]}</button>
+        : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
+      <div className="panel-quick">
+        <button className="text-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
+        {/* お会計：今の状態を左に、押すと切り替える */}
+        <span className={`pay-state ${paid ? '' : 'muted'}`} id="panel-pay">{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</span>
+        <button className="panel-button small" aria-pressed={paid} aria-describedby="panel-pay" onClick={() => onPay(session)}>{paid ? '未払いに戻す' : 'お会計済みにする'}</button>
       </div>
-      <section className="panel-section" aria-labelledby="panel-pay">
-        <h3 id="panel-pay" className="panel-heading">お会計</h3>
-        <div className="pay-row">
-          <span className={paid ? '' : 'muted'}>{paid ? `お会計済み（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</span>
-          <button className="panel-button" aria-pressed={paid} onClick={() => onPay(session)}>{paid ? '未払いに戻す' : 'お会計済みにする'}</button>
-        </div>
-      </section>
       {session.course !== null && <section className="panel-section" aria-labelledby="panel-dishes">
         <h3 id="panel-dishes" className="panel-heading">料理{progress && <span className="panel-heading-sub">{progress.served}/{progress.total}品</span>}</h3>
         {progress ? <>
@@ -118,8 +150,10 @@ export function DetailPanel({ session, time, othersEditing = false, onClose, onN
           </details>
         </> : <>
           {/* どのコースかが未定なら、ここで選ぶと料理の進みを付けられる */}
-          <span id="panel-menu-now" className="menu-question">どのコースですか？</span>
-          <MenuPicker value={session.menu} onChange={menu => onMenu(session, menu)} labelledBy="panel-menu-now" />
+          <div className="field-rows">
+            <label className="field-label" htmlFor="panel-menu-now">どのコース</label>
+            <MenuPicker id="panel-menu-now" value={session.menu} onChange={menu => onMenu(session, menu)} />
+          </div>
         </>}
       </section>}
       {/* 変更する：人数・コース・時刻の修正・卓の移動と団体。ふだんは閉じておく */}
@@ -127,20 +161,16 @@ export function DetailPanel({ session, time, othersEditing = false, onClose, onN
         <summary className="panel-heading">変更する（人数・コース・時刻・卓）</summary>
         <div className="change-body">
           <div className="time-row">
-            <span id="panel-guests">人数</span>
-            <div className="guest-stepper" role="group" aria-labelledby="panel-guests">
-              <button className="guest-step" aria-label="1名減らす" disabled={session.guests === null || session.guests <= 1} onClick={() => onGuests(session, (session.guests ?? 1) - 1)}>−</button>
-              <span className={`guest-many ${session.guests === null ? 'muted' : ''}`} aria-live="polite">{session.guests === null ? '未入力' : `${session.guests}名`}</span>
-              <button className="guest-step" aria-label="1名増やす" disabled={session.guests !== null && session.guests >= GUESTS_MAX} onClick={() => onGuests(session, (session.guests ?? 0) + 1)}>＋</button>
-            </div>
+            <label htmlFor="panel-guests">人数</label>
+            <GuestPicker id="panel-guests" value={session.guests} onChange={guests => onGuests(session, guests)} emptyLabel="未入力" />
           </div>
           <div className="time-row">
-            <span id="panel-course">コース</span>
-            <CoursePicker value={session.course} onChange={course => onCourse(session, course)} labelledBy="panel-course" />
+            <label htmlFor="panel-course">コース</label>
+            <CoursePicker id="panel-course" value={session.course} onChange={course => onCourse(session, course)} />
           </div>
           {session.course !== null && progress && <div className="time-row">
-            <span id="panel-menu">料理</span>
-            <MenuPicker value={session.menu} onChange={menu => onMenu(session, menu)} labelledBy="panel-menu" />
+            <label htmlFor="panel-menu">料理</label>
+            <MenuPicker id="panel-menu" value={session.menu} onChange={menu => onMenu(session, menu)} />
           </div>}
           <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
           <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
@@ -160,5 +190,6 @@ export function DetailPanel({ session, time, othersEditing = false, onClose, onN
       </details>
       <CloseButton onClick={onClose} />
     </section>
+    {place && <span className={`panel-arrow ${place.side}`} aria-hidden="true" style={place.arrow} />}
   </div>;
 }
