@@ -164,7 +164,11 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
     {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time)).flatMap(s => s.tableIds))}
-        onSave={next => { void shopLayoutStore.save(next); }} onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
+        onSave={async next => {
+          const missing = [...new Set(sessions.filter(s => isVisible(s, now())).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
+          if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
+          await shopLayoutStore.save(next);
+        }} onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
       : screen === 'settings' ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} onOpenLayout={() => selectScreen('layout')} inert={modal || menuOpen} />
       : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
