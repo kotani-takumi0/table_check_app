@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { DrinkPlan } from '@table-check/core/domain';
-import { DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
+import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
+import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 import { COLORS, TABULAR } from './theme';
 import { Glass } from './Glass';
 import { feedback } from './feedback';
 import { PanelButton } from './ui';
 
 // 設定の画面（Web の Settings と同じ）。店全体の設定は全端末に反映する
-export function Settings({ settings, onChange, onOpenLayout, top }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; top: number }) {
+// onEditCourse：コースを直す画面を開く（null は新しいコースを足す。No.89）
+export function Settings({ settings, onChange, onOpenLayout, onEditCourse, top }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; top: number }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title} accessibilityRole="header">設定</Text>
@@ -29,6 +31,7 @@ export function Settings({ settings, onChange, onOpenLayout, top }: { settings: 
       <Glass tint={0.84} style={styles.group}>
         <Text style={styles.groupTitle}>コース</Text>
         <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
+        <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
       </Glass>
       <Glass tint={0.84} style={styles.group}>
         <Text style={styles.groupTitle}>お店</Text>
@@ -100,6 +103,25 @@ function DrinkPlanRows({ plans, onChange }: { plans: DrinkPlan[]; onChange(plans
     {plans.length < DRINK_PLANS_MAX && <PanelButton label="＋ 区分を足す" onPress={() => { feedback.tap(); onChange([...plans, { id: newDrinkPlanId(plans, Date.now()), name: '新しい区分' }]); }} style={styles.add} />}
   </>;
 }
+// コースのメニュー（Web の CourseRows と同じ。No.89）：値段と名前・料理の数を並べ、「直す」で1つずつ直す
+function CourseRows({ menus, onEdit }: { menus: CourseMenu[]; onEdit(id: string | null): void }) {
+  return <>
+    <View style={[styles.rowText, styles.courseHead]}>
+      <Text style={styles.rowLabel}>料理のコース</Text>
+      <Text style={styles.help}>ご案内のときに「料理」で選びます。料理を出す順に並べておくと、詳細で1品ずつ進められます。</Text>
+    </View>
+    {menus.map(menu => (
+      <View key={menu.id} style={styles.row}>
+        <View style={styles.rowText}>
+          <Text style={styles.rowLabel}>{priceLabel(menu)} {menu.short}</Text>
+          <Text style={styles.help}>{menu.name}・{menu.dishes.length}品{menu.lastOrderMin !== null || menu.seatLimitMin !== null ? '・このコースだけの時間あり' : ''}</Text>
+        </View>
+        <PanelButton label="直す" onPress={() => { feedback.tap(); onEdit(menu.id); }} style={styles.open} />
+      </View>
+    ))}
+    {menus.length < COURSE_LIMITS.menus && <PanelButton label="＋ コースを足す" onPress={() => { feedback.tap(); onEdit(null); }} style={styles.add} />}
+  </>;
+}
 // 文字の設定（Web の SavedInput と同じ）：入力を終えたら保存する。打っている途中では保存しない
 function SavedInput({ label, value, maxLength, placeholder, onSave, style }: { label: string; value: string; maxLength: number; placeholder: string; onSave(value: string): void; style: object }) {
   const [draft, setDraft] = useState(value);
@@ -126,5 +148,6 @@ const styles = StyleSheet.create({
   planInput: { flex: 1, minHeight: 44, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.bg, fontSize: 16, color: COLORS.text },
   remove: { minWidth: 72, minHeight: 44 },
   add: { marginTop: 4, minHeight: 44 },
+  courseHead: { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   note: { marginTop: 8, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line, fontSize: 13, lineHeight: 19, color: COLORS.muted },
 });

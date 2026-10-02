@@ -1,4 +1,4 @@
-import { menuOf } from './courseMenus';
+import { DEFAULT_COURSE_MENUS, isMenuId, menuOf, type CourseMenu } from './courseMenus';
 
 export type Status = 'seated' | 'otoshi' | 'lo_done' | 'exited';
 // コースは通常の「ご案内済み」「お通し提供済み」の位置に「開始待ち」「ファーストドリンク提供済み」が入る。
@@ -60,6 +60,14 @@ export interface Rules {
   timeLimitOff: boolean;   // 店全体で時間制限を切っている（L.O.・お席の時間の警告を出さない。お通しの警告はそのまま）
 }
 export const RULES: Rules = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5, otoshi: true, timeLimitOff: false };
+// その卓に使う時間のルール。コースの卓で、選んだコースに L.O.・お席の時間が決めてあればそれを使う（No.89）。
+// 片方だけ決めてあるときはもう片方を店の設定にし、L.O. がお席の時間に届くなら店の設定のままにする
+export function sessionRules(rules: Rules, session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Rules {
+  const menu = session.course === null ? null : menuOf(session.menu, menus);
+  if (!menu || (menu.lastOrderMin === null && menu.seatLimitMin === null)) return rules;
+  const lastOrderMin = menu.lastOrderMin ?? rules.lastOrderMin, seatLimitMin = menu.seatLimitMin ?? rules.seatLimitMin;
+  return lastOrderMin < seatLimitMin ? { ...rules, lastOrderMin, seatLimitMin } : rules;
+}
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
 // 警告の理由の名前（卓カードの札・詳細パネルで同じものを使う）
@@ -67,7 +75,7 @@ export const REASON_LABEL: Record<Exclude<AlertReason, null>, string> = { otoshi
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
   return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course,
-    menu: course !== null && menuOf(menu) ? menu : null, dishesServed: 0, leaveAt: null };
+    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, leaveAt: null };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -83,26 +91,27 @@ export function setCourse(session: Session, course: Course | null): Session | nu
   return isCourse(course) ? { ...session, course } : null;
 }
 // どのコースかを選び直す。選び間違いを直すときのために、出した品数はそのまま（新しいメニューの品数までに収める）
-export function setMenu(session: Session, menu: string | null): Session | null {
+export function setMenu(session: Session, menu: string | null, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
   if (menu === null) return { ...session, menu, dishesServed: 0 };
-  const chosen = menuOf(menu);
+  const chosen = menuOf(menu, menus);
   if (session.course === null || !chosen) return null;
   return { ...session, menu, dishesServed: Math.min(session.dishesServed, chosen.dishes.length) };
 }
 // コースの料理の進み。served 品目まで出していて、next が次に出す料理（全部出したら null）
-export function dishProgress(session: Session): { served: number; total: number; next: string | null } | null {
-  const menu = session.course === null ? null : menuOf(session.menu);
+// menus：店が作ったコース（No.89）。設定で消したコースを選んでいる卓は null（料理の進みを出さない）
+export function dishProgress(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): { served: number; total: number; next: string | null } | null {
+  const menu = session.course === null ? null : menuOf(session.menu, menus);
   if (!menu) return null;
   const served = Math.min(session.dishesServed, menu.dishes.length);
   return { served, total: menu.dishes.length, next: menu.dishes[served] ?? null };
 }
 // 料理はメニューの順に1品ずつ進める・戻す
-export function serveDish(session: Session): Session | null {
-  const progress = dishProgress(session);
+export function serveDish(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
+  const progress = dishProgress(session, menus);
   return progress && progress.next !== null ? { ...session, dishesServed: progress.served + 1 } : null;
 }
-export function unserveDish(session: Session): Session | null {
-  const progress = dishProgress(session);
+export function unserveDish(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
+  const progress = dishProgress(session, menus);
   return progress && progress.served > 0 ? { ...session, dishesServed: progress.served - 1 } : null;
 }
 export function nextStatus(s: Status): Status | null {
@@ -161,10 +170,11 @@ export function setLeaveAt(session: Session, at: number | null): Session | null 
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
 // （コースはファーストドリンクから数えるので、開始待ちの卓はそもそも時間が来ない）
 // 店全体で時間制限を切っているときは出さない
-export function lastOrderDue(sessions: Session[], now: number, rules: Rules = RULES): Session[] {
-  if (rules.timeLimitOff) return [];
+// rules は卓ごとに変えられる（コースごとの L.O.。sessionRules を渡す）
+export function lastOrderDue(sessions: Session[], now: number, rules: Rules | ((session: Session) => Rules) = RULES): Session[] {
+  const rulesOf = typeof rules === 'function' ? rules : () => rules;
   return sessions
-    .flatMap(s => { const start = startOf(s); const limits = limitsOf(s, rules); return s.status === 'otoshi' && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
+    .flatMap(s => { const r = rulesOf(s); if (r.timeLimitOff) return []; const start = startOf(s); const limits = limitsOf(s, r); return s.status === 'otoshi' && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
     .sort((a, b) => a.start - b.start)
     .map(({ s }) => s);
 }

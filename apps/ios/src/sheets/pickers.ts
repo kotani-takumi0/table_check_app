@@ -1,4 +1,4 @@
-import { COURSE_MENUS, priceLabel } from '@table-check/core/courseMenus';
+import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
 import { drinkPlanName, type Course, type DrinkPlan } from '@table-check/core/domain';
 import type { SelectOption } from './SelectField';
 
@@ -8,7 +8,11 @@ export function courseOptions(plans: DrinkPlan[], current: Course | null): Selec
   const ids = current === null || plans.some(plan => plan.id === current) ? plans.map(plan => plan.id) : [...plans.map(plan => plan.id), current];
   return [{ value: null, label: '通常' }, ...ids.map(course => ({ value: course, label: `コース（${drinkPlanName(plans, course)}）` }))];
 }
-export const MENU_OPTIONS: SelectOption<string | null>[] = [{ value: null, label: '未定' }, ...COURSE_MENUS.map(menu => ({ value: menu.id, label: `${priceLabel(menu)} ${menu.short}` }))];
+// コースは店が設定で作る（No.89）。設定で消したコースを選んでいる卓は、そのコースも残して出す
+export function menuOptions(menus: CourseMenu[], current: string | null): SelectOption<string | null>[] {
+  const options: SelectOption<string | null>[] = [{ value: null, label: '未定' }, ...menus.map(menu => ({ value: menu.id, label: `${priceLabel(menu)} ${menu.short}` }))];
+  return current !== null && !menus.some(menu => menu.id === current) ? [...options, { value: current, label: '消したコース' }] : options;
+}
 // 来店する人数は組ごとに大きく変わるので、−／＋ ではなく一度で選べるようにする（No.71）。今の人数が30名より多ければそこまで並べる
 const GUESTS_PICK = 30;
 export function guestOptions(emptyLabel: string, current: number | null): SelectOption<number | null>[] {

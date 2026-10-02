@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
+import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
 import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
@@ -146,7 +146,7 @@ describe('コースの料理', () => {
   it('メニューは id が重ならず、どのコースにも料理がある', () => {
     expect(new Set(COURSE_MENUS.map(menu => menu.id)).size).toBe(COURSE_MENUS.length);
     expect(COURSE_MENUS.every(menu => menu.dishes.length > 0 && isMenuId(menu.id))).toBe(true);
-    for (const bad of ['', 'x', null, undefined, 1]) expect(isMenuId(bad)).toBe(false);
+    for (const bad of ['', 'X', 'a-b', null, undefined, 1]) expect(isMenuId(bad)).toBe(false);
   });
   it('選ぶボタンは値段の安い順に並び、値段は桁区切りで出す', () => {
     const prices = COURSE_MENUS.map(menu => menu.price);
@@ -157,7 +157,7 @@ describe('コースの料理', () => {
   it('案内時にどのコースかを入れられる。通常の卓や知らない id は未選択にする', () => {
     expect(casual).toMatchObject({ menu: 'casual', dishesServed: 0 });
     expect(newSession('s', '12', 0, 4, null, 'casual').menu).toBeNull();
-    expect(newSession('s', '12', 0, 4, 'drinks', 'x').menu).toBeNull();
+    expect(newSession('s', '12', 0, 4, 'drinks', 'X!').menu).toBeNull();
     expect(newSession('s', '12', 0, 4, 'drinks').menu).toBeNull();
   });
   it('メニューの順に1品ずつ進め、全部出したらそれ以上進めない', () => {

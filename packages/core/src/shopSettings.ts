@@ -1,3 +1,4 @@
+import { DEFAULT_COURSE_MENUS, isMenuId, type CourseMenu } from './courseMenus';
 import { DEFAULT_DRINK_PLANS, isCourse, RULES, type DrinkPlan, type Rules } from './domain';
 import type { SyncState } from './store';
 
@@ -7,8 +8,9 @@ import type { SyncState } from './store';
 export interface ShopSettings extends Rules {
   shopName: string;         // 店名（ログインした店を見分ける。No.88 で使う）
   drinkPlans: DrinkPlan[];  // 飲み放題の区分（No.90）。選ぶとコースになる。並べる順
+  courseMenus: CourseMenu[];  // コースのメニュー（No.89）。選ぶボタンに並べる順
 }
-export const DEFAULT_SHOP_SETTINGS: ShopSettings = { ...RULES, shopName: '', drinkPlans: DEFAULT_DRINK_PLANS };
+export const DEFAULT_SHOP_SETTINGS: ShopSettings = { ...RULES, shopName: '', drinkPlans: DEFAULT_DRINK_PLANS, courseMenus: DEFAULT_COURSE_MENUS };
 export const SHOP_NAME_MAX = 30;
 export const DRINK_PLANS_MAX = 10;
 export const DRINK_PLAN_NAME_MAX = 20;
@@ -22,6 +24,42 @@ function parseDrinkPlans(value: unknown): DrinkPlan[] {
       && !plans.some(p => p.id === plan.id)) plans.push({ id: plan.id, name: plan.name });
   }
   return plans;
+}
+// コースのメニュー（No.89）の決まり（firestore.rules の courseMenus と isDishesServed も同じ上限）
+export const COURSE_LIMITS = { menus: 20, name: 30, short: 12, dishes: 30, dish: 60, price: 100_000 } as const;
+// コースを保存する前に確かめる。直すべきことを、お店の人が読める言葉で返す（空なら保存できる）
+export function courseProblems(menu: CourseMenu): string[] {
+  const problems: string[] = [];
+  if (menu.name.trim() === '' || menu.name.length > COURSE_LIMITS.name) problems.push(`名前は1〜${COURSE_LIMITS.name}文字にしてください`);
+  if (menu.short.trim() === '' || menu.short.length > COURSE_LIMITS.short) problems.push(`ボタンの名前は1〜${COURSE_LIMITS.short}文字にしてください`);
+  if (!Number.isInteger(menu.price) || menu.price < 0 || menu.price > COURSE_LIMITS.price) problems.push('値段は 0〜100,000円 の整数にしてください');
+  if (menu.dishes.length === 0) problems.push('料理を1品以上入れてください');
+  if (menu.dishes.length > COURSE_LIMITS.dishes) problems.push(`料理は${COURSE_LIMITS.dishes}品までです`);
+  if (menu.dishes.some(dish => dish.trim() === '' || dish.length > COURSE_LIMITS.dish)) problems.push(`料理の名前は1〜${COURSE_LIMITS.dish}文字にしてください（空の行は消してください）`);
+  const lo = menu.lastOrderMin, seat = menu.seatLimitMin;
+  if (lo !== null && !isMinutes(lo, 'lastOrderMin')) problems.push('L.O. の分が範囲の外です');
+  if (seat !== null && !isMinutes(seat, 'seatLimitMin')) problems.push('お席の時間の分が範囲の外です');
+  if (lo !== null && seat !== null && lo >= seat) problems.push('L.O. はお席の時間より前にしてください');
+  return problems;
+}
+// コースの一覧を読む。確かめて問題のあるコース・同じ id は落とす。一覧そのものが無い・壊れているときは最初の一覧
+function parseCourseMenus(value: unknown): CourseMenu[] {
+  if (!Array.isArray(value)) return DEFAULT_COURSE_MENUS;
+  const menus: CourseMenu[] = [];
+  for (const item of value.slice(0, COURSE_LIMITS.menus)) {
+    const m = typeof item === 'object' && item !== null ? item as Record<string, unknown> : {};
+    const minutesOrNull = (v: unknown) => v === null || v === undefined ? null : typeof v === 'number' ? v : NaN;
+    const menu: CourseMenu = {
+      id: String(m.id ?? ''), name: String(m.name ?? ''), short: String(m.short ?? ''), price: typeof m.price === 'number' ? m.price : NaN,
+      dishes: Array.isArray(m.dishes) ? m.dishes.map(dish => typeof dish === 'string' ? dish : '') : [],
+      lastOrderMin: minutesOrNull(m.lastOrderMin), seatLimitMin: minutesOrNull(m.seatLimitMin),
+    };
+    if (isMenuId(menu.id) && !menus.some(other => other.id === menu.id) && courseProblems(menu).length === 0) menus.push(menu);
+  }
+  return menus;
+}
+export function newCourseMenuId(menus: CourseMenu[], now: number): string {
+  for (let n = now; ; n++) { const id = `menu_${n.toString(36)}`; if (!menus.some(menu => menu.id === id)) return id; }
 }
 // 新しく足す区分の id。既存の id と重ならないよう時刻から作る（英小文字・数字・_）
 export function newDrinkPlanId(plans: DrinkPlan[], now: number): string {
@@ -49,6 +87,7 @@ export function parseShopSettings(data: unknown): ShopSettings {
     otoshi: d.otoshi !== false,
     shopName: typeof d.shopName === 'string' && d.shopName.length <= SHOP_NAME_MAX ? d.shopName : '',
     drinkPlans: parseDrinkPlans(d.drinkPlans),
+    courseMenus: parseCourseMenus(d.courseMenus),
   };
 }
 // 分の項目を step だけ増やす・減らす。範囲の外や、L.O. がお席の時間に届く変更は null（ボタンを押せなくする）

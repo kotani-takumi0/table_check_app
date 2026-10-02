@@ -1,4 +1,4 @@
-import { isMenuId, menuOf } from './courseMenus';
+import { DEFAULT_COURSE_MENUS, isMenuId } from './courseMenus';
 import { DEFAULT_DRINK_PLANS, isCourse, isGuestCount, type Course, type Session, type Status } from './domain';
 
 export interface SessionDoc {
@@ -12,18 +12,22 @@ export interface SessionDoc {
   guests: number | null;
   course: Course | null;       // 前の版のアプリも読めるよう、最初の3区分のどれか（店が足した区分は 'drinks'）。null は通常
   drinkPlan: Course | null;    // 飲み放題の区分の id（No.90）。通常は null
-  menu: string | null;
+  menu: string | null;         // 前の版のアプリも読めるよう、最初の5コースのどれか（店が作ったコースは null）
+  courseMenu: string | null;   // どのコースか（No.89）。コースを選んでいなければ null
   dishesServed: number;
   leaveAt: number | null;
 }
 // 前の版のアプリが知っている区分（これ以外の course の文書は読めずに捨ててしまう）
 const LEGACY_COURSES = DEFAULT_DRINK_PLANS.map(plan => plan.id);
+const LEGACY_MENUS = DEFAULT_COURSE_MENUS.map(menu => menu.id);
 // 保存する形。店が足した区分（No.90）は course に 'drinks' を入れ、本当の区分は drinkPlan に入れる。
 // 前の版の端末でもコースの卓として見え、空席と間違えて案内されないようにする
 export function toSessionDoc(session: Session): SessionDoc {
   const { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course, menu, dishesServed, leaveAt } = session;
   const legacy = course === null ? null : LEGACY_COURSES.includes(course) ? course : 'drinks';
-  return { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course: legacy, drinkPlan: course, menu, dishesServed, leaveAt };
+  // 店が作ったコース（No.89）も同じく、menu は前の版も知っているものだけにし、本当のコースは courseMenu に入れる
+  const legacyMenu = menu !== null && LEGACY_MENUS.includes(menu) ? menu : null;
+  return { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course: legacy, drinkPlan: course, menu: legacyMenu, courseMenu: menu, dishesServed, leaveAt };
 }
 export function fromSessionDoc(id: string, data: unknown): Session | null {
   if (typeof data !== 'object' || data === null) return null;
@@ -39,6 +43,7 @@ export function fromSessionDoc(id: string, data: unknown): Session | null {
     && (s.course === undefined || s.course === null || isCourse(s.course))
     && (s.drinkPlan === undefined || s.drinkPlan === null || isCourse(s.drinkPlan))
     && (s.menu === undefined || s.menu === null || isMenuId(s.menu))
+    && (s.courseMenu === undefined || s.courseMenu === null || isMenuId(s.courseMenu))
     && (s.dishesServed === undefined || (Number.isInteger(s.dishesServed) && (s.dishesServed as number) >= 0))
     && (s.leaveAt === undefined || s.leaveAt === null || timestamp(s.leaveAt))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
@@ -50,13 +55,12 @@ export function fromSessionDoc(id: string, data: unknown): Session | null {
   return { id, tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course, menu, dishesServed, leaveAt };
 }
 // 保存されたセッションに無い項目を補う（Firestore とブラウザの保存先で共通）。
-// コースでなければメニューは持たず、出した品数はメニューの品数までに収める
-// 区分は drinkPlan を優先して読む（前の版のアプリが通常に戻した文書は course が null なので通常）
+// コースでなければメニューは持たず、出した品数も持たない（メニューの品数までに収めるのは dishProgress。コースは店が作るので、ここでは品数が分からない）
+// 区分は drinkPlan、コースは courseMenu を優先して読む（前の版のアプリが通常に戻した文書は course が null なので通常）
 export function withDefaults(s: Record<string, unknown>): Session {
   const course = s.course == null ? null : (isCourse(s.drinkPlan) ? s.drinkPlan : s.course) as Course;
-  const menu = course === null ? null : (s.menu ?? null) as string | null;
-  const total = menuOf(menu)?.dishes.length ?? 0;
-  const dishesServed = Math.min((s.dishesServed ?? 0) as number, total);
+  const menu = course === null ? null : (isMenuId(s.courseMenu) ? s.courseMenu : s.menu ?? null) as string | null;
+  const dishesServed = menu === null ? 0 : (s.dishesServed ?? 0) as number;
   return { ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null, course, menu, dishesServed, leaveAt: s.leaveAt ?? null } as unknown as Session;
 }
 // 卓の持ち主は「tables/{卓} がそのセッションを指し、かつセッションの tableIds にもその卓がある」ときだけ。
