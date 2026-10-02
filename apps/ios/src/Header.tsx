@@ -57,7 +57,8 @@ const styles = StyleSheet.create({
   group: { height: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 6, borderRadius: 24 },
   miniGroup: { gap: 4, paddingHorizontal: 4, borderRadius: 20 },
   shopTimers: { flexShrink: 1, minWidth: 0 },
-  right: { marginLeft: 'auto', flexShrink: 0, gap: 10, paddingLeft: 14 },
+  // 狭い画面でオフラインの長い文言が出ても、右のまとまりは60%までに縮め、文言を省略してトイレのボタンの場所を残す
+  right: { marginLeft: 'auto', flexShrink: 1, minWidth: 0, maxWidth: '60%', gap: 10, paddingLeft: 14 },
   // 幅が足りないときはチップごと縮め、文字を省略する（Web の .shop-timer と同じ）
   chip: { flexShrink: 1, minWidth: 0, minHeight: 36, paddingHorizontal: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: CHIP_BG, justifyContent: 'center' },
   miniChip: { minHeight: 30, paddingHorizontal: 8 },
@@ -66,10 +67,10 @@ const styles = StyleSheet.create({
   due: { borderColor: COLORS.now, backgroundColor: COLORS.nowBg },
   dueLabel: { color: COLORS.nowText, fontWeight: '700' },
   sync: { fontSize: 12, flexShrink: 1 },
-  version: { fontSize: 11, color: COLORS.muted, opacity: 0.8 },
-  clock: { fontSize: 17, fontWeight: '500', color: COLORS.text },
+  version: { flexShrink: 0, fontSize: 11, color: COLORS.muted, opacity: 0.8 },
+  clock: { flexShrink: 0, fontSize: 17, fontWeight: '500', color: COLORS.text },
   miniClock: { fontSize: 14 },
-  clear: { minWidth: 52, minHeight: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: CHIP_BG, alignItems: 'center', justifyContent: 'center' },
+  clear: { flexShrink: 0, minWidth: 52, minHeight: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: CHIP_BG, alignItems: 'center', justifyContent: 'center' },
   miniClear: { minWidth: 44, minHeight: 30, paddingHorizontal: 8 },
   clearLabel: { fontSize: 14, color: COLORS.text },
   disabled: { opacity: 0.4 },

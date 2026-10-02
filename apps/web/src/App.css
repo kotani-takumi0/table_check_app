@@ -68,7 +68,10 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .toolbar { position: absolute; z-index: 5; top: 8px; left: 16px; right: 16px; height: 48px; display: flex; align-items: center; gap: 8px; color: var(--muted); pointer-events: none; }
 .toolbar > * { pointer-events: auto; }
 .toolbar-group { height: 100%; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 0 6px; border-radius: 24px; }
-.toolbar-right { flex-shrink: 0; margin-left: auto; gap: 10px; padding-left: 14px; }
+/* 狭い画面でオフラインの長い文言が出ても、右のまとまりは60%までに縮め、文言を省略してトイレのボタンの場所を残す */
+.toolbar-right { flex-shrink: 1; min-width: 0; max-width: 60%; margin-left: auto; gap: 10px; padding-left: 14px; }
+.toolbar-right > :not(.sync-state) { flex-shrink: 0; }
+.toolbar .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 /* ガラス：80% 前後の面＋ぼかし。端末の「透明度を下げる」がオンなら、ぼかしをやめて不透明な面にする */
 .glass { background: color-mix(in srgb, var(--surface) 80%, transparent); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); border: 1px solid color-mix(in srgb, var(--surface) 60%, transparent); box-shadow: 0 4px 16px rgb(0 0 0 / 0.1); }
 @media (prefers-reduced-transparency: reduce) { .glass { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--line); } }
