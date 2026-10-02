@@ -20,7 +20,9 @@ interface Props {
 export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, listOpen, onToggleList, inert }: Props) {
   return <header className="toolbar" inert={inert}>
     <div className="toolbar-group glass list-toggle-group">
-      <button className="list-toggle" aria-expanded={listOpen} aria-controls="table-list" onClick={onToggleList}><span aria-hidden="true">≡</span> 一覧</button>
+      <button className="list-toggle" aria-label="全卓一覧" title="全卓一覧" aria-expanded={listOpen} aria-controls="table-list" onClick={onToggleList}>
+        <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="4" /><path d="M9 4v16M5.5 8.5h1M5.5 12h1M5.5 15.5h1" /></svg>
+      </button>
     </div>
     <div className="toolbar-group glass shop-timers">
       {SHOP_TIMERS.map(timer => {
@@ -38,7 +40,9 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
       <CactusClock time={time} />
       <time>{formatClock(time)}</time>
       {/* よく押すトイレのボタンから離して右端に置く */}
-      <button className="clear-all" aria-label="全卓を消去（確認が出ます）" title="全卓を消去" disabled={!canClearAll} onClick={onClearAll}>消去</button>
+      <button className="clear-all" aria-label="全卓を消去（確認が出ます）" title="全卓を消去" disabled={!canClearAll} onClick={onClearAll}>
+        <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M9.5 7V5h5v2M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" /></svg>
+      </button>
     </div>
   </header>;
 }

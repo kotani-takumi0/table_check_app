@@ -21,8 +21,8 @@ export function ShopTimerDialog({ label, icon, doneAt, onReset, onClose, returnF
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  return <div className="panel-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="panel" role="dialog" aria-modal="true" aria-labelledby="shop-timer-title">
+  return <div className="panel-backdrop popover-backdrop from-start" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="panel alert popover" role="dialog" aria-modal="true" aria-labelledby="shop-timer-title">
       <h2 id="shop-timer-title" className="panel-title"><span aria-hidden="true">{icon}</span> {label}</h2>
       <div className="time-row">
         <span>前回</span>
