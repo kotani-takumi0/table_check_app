@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { isStoreProject, STORE_PROJECT_ID } from '@table-check/core/firebaseProjects';
+import { version } from '../../package.json';
 // ビルドのモードごとにつなぐ Firebase プロジェクト（.firebaserc の prod・dev と同じ）
 const PROJECTS: Record<string, string> = { production: 'table-check-prod', development: 'table-check-dev' };
 const KEYS = ['VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_APP_ID'];
@@ -24,4 +25,14 @@ function requireFirebase(): Plugin {
     },
   };
 }
-export default defineConfig({ plugins: [react(), requireFirebase()] });
+// 開いたままの端末が新しい版に気づけるよう、ビルドの版を dist/version.json に出す（No.83。firebase.json で no-cache）
+function versionFile(): Plugin {
+  return {
+    name: 'version-file',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version }) });
+    },
+  };
+}
+export default defineConfig({ plugins: [react(), requireFirebase(), versionFile()] });
