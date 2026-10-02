@@ -50,7 +50,7 @@ export default function App() {
 }
 
 // Web の App と同じ画面：フロア図・ヘッダー・通知と、案内・詳細・トイレ・全卓消去のシート
-function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial, account, onLeave } }: { services: Services }) {
+function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial, account, onLeave, leaveError = '' } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
   // 店全体の設定（時間のルール・飲み放題の区分・コースなど）。全端末で共有する
@@ -194,7 +194,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
       {menuOpen && !pick && <>
         <Pressable accessibilityLabel="メニューを閉じる" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
         <View style={[styles.listArea, { top: (mini ? TOOLBAR_HEIGHT.mini + 10 : TOOLBAR_HEIGHT.regular + 14) }, mini && styles.miniListArea]} pointerEvents="box-none">
-          <SideMenu screen={screen} onSelect={selectScreen} mini={mini} account={account} shopName={shopSettings.shopName} onLeave={onLeave} />
+          <SideMenu screen={screen} onSelect={selectScreen} mini={mini} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} />
         </View>
       </>}
       <View style={[styles.overlay, mini && styles.miniOverlay]} pointerEvents="box-none">

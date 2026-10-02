@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { currentAccount, LOGIN_MODE_KEY, loginErrorMessage, parseLoginMode, signInAsGuest, signInWithEmail, signOutAccount, type LoginMode } from '@table-check/core/auth';
+import { currentAccount, flushPendingWrites, LOGIN_MODE_KEY, loginErrorMessage, PENDING_WRITES_MESSAGE, parseLoginMode, signInAsGuest, signInWithEmail, signOutAccount, type LoginMode } from '@table-check/core/auth';
 import { firestoreStores, type ShopStores } from '@table-check/core/firestoreServices';
 import { newDeviceId } from '@table-check/core/firestoreEditing';
 import { startServerClock, type KeyValueStorage } from '@table-check/core/serverClock';
@@ -29,6 +29,8 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // 送信待ちが残っていて店を切り替えられなかったときの知らせ（メニューに出す）
+  const [leaveError, setLeaveError] = useState('');
   const startGuest = useCallback(() => {
     writeMode('guest');
     setError('');
@@ -52,12 +54,17 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
     else if (mode === 'account') void currentAccount(auth).then(user => user ? startAccount(user) : setPhase({ kind: 'choose' }), () => setPhase({ kind: 'choose' }));
     else setPhase({ kind: 'choose' });
   }, [auth, startGuest, startAccount]);
-  // ほかのタブでログアウト・別のアカウントでログインしたら、ログインした店の画面を閉じて最初の画面に戻る
+  // ほかのタブでログアウト・別のアカウントでログインしたら、この画面を閉じて最初の画面に戻る。
+  // ログインした店はアカウントが変わったとき、今の店はログインが外れたとき（一度ログインできたあと）
   const account = phase.kind === 'ready' ? phase.account : null;
+  const guestReady = phase.kind === 'ready' && !phase.account && !phase.trial ? phase.userReady : null;
   useEffect(() => {
-    if (!account) return;
-    return onAuthStateChanged(auth, user => { if (user?.uid !== account.uid) setPhase({ kind: 'choose' }); });
-  }, [auth, account]);
+    if (account) return onAuthStateChanged(auth, user => { if (user?.uid !== account.uid) setPhase({ kind: 'choose' }); });
+    if (!guestReady) return;
+    let signedIn = false;
+    void guestReady.then(() => { signedIn = true; }, () => undefined);
+    return onAuthStateChanged(auth, user => { if (signedIn && user === null) setPhase({ kind: 'choose' }); });
+  }, [auth, account, guestReady]);
   // サーバーの時刻とのずれを測る（端末の時計がずれていても、全端末で同じ経過を出す）
   const userReady = phase.kind === 'ready' ? phase.userReady : null;
   useEffect(() => {
@@ -72,14 +79,19 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
     setError('');
     signInWithEmail(auth, email, password).then(startAccount, (reason: unknown) => setError(loginErrorMessage(reason))).finally(() => setBusy(false));
   };
-  // ログアウト・ログインし直す：覚えた使い方を消して、最初の画面に戻る
+  // ログアウト・ログインし直す：送信待ちを送り終えてから、覚えた使い方を消して最初の画面に戻る
   const leave = useCallback(() => {
-    const account = phase.kind === 'ready' ? phase.account : null;
-    writeMode(null);
-    setPhase({ kind: 'choose' });
-    if (account) void signOutAccount(auth).catch(reason => console.error(reason));
-  }, [auth, phase]);
+    if (phase.kind !== 'ready') return;
+    const { account, trial } = phase;
+    setLeaveError('');
+    void (trial ? Promise.resolve(true) : flushPendingWrites(db)).then(flushed => {
+      if (!flushed) { setLeaveError(PENDING_WRITES_MESSAGE); return; }
+      writeMode(null);
+      setPhase({ kind: 'choose' });
+      if (account) void signOutAccount(auth).catch(reason => console.error(reason));
+    });
+  }, [auth, db, phase]);
   if (phase.kind === 'loading') return <main className="login" aria-busy="true" />;
   if (phase.kind === 'choose') return <LoginScreen busy={busy} error={error} onLogin={login} onGuest={startGuest} />;
-  return <App key={phase.account?.uid ?? 'guest'} {...phase.stores} trial={phase.trial} account={phase.account?.email ?? null} onLeave={leave} />;
+  return <App key={phase.account?.uid ?? 'guest'} {...phase.stores} trial={phase.trial} account={phase.account?.email ?? null} onLeave={leave} leaveError={leaveError} />;
 }

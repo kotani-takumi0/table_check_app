@@ -1,4 +1,5 @@
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, type Auth, type User } from 'firebase/auth';
+import { waitForPendingWrites, type Firestore } from 'firebase/firestore';
 
 // ログインしていればその利用者を、まだなら匿名でログインして返す
 export function waitForUser(auth: Auth): Promise<User> {
@@ -50,3 +51,12 @@ export function loginErrorMessage(error: unknown): string {
     default: return 'ログインできませんでした。もう一度ためしてください';
   }
 }
+// 店を切り替える前に、送信待ちの書き込みを送り終える（No.88）。送信待ちはログイン中の利用者ごとに持たれるので、
+// 送り終わる前にログイン・ログアウトすると記録が届かなくなる。少し待っても終わらなければ false（切り替えない）
+export async function flushPendingWrites(db: Firestore, waitMs = 3000): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<boolean>(resolve => { timer = setTimeout(() => resolve(false), waitMs); });
+  try { return await Promise.race([waitForPendingWrites(db).then(() => true, () => false), timeout]); }
+  finally { clearTimeout(timer); }
+}
+export const PENDING_WRITES_MESSAGE = '送信待ちの記録があります。インターネットにつながってから、もう一度押してください';

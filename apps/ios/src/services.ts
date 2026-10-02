@@ -12,7 +12,8 @@ import { firebaseConfigFromEnv, initFirebase } from './firebase';
 
 // trial：Firebase につながず、アプリを開いている間だけ端末の中で動いている（開発中の試し）
 // account：ログインしている店のメールアドレス（今の店は null）。onLeave：ログアウト・ログインし直す（No.88）
-export interface Services extends ShopStores { trial: boolean; account: string | null; onLeave?(): void }
+// leaveError：送信待ちが残っていて店を切り替えられなかったときの知らせ
+export interface Services extends ShopStores { trial: boolean; account: string | null; onLeave?(): void; leaveError?: string }
 export function memoryStores(): ShopStores {
   return { store: new MemorySessionStore(), shopTimerStore: new MemoryShopTimerStore(), editingStore: new NoEditingStore(), shopSettingsStore: new MemoryShopSettingsStore(), shopLayoutStore: new MemoryShopLayoutStore() };
 }

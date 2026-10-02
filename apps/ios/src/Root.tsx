@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User } from 'firebase/auth';
-import { currentAccount, loginErrorMessage, signInAsGuest, signInWithEmail, signOutAccount } from '@table-check/core/auth';
+import { currentAccount, flushPendingWrites, loginErrorMessage, PENDING_WRITES_MESSAGE, signInAsGuest, signInWithEmail, signOutAccount } from '@table-check/core/auth';
 import { firestoreStores, type ShopStores } from '@table-check/core/firestoreServices';
 import { newDeviceId } from '@table-check/core/firestoreEditing';
 import { startServerClock } from '@table-check/core/serverClock';
@@ -16,6 +16,8 @@ export function Root({ children }: { children(services: Services): ReactNode }) 
   const [phase, setPhase] = useState<Phase>(firebase ? { kind: 'loading' } : { kind: 'ready', stores: memoryStores(), userReady: null, account: null, trial: true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // 送信待ちが残っていて店を切り替えられなかったときの知らせ（メニューに出す）
+  const [leaveError, setLeaveError] = useState('');
   const startGuest = useCallback(() => {
     if (!firebase) return;
     writeMode('guest');
@@ -59,14 +61,20 @@ export function Root({ children }: { children(services: Services): ReactNode }) 
     setError('');
     signInWithEmail(firebase.auth, email, password).then(startAccount, (reason: unknown) => setError(loginErrorMessage(reason))).finally(() => setBusy(false));
   };
-  // ログアウト・ログインし直す：覚えた使い方を消して、最初の画面に戻る
+  // ログアウト・ログインし直す：送信待ちを送り終えてから、覚えた使い方を消して最初の画面に戻る
   const leave = useCallback(() => {
-    const account = phase.kind === 'ready' ? phase.account : null;
-    writeMode(null);
-    setPhase({ kind: 'choose' });
-    if (account && firebase) void signOutAccount(firebase.auth).catch(reason => console.error(reason));
+    if (phase.kind !== 'ready' || !firebase) return;
+    const { account, trial } = phase;
+    const { auth, db } = firebase;
+    setLeaveError('');
+    void (trial ? Promise.resolve(true) : flushPendingWrites(db)).then(flushed => {
+      if (!flushed) { setLeaveError(PENDING_WRITES_MESSAGE); return; }
+      writeMode(null);
+      setPhase({ kind: 'choose' });
+      if (account) void signOutAccount(auth).catch(reason => console.error(reason));
+    });
   }, [phase]);
   if (phase.kind === 'loading') return null;
   if (phase.kind === 'choose') return <LoginScreen busy={busy} error={error} onLogin={login} onGuest={startGuest} />;
-  return children({ ...phase.stores, trial: phase.trial, account: phase.account?.email ?? null, onLeave: firebase ? leave : undefined });
+  return children({ ...phase.stores, trial: phase.trial, account: phase.account?.email ?? null, onLeave: firebase ? leave : undefined, leaveError });
 }
