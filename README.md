@@ -14,24 +14,24 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 
 Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンは Notion の Top ページと同じ画像で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
 
-## 店のデータを守る（2026-10-02 時点）
+## 店のデータを守る（2026-10-03 時点）
 
-**店は今、名前が「開発用」の https://table-check-dev.web.app（v1.1.3）で営業しています。** 10/1 に本番用の `table-check-prod` を作りましたが、店の端末はまだ切り替わっていません（本番にある記録は 10/1 の試しの1件だけで、営業の記録は 9/25 から `table-check-dev` に入っています）。店をどのプロジェクトで動かすかは、あとで決めます。
+**店は今、名前が「開発用」の https://table-check-dev.web.app で営業しています。** この URL で配信しているのは 10/2 17:43 に出した v2.2.0 です（Firestore ルールも同時に 2.2.0 のものを出しました）。ただ、店の端末はそれより前に開いたまま動いていて、10/2 の閉店までの記録はすべて v1.1.3 が書いたものでした。ホーム画面に追加したアプリは切り替えても読み込み直さないので、端末はアプリを完全に閉じて開き直すまで v1.1.3 のままで、開き直すと v2.2.0 になります。10/1 に本番用の `table-check-prod` を作りましたが、店の端末はまだ切り替わっていません（本番にある記録は 10/1 の試しの1件だけで、営業の記録は 9/25 から `table-check-dev` に入っています）。店をどのプロジェクトで動かすかは、あとで決めます。
 
 それまでは、開発中の試しで `table-check-dev` のデータに触れません。
 
 | どこから | つながる先 | 店のデータ |
 |---|---|---|
-| 店の端末（https://table-check-dev.web.app、v1.1.3） | `table-check-dev` | 営業のデータそのもの |
+| 店の端末（https://table-check-dev.web.app。配信は v2.2.0、端末は開き直すまで v1.1.3） | `table-check-dev` | 営業のデータそのもの |
 | 手元の Web（`npm run dev`） | どこにもつながない（ブラウザの localStorage だけ） | 触れない |
 | iOS（Expo Go、`npm run ios`） | どこにもつながない（アプリを開いている間のメモリだけ） | 触れない |
 | `npm run deploy` | `table-check-prod`（Hosting と Firestore ルール） | 触れない |
 | https://table-check-prod.web.app | `table-check-prod` | 触れない |
 
-- 手元の Web・iOS は、設定ファイルが `table-check-dev` を指していても、つながずに端末の中だけで動きます（`packages/core/src/firebaseProjects.ts` の `STORE_PROJECT_ID`）。このときヘッダーの版の表示が `v2.2.0・試し` になります（幅の狭い画面では版ごと隠れます）。ほかの端末とは同期しません。
+- 手元の Web・iOS は、設定ファイルが `table-check-dev` を指していても、つながずに端末の中だけで動きます（`packages/core/src/firebaseProjects.ts` の `STORE_PROJECT_ID`）。このときヘッダーの版の表示が `v2.2.1・試し` になります（幅の狭い画面では版ごと隠れます）。ほかの端末とは同期しません。
 - `table-check-dev` 向けのビルド（`vite build --mode development`）は止まります。`deploy:dev`・`deploy:preview`・`build:dev` は消しました。
 - `.firebaserc` の `default` を消しました。`-P` を付けない `firebase deploy` は、行き先が決まらず止まります（以前は `table-check-dev` に出ていた）。
-- **新しい版で店のデータを書き換えると、店の v1.1.3 が動かなくなることがあります。** たとえば 2.1 以降でコースや料理を選んだ卓は、v1.1.3 から状態を進められません（v1.1.3 は `course`・`menu` を書かないので、Firestore ルールの `keepsCourse`・`keepsMenu` が書き込みを拒否する）。店の端末を新しい版にそろえるまで、店のデータに新しい版をつながないでください。
+- **新しい版で店のデータを書き換えると、店の v1.1.3 が動かなくなることがあります。** たとえば 2.1 以降でコースや料理を選んだ卓は、v1.1.3 から状態を進められません（v1.1.3 は `course`・`menu` を書かないので、Firestore ルールの `keepsCourse`・`keepsMenu` が書き込みを拒否する）。店の端末を新しい版にそろえるまで、店のデータに新しい版をつながないでください。端末が何台かあるときは、v1.1.3 と v2.2.0 が混ざらないよう、全部まとめて開き直します。
 - 店を新しい版にするとき（`table-check-dev` に出す、または店を `table-check-prod` に移す）は、`STORE_PROJECT_ID` と上の表を見直します。
 
 ## 起動
@@ -92,7 +92,7 @@ Firebase のプロジェクトは2つあります。もとは「本番」と「�
 | 名前の上の用途 | プロジェクト | `.firebaserc` の別名 | 設定ファイル | URL | 今の実際 |
 |---|---|---|---|---|---|
 | 本番 | `table-check-prod` | `prod` | `apps/web/.env.production.local` | https://table-check-prod.web.app | 店は使っていない |
-| 開発・練習 | `table-check-dev` | `dev` | `apps/web/.env.development.local` | https://table-check-dev.web.app | **店が営業で使っている（v1.1.3）** |
+| 開発・練習 | `table-check-dev` | `dev` | `apps/web/.env.development.local` | https://table-check-dev.web.app | **店が営業で使っている（配信は v2.2.0、端末は開き直すまで v1.1.3）** |
 
 `npm run dev` は開発用の設定ファイルを読みます。4設定のどれかが無いとき、または `table-check-dev` を指しているときは、localStorage で動きます。それ以外のプロジェクトを指しているときは、匿名ログインしてから Firestore を購読します。既存の localStorage のデータは移行しません。
 
@@ -142,7 +142,7 @@ npm run deploy          # table-check-prod に Hosting と Firestore ルール�
    - 実機の iPhone／iPad では、**Expo Go と Mac の Expo CLI が同じ Expo アカウントでログインしていないと開けません**。アカウント（無料）を https://expo.dev/signup で作り、Mac で `apps/ios` に移って `npx expo login` を実行し、Expo Go でも右上のアイコンから同じアカウントでログインします。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます（Expo Go を入れていないと「使用可能なデータがありません」と出ます）。`apps/ios` 以外で `npx expo start` を実行すると、その場所に `tsconfig.json` と `.expo/` が作られるので注意してください。
 
-ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.2.0・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
+ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.2.1・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
 
 #### つながらないとき（トンネル接続）
 
