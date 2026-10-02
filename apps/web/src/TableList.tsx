@@ -16,17 +16,17 @@ export function TableList({ sessions, time, onOpen, inert }: Props) {
     <h2 className="table-list-title">全卓一覧 <span className="table-list-count">{rows.length}組</span></h2>
     {rows.length === 0 ? <p className="table-list-empty">ご案内中の卓はありません</p>
       : <ul className="table-list-rows">
-        {rows.map(session => {
+        {rows.map(({ session, tables: shown }) => {
           const alert = alertOf(session, time);
           const dial = dialOf(session, time);
           const display = displayOf(session.status, session.course);
           const progress = dishProgress(session);
           const elapsed = session.status === 'exited' ? '退店済' : dial.elapsedMin === null ? '開始前' : formatHourMinute(dial.elapsedMin);
-          const tables = session.tableIds.join('・');
+          const tables = shown.join('・');
           return <li key={session.id}>
             <button className={`table-row ${alert.level !== 'none' ? `alert-${alert.level}` : ''} ${session.status === 'exited' ? 'exited' : ''}`}
               aria-label={`${tables}番 ${STATUS_SHORT[display]} ${alert.reason ? REASON_LABEL[alert.reason] : ''} 経過${elapsed} ${session.guests === null ? '人数未入力' : `${session.guests}名`}${session.course !== null ? ' コース' : ''}${progress ? ` 料理${progress.served}/${progress.total}` : ''}（押すと詳細）`}
-              onClick={() => onOpen(session, session.tableIds[0])}>
+              onClick={() => onOpen(session, shown[0])}>
               <span className="table-row-number">{tables}</span>
               <span className="table-row-main">
                 <span className="table-row-stage">{alert.reason ? <span className="badge">{REASON_LABEL[alert.reason]}</span> : <strong className="status">{STATUS_SHORT[display]}</strong>}</span>

@@ -15,7 +15,7 @@ export function TableList({ sessions, time, onOpen, mini }: { sessions: Session[
       <Text style={styles.title} accessibilityRole="header">全卓一覧 <Text style={styles.count}>{rows.length}組</Text></Text>
       {rows.length === 0 ? <Text style={styles.empty}>ご案内中の卓はありません</Text> : (
         <ScrollView contentContainerStyle={styles.rows}>
-          {rows.map(session => {
+          {rows.map(({ session, tables: shown }) => {
             const alert = alertOf(session, time);
             const dial = dialOf(session, time);
             const display = displayOf(session.status, session.course);
@@ -23,12 +23,12 @@ export function TableList({ sessions, time, onOpen, mini }: { sessions: Session[
             const tone = cardTone(alert.level);
             const exited = session.status === 'exited';
             const elapsed = exited ? '退店済' : dial.elapsedMin === null ? '開始前' : formatHourMinute(dial.elapsedMin);
-            const tables = session.tableIds.join('・');
+            const tables = shown.join('・');
             const meta = `${session.guests === null ? '人数未入力' : `${session.guests}名`}${session.course !== null ? ' · コース' : ''}${progress ? ` · 料理 ${progress.served}/${progress.total}` : ''}`;
             return (
               <Pressable key={session.id} accessibilityRole="button"
                 accessibilityLabel={`${tables}番 ${STATUS_SHORT[display]} ${alert.reason ? REASON_LABEL[alert.reason] : ''} 経過${elapsed} ${meta}（押すと詳細）`}
-                onPress={() => { feedback.open(); onOpen(session, session.tableIds[0]); }}
+                onPress={() => { feedback.open(); onOpen(session, shown[0]); }}
                 style={({ pressed }) => [styles.row, { backgroundColor: tone.bg }, exited && styles.exited, pressed && styles.pressed]}>
                 <Text style={styles.number} numberOfLines={1}>{tables}</Text>
                 <View style={styles.main}>
