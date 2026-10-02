@@ -282,10 +282,24 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .card.mini { padding: 2px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; overflow: hidden; line-height: 1.05; }
 .card.mini .seat-number { font-size: 11px; }
 .card.mini.empty .seat-number { font-size: 14px; }
-.card.mini { container-type: inline-size; }
-/* 1列のカードは幅が48px前後しかないので、幅に合わせて縮める（タイマーは最大7文字 1:30:00、状態は最大4文字） */
-.card.mini .status { font-size: min(12px, 25cqw); }
-.card.mini .timer { font-size: min(12px, 25cqw); letter-spacing: -0.5px; }
+/* 使っている卓：上から卓番・文字盤・段階。文字盤はマスの幅と、卓番・段階を除いた高さに収める */
+.card.mini.occupied { position: relative; container-type: size; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; justify-items: center; align-items: center; gap: 1px; }
+.card.mini .dial-box { width: 100%; height: 100%; }
+.card.mini .dial { width: min(100cqw - 4px, 100cqh - 30px); }
+/* 小さい文字盤でも時:分が読めるよう、文字盤の中の文字を少し大きくする */
+.card.mini .dial-time { font-size: 27px; }
+.card.mini .dial-time.waiting { font-size: 18px; }
+/* 1列のカードは幅が48px前後しかないので、幅に合わせて縮める（状態は最大6文字） */
+.card.mini .status { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: min(12px, 18cqw); }
+/* カウンターのような低いマスは、段階を省いて卓番と文字盤だけにする（段階は読み上げと詳細で分かる） */
+/* 卓番は左上の角（円の外の空き）に重ね、文字盤をマスいっぱいにして時:分を大きくする */
+@container (max-height: 72px) {
+  .card.mini.occupied .status { display: none; }
+  .card.mini.occupied .seat-number { position: absolute; top: 1px; left: 3px; font-size: 10px; }
+  .card.mini.occupied .dial-box { grid-row: 1 / -1; }
+  .card.mini.occupied .dial { width: min(100cqw, 100cqh); }
+  .card.mini.occupied .dial-time { font-size: 34px; }
+}
 .paid-inline { margin-left: 3px; font-size: 10px; font-weight: 700; color: var(--text); }
 .mini .toast { padding: 0 2px 0 8px; gap: 4px; }
 .mini .toast-message { font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
