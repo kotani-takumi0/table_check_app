@@ -13,10 +13,11 @@ export interface SessionDoc {
   course: Course | null;
   menu: string | null;
   dishesServed: number;
+  leaveAt: number | null;
 }
 export function toSessionDoc(session: Session): SessionDoc {
-  const { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course, menu, dishesServed } = session;
-  return { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course, menu, dishesServed };
+  const { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course, menu, dishesServed, leaveAt } = session;
+  return { tableIds, status, seatedAt, otoshiAt, loDoneAt, exitedAt, paidAt, guests, course, menu, dishesServed, leaveAt };
 }
 export function fromSessionDoc(id: string, data: unknown): Session | null {
   if (typeof data !== 'object' || data === null) return null;
@@ -32,11 +33,12 @@ export function fromSessionDoc(id: string, data: unknown): Session | null {
     && (s.course === undefined || s.course === null || isCourse(s.course))
     && (s.menu === undefined || s.menu === null || isMenuId(s.menu))
     && (s.dishesServed === undefined || (Number.isInteger(s.dishesServed) && (s.dishesServed as number) >= 0))
+    && (s.leaveAt === undefined || s.leaveAt === null || timestamp(s.leaveAt))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(s.status) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt)))) return null;
   // お会計・人数・コース・料理を入れる前の文書には paidAt・guests・course・menu・dishesServed が無いので、
-  // 未払い・人数未入力・通常・コース未選択・まだ出していないとして読む
+  // 未払い・人数未入力・通常・コース未選択・まだ出していない・ふつうの退店時刻として読む（leaveAt も同じ）
   return { id, ...toSessionDoc(withDefaults(s)) };
 }
 // 保存されたセッションに無い項目を補う（Firestore とブラウザの保存先で共通）。
@@ -46,7 +48,7 @@ export function withDefaults(s: Record<string, unknown>): Session {
   const menu = course === null ? null : (s.menu ?? null) as string | null;
   const total = menuOf(menu)?.dishes.length ?? 0;
   const dishesServed = Math.min((s.dishesServed ?? 0) as number, total);
-  return { ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null, course, menu, dishesServed } as unknown as Session;
+  return { ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null, course, menu, dishesServed, leaveAt: s.leaveAt ?? null } as unknown as Session;
 }
 // 卓の持ち主は「tables/{卓} がそのセッションを指し、かつセッションの tableIds にもその卓がある」ときだけ。
 // 移動・取り消しで卓を null に戻す書き込みをしない（オフライン復帰時に他の端末の案内を消さない）ので、

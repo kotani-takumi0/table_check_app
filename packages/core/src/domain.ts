@@ -38,6 +38,7 @@ export interface Session {
   course: Course | null;   // null は通常。コースは otoshiAt にファーストドリンクの時刻を入れる
   menu: string | null;     // どのコースか（courseMenus の id）。コースのときだけ。null は未選択
   dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
+  leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
 }
 export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
 export type Alert = 'none' | 'soon' | 'now';
@@ -47,7 +48,7 @@ export const REASON_LABEL: Record<Exclude<AlertReason, null>, string> = { otoshi
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
   return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course,
-    menu: course !== null && menuOf(menu) ? menu : null, dishesServed: 0 };
+    menu: course !== null && menuOf(menu) ? menu : null, dishesServed: 0, leaveAt: null };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -114,16 +115,28 @@ export function timerOf(session: Session, now: number): { label: string; elapsed
   const start = startOf(session);
   return { label: session.course === null ? '案内から' : 'ファーストドリンクから', elapsedMs: start === null ? null : Math.max(0, now - start) };
 }
+// お席の終わり（退店の時刻）と L.O. の時刻。ふつうは数え始めから120分・90分。
+// 退店の時刻を決めた卓（leaveAt）はその時刻と、その30分前。コースの開始待ちは数えないので null
+export function limitsOf(session: Session): { lastOrderAt: number; seatEndAt: number } | null {
+  const start = startOf(session);
+  if (start === null) return null;
+  const seatEndAt = session.leaveAt ?? start + RULES.seatLimitMin * MINUTE;
+  return { lastOrderAt: seatEndAt - (RULES.seatLimitMin - RULES.lastOrderMin) * MINUTE, seatEndAt };
+}
 // timeLimitOff：店全体で時間制限を切っている（L.O.・お席の時間の警告を出さない。お通しの警告はそのまま）
 export function alertOf(session: Session, now: number, timeLimitOff = false): { level: Alert; reason: AlertReason } {
   const start = startOf(session);
-  if (session.status === 'exited' || start === null) return { level: 'none', reason: null };
-  const elapsed = now - start;
-  if (!timeLimitOff && elapsed >= RULES.seatLimitMin * MINUTE) return { level: 'now', reason: 'seat_limit' };
+  const limits = limitsOf(session);
+  if (session.status === 'exited' || start === null || limits === null) return { level: 'none', reason: null };
+  if (!timeLimitOff && now >= limits.seatEndAt) return { level: 'now', reason: 'seat_limit' };
   // コースはお通しを出さないので「お通し未提供」は出さない
-  if (session.status === 'seated' && session.course === null && elapsed >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
-  if (!timeLimitOff && session.status === 'otoshi' && elapsed >= RULES.lastOrderMin * MINUTE) return { level: 'soon', reason: 'last_order' };
+  if (session.status === 'seated' && session.course === null && now - start >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
+  if (!timeLimitOff && session.status === 'otoshi' && now >= limits.lastOrderAt) return { level: 'soon', reason: 'last_order' };
   return { level: 'none', reason: null };
+}
+// この卓だけ退店の時刻を決める・ふつうに戻す（null）。案内より前の時刻は null
+export function setLeaveAt(session: Session, at: number | null): Session | null {
+  return at === null || at > session.seatedAt ? { ...session, leaveAt: at } : null;
 }
 // L.O. の時間を過ぎても L.O.確認済みにしていないセッション（数え始めが古い順）
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
@@ -132,7 +145,7 @@ export function alertOf(session: Session, now: number, timeLimitOff = false): { 
 export function lastOrderDue(sessions: Session[], now: number, timeLimitOff = false): Session[] {
   if (timeLimitOff) return [];
   return sessions
-    .flatMap(s => { const start = startOf(s); return s.status === 'otoshi' && start !== null && now - start >= RULES.lastOrderMin * MINUTE ? [{ s, start }] : []; })
+    .flatMap(s => { const start = startOf(s); const limits = limitsOf(s); return s.status === 'otoshi' && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
     .sort((a, b) => a.start - b.start)
     .map(({ s }) => s);
 }

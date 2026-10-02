@@ -1,4 +1,4 @@
-import { RULES, startOf, type Session } from './domain';
+import { limitsOf, RULES, startOf, type Session } from './domain';
 
 const MINUTE = 60_000;
 // 卓カードの文字盤。案内（コースはファーストドリンク）から数えた経過を、120分（お席の時間）で一周する弧にする
@@ -16,7 +16,16 @@ export function dialOf(session: Session, now: number): Dial {
   if (start === null) return { elapsedMin: null, progress: 0, over: false };
   const end = session.status === 'exited' ? session.exitedAt ?? now : now;
   const elapsedMin = Math.floor(Math.max(0, end - start) / MINUTE);
-  return { elapsedMin, progress: Math.min(1, elapsedMin / DIAL_MIN), over: end - start >= DIAL_MIN * MINUTE };
+  const seatEndAt = limitsOf(session)?.seatEndAt ?? start + DIAL_MIN * MINUTE;
+  return { elapsedMin, progress: Math.min(1, elapsedMin / DIAL_MIN), over: end >= seatEndAt };
+}
+// 文字盤の縁の「L.O. から退席まで」の帯（0〜1）。退店の時刻を決めた卓は、その時刻に合わせて前にずらす
+export function bandOf(session: Session): { from: number; to: number } {
+  const start = startOf(session);
+  const limits = limitsOf(session);
+  if (start === null || limits === null) return { from: DIAL_BAND.fromMin / DIAL_MIN, to: DIAL_BAND.toMin / DIAL_MIN };
+  const at = (time: number) => Math.min(1, Math.max(0, (time - start) / MINUTE / DIAL_MIN));
+  return { from: at(limits.lastOrderAt), to: at(limits.seatEndAt) };
 }
 export type Remaining =
   | { kind: 'last_order'; minutes: number }  // L.O.まで N分
@@ -26,14 +35,13 @@ export type Remaining =
 // 卓カードの右下に出す残り時間。L.O.確認済みにするまでは L.O.まで、そのあと（または L.O. の時間を過ぎたら）退席まで。
 // 分は切り上げ（残り30秒なら「1分」）。退店済・コースの開始待ちは出さない
 export function remainingOf(session: Session, now: number, timeLimitOff = false): Remaining | null {
-  const start = startOf(session);
-  if (session.status === 'exited' || start === null) return null;
+  const limits = limitsOf(session);
+  if (session.status === 'exited' || limits === null) return null;
   if (timeLimitOff) return { kind: 'no_limit' };
-  const elapsed = now - start;
-  if (elapsed >= RULES.seatLimitMin * MINUTE) return { kind: 'over' };
-  const loLeft = RULES.lastOrderMin * MINUTE - elapsed;
+  if (now >= limits.seatEndAt) return { kind: 'over' };
+  const loLeft = limits.lastOrderAt - now;
   if (session.status !== 'lo_done' && loLeft > 0) return { kind: 'last_order', minutes: Math.ceil(loLeft / MINUTE) };
-  return { kind: 'seat_limit', minutes: Math.ceil((RULES.seatLimitMin * MINUTE - elapsed) / MINUTE) };
+  return { kind: 'seat_limit', minutes: Math.ceil((limits.seatEndAt - now) / MINUTE) };
 }
 export function remainingLabel(remaining: Remaining): string {
   switch (remaining.kind) {

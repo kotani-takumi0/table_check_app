@@ -12,7 +12,8 @@ export const NOTICE_ACTION: Record<Notice['kind'], string> = { last_order: 'L.O.
 // 店全体で時間制限を切っているときは L.O. の通知を出さない
 export function noticesOf(sessions: Session[], shopTimers: ShopTimerDone, now: number, timeLimitOff = false): Notice[] {
   const lastOrder = lastOrderDue(sessions, now, timeLimitOff).map((session): Notice => ({
-    key: `lo:${session.id}:${startOf(session)}`, tone: 'warning', message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`, kind: 'last_order', session,
+    // 退店の時刻を直したときも出し直す（決めていない卓は以前と同じ key）
+    key: `lo:${session.id}:${startOf(session)}${session.leaveAt === null ? '' : `:${session.leaveAt}`}`, tone: 'warning', message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`, kind: 'last_order', session,
   }));
   const shop = SHOP_TIMERS.flatMap((timer): Notice[] => {
     const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], now);

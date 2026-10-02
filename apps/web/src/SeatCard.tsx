@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
 import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
-import { dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
+import { bandOf, dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { Dial } from './Dial';
 
@@ -104,7 +104,7 @@ export function SeatCard({ seat, session, time, editing = false, timeLimitOff, o
       {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}
         {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={seat.kind === 'table' && !timeLimitOff} /></span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={seat.kind === 'table' && !timeLimitOff ? bandOf(session) : null} /></span>
       <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
@@ -114,7 +114,7 @@ export function SeatCard({ seat, session, time, editing = false, timeLimitOff, o
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`} onClick={() => exited ? onSeat(seat.id) : onOpen(session, seat.id)}>
       {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       {number}
-      <span className="dial-box"><Dial dial={dial} label={meter} band={false} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={null} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
       <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
@@ -131,7 +131,7 @@ export function SeatCard({ seat, session, time, editing = false, timeLimitOff, o
     {full ? <>
       <span className="corner tl">{number}</span>
       <span className="corner tr">{meta}</span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={!timeLimitOff} /></span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={timeLimitOff ? null : bandOf(session)} /></span>
       <span className="corner bl">{stage}</span>
       <span className="corner br">{corner}</span>
     </> : <>
@@ -141,7 +141,7 @@ export function SeatCard({ seat, session, time, editing = false, timeLimitOff, o
         {stage}
         <span className="remaining">{corner}</span>
       </span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={!timeLimitOff} /></span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={timeLimitOff ? null : bandOf(session)} /></span>
     </>}
   </button>;
 }

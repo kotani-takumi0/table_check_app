@@ -8,7 +8,7 @@ const exited = advance(loDone, 40_000);
 const minute = 60_000;
 describe('状態遷移', () => {
   it('初期状態と各状態の時刻を記録し、引数を変更しない', () => {
-    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null, menu: null, dishesServed: 0 });
+    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null, menu: null, dishesServed: 0, leaveAt: null });
     expect(otoshi).toEqual({ ...seated, status: 'otoshi', otoshiAt: 20_000 });
     expect(loDone).toEqual({ ...otoshi, status: 'lo_done', loDoneAt: 30_000 });
     expect(exited).toEqual({ ...loDone, status: 'exited', exitedAt: 40_000 });

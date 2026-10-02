@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, serveDish, setCourse, setGuests, setMenu, togglePaid, unserveDish, type Course, type EditableTime, type Session } from './domain';
+import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, serveDish, setCourse, setGuests, setLeaveAt, setMenu, togglePaid, unserveDish, type Course, type EditableTime, type Session } from './domain';
 import type { SessionStore } from './store';
 import { now } from './clock';
 // createId はお客さん（セッション）の ID を作る。React Native には crypto.randomUUID が無いので、iOS は expo-crypto を渡す
@@ -12,6 +12,7 @@ export function useSessions(store: SessionStore, createId: () => string = random
   retime(session: Session, field: EditableTime, at: number): boolean;
   pay(session: Session): void;
   changeGuests(session: Session, guests: number | null): void;
+  changeLeaveAt(session: Session, at: number | null): boolean;   // 退店の時刻を決める（null でふつうに戻す）。案内より前なら false
   changeCourse(session: Session, course: Course | null): void;
   changeMenu(session: Session, menu: string | null): void;
   serve(session: Session): void;
@@ -41,6 +42,11 @@ export function useSessions(store: SessionStore, createId: () => string = random
   const changeGuests = useCallback((session: Session, guests: number | null) => {
     const changed = setGuests(session, guests);
     if (changed) void store.put(changed);
+  }, [store]);
+  const changeLeaveAt = useCallback((session: Session, at: number | null) => {
+    const changed = setLeaveAt(session, at);
+    if (changed) void store.put(changed);
+    return changed !== null;
   }, [store]);
   const changeCourse = useCallback((session: Session, course: Course | null) => {
     const changed = setCourse(session, course);
@@ -74,5 +80,5 @@ export function useSessions(store: SessionStore, createId: () => string = random
   const clearAll = useCallback(() => {
     for (const session of sessions) void store.remove(session.id);
   }, [store, sessions]);
-  return { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll };
+  return { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll };
 }

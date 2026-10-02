@@ -22,7 +22,7 @@ import { now } from '@table-check/core/clock';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
 export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, trial = false }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; trial?: boolean }) {
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
@@ -165,7 +165,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
       </section>}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} inert={modal} />}
-    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} timeLimitOff={timeLimitOff} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
+    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} timeLimitOff={timeLimitOff} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
