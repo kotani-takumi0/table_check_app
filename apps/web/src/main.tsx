@@ -39,4 +39,4 @@ if (config) {
   shopTimerStore = new LocalShopTimerStore();
   editingStore = new NoEditingStore();
 }
-createRoot(document.getElementById('root')!).render(<StrictMode><App store={store} shopTimerStore={shopTimerStore} editingStore={editingStore} /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><App store={store} shopTimerStore={shopTimerStore} editingStore={editingStore} trial={!config} /></StrictMode>);

@@ -19,9 +19,10 @@ interface Props {
   mini: boolean;
   listOpen: boolean;   // 全卓一覧を開いているか
   onToggleList(): void;
+  trial: boolean;      // Firebase につながず端末の中だけで動いている（開発中の試し）
 }
 // フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, listOpen, onToggleList }: Props) {
+export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, listOpen, onToggleList, trial }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す（薄くして押せなくすると壊れているように見えるため）
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -58,7 +59,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
         {syncState !== 'synced' && <Text style={[styles.sync, { color: syncState === 'pending' ? COLORS.soonText : COLORS.nowText }]} numberOfLines={1}>
           {syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}
         </Text>}
-        {!mini && <Text style={styles.version}>v{version}</Text>}
+        {!mini && <Text style={styles.version}>v{version}{trial && '・試し'}</Text>}
         <CactusClock time={time} size={mini ? 18 : 22} />
         <Text style={[styles.clock, mini && styles.miniClock, TABULAR]}>{formatClock(time)}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={canClearAll ? '全卓を消去（確認が出ます）' : '全卓を消去（消す卓はありません）'}
