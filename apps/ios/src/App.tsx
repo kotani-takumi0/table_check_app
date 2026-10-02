@@ -35,14 +35,14 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.screen}>
-        {services ? <Hall services={services} /> : <Text style={styles.message}>apps/ios/.env.development.local に Firebase の設定がありません</Text>}
+        <Hall services={services} />
       </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
 // Web の App と同じ画面：フロア図・ヘッダー・通知と、案内・詳細・トイレ・全卓消去のシート
-function Hall({ services: { store, shopTimerStore, editingStore } }: { services: Services }) {
+function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
   const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
@@ -156,7 +156,7 @@ function Hall({ services: { store, shopTimerStore, editingStore } }: { services:
             </Text>
             <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
           </View>
-          : <Header time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
+          : <Header trial={trial} time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
             canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini}
             listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
       </View>
@@ -173,7 +173,6 @@ function Hall({ services: { store, shopTimerStore, editingStore } }: { services:
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  message: { margin: 16, fontSize: 16 },
   hall: { flex: 1, paddingHorizontal: 16, paddingBottom: 12 },
   miniHall: { paddingHorizontal: 8, paddingBottom: 8 },
   floorArea: { flex: 1 },
