@@ -299,6 +299,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
   .card.mini.occupied .dial-box { grid-row: 1 / -1; }
   .card.mini.occupied .dial { width: min(100cqw, 100cqh); }
   .card.mini.occupied .dial-time { font-size: 34px; }
+  .card.mini.occupied .dial-time.waiting { font-size: 22px; }
 }
 .paid-inline { margin-left: 3px; font-size: 10px; font-weight: 700; color: var(--text); }
 .mini .toast { padding: 0 2px 0 8px; gap: 4px; }
