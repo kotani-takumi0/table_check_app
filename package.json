@@ -14,7 +14,8 @@
     "build": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web",
     "test": "npm test --workspaces --if-present",
     "typecheck:ios": "npm run typecheck -w @table-check/ios",
-    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules -P prod"
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules -P prod",
+    "deploy:store": "npm run typecheck -w @table-check/core && STORE_DEPLOY=1 npm run build -w @table-check/web -- --mode development && firebase deploy --only hosting,firestore:rules -P dev"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

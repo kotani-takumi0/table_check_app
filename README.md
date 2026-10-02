@@ -26,10 +26,11 @@ Web からは `import { now } from '@table-check/core/clock'` のようにファ
 | 手元の Web（`npm run dev`） | どこにもつながない（ブラウザの localStorage だけ） | 触れない |
 | iOS（Expo Go、`npm run ios`） | どこにもつながない（アプリを開いている間のメモリだけ） | 触れない |
 | `npm run deploy` | `table-check-prod`（Hosting と Firestore ルール） | 触れない |
+| `npm run deploy:store` | `table-check-dev`（Hosting と Firestore ルール） | 店の画面とルールが変わる（営業時間外だけ） |
 | https://table-check-prod.web.app | `table-check-prod` | 触れない |
 
 - 手元の Web・iOS は、設定ファイルが `table-check-dev` を指していても、つながずに端末の中だけで動きます（`packages/core/src/firebaseProjects.ts` の `STORE_PROJECT_ID`）。このときヘッダーの版の表示が `v2.2.1・試し` になります（幅の狭い画面では版ごと隠れます）。ほかの端末とは同期しません。
-- `table-check-dev` 向けのビルド（`vite build --mode development`）は止まります。`deploy:dev`・`deploy:preview`・`build:dev` は消しました。
+- `table-check-dev` 向けのビルド（`vite build --mode development`）は止まります。`deploy:dev`・`deploy:preview`・`build:dev` は消しました。店に出すのは、店に出すと決めたときの `npm run deploy:store` だけです（下の「デプロイ」を参照）。
 - `.firebaserc` の `default` を消しました。`-P` を付けない `firebase deploy` は、行き先が決まらず止まります（以前は `table-check-dev` に出ていた）。
 - **新しい版で店のデータを書き換えると、店の v1.1.3 が動かなくなることがあります。** たとえば 2.1 以降でコースや料理を選んだ卓は、v1.1.3 から状態を進められません（v1.1.3 は `course`・`menu` を書かないので、Firestore ルールの `keepsCourse`・`keepsMenu` が書き込みを拒否する）。店の端末を新しい版にそろえるまで、店のデータに新しい版をつながないでください。端末が何台かあるときは、v1.1.3 と v2.2.0 が混ざらないよう、全部まとめて開き直します。
 - 店を新しい版にするとき（`table-check-dev` に出す、または店を `table-check-prod` に移す）は、`STORE_PROJECT_ID` と上の表を見直します。
@@ -118,9 +119,15 @@ firebase login
 
 ```sh
 npm run deploy          # table-check-prod に Hosting と Firestore ルール（店は使っていない）
+npm run deploy:store    # table-check-dev（店）に Hosting と Firestore ルール（営業時間外だけ）
 ```
 
-`table-check-dev`（店）へのデプロイは、店をどこで動かすかを決めるまでしません。ルールだけを出すときも `firebase deploy --only firestore:rules -P prod` のように必ず `-P` を付けます。
+`npm run deploy:store` は店の画面とルールを変えるので、営業時間外に、出すと決めたときだけ使います（No.84）。ビルドは環境変数 `STORE_DEPLOY=1` のときだけ `table-check-dev` 向けに作れます。出す前に次を確かめます。
+
+- 新しいルールが、店で動いている版の書き込みを拒まないこと（足した欄は必須にせず、`keeps…` で古い版の上書きから守る）
+- 店の端末の版：開いたままの端末は、自動で読み込み直す仕組み（No.83）が入った版になるまで、開き直さないと新しい版になりません
+
+ルールだけを出すときも `firebase deploy --only firestore:rules -P prod` のように必ず `-P` を付けます。
 
 ### 同期の挙動と確認
 
@@ -177,5 +184,5 @@ LAN より読み込みが遅くなります。トンネルの URL は誰でも�
 
 1. リリース用のブランチで、リポジトリ直下で `npm version <新しい版> --no-git-tag-version` を実行し、PR を出してマージする
 2. main のマージコミットに `v<版>` のタグを付けて push する（`git tag v1.1.0 <コミット>` → `git push origin v1.1.0`）
-3. 手元（`npm run dev`・`npm run ios`）で確かめてから、`npm run deploy` で出す。店の `table-check-dev` には出さない（「店のデータを守る」を参照）
+3. 手元（`npm run dev`・`npm run ios`）で確かめてから、`npm run deploy` で出す。店（`table-check-dev`）にも出すときは、営業時間外に `npm run deploy:store`（「店のデータを守る」を参照）
 4. 各端末で開き直し、ヘッダーの表示が新しい版になっていることを確認する
