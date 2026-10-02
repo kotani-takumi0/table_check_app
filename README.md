@@ -14,6 +14,26 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 
 Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンは Notion の Top ページと同じ画像で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
 
+## 店のデータを守る（2026-10-02 時点）
+
+**店は今、名前が「開発用」の https://table-check-dev.web.app（v1.1.3）で営業しています。** 10/1 に本番用の `table-check-prod` を作りましたが、店の端末はまだ切り替わっていません（本番にある記録は 10/1 の試しの1件だけで、営業の記録は 9/25 から `table-check-dev` に入っています）。店をどのプロジェクトで動かすかは、あとで決めます。
+
+それまでは、開発中の試しで `table-check-dev` のデータに触れません。
+
+| どこから | つながる先 | 店のデータ |
+|---|---|---|
+| 店の端末（https://table-check-dev.web.app、v1.1.3） | `table-check-dev` | 営業のデータそのもの |
+| 手元の Web（`npm run dev`） | どこにもつながない（ブラウザの localStorage だけ） | 触れない |
+| iOS（Expo Go、`npm run ios`） | どこにもつながない（アプリを開いている間のメモリだけ） | 触れない |
+| `npm run deploy` | `table-check-prod`（Hosting と Firestore ルール） | 触れない |
+| https://table-check-prod.web.app | `table-check-prod` | 触れない |
+
+- 手元の Web・iOS は、設定ファイルが `table-check-dev` を指していても、つながずに端末の中だけで動きます（`packages/core/src/firebaseProjects.ts` の `STORE_PROJECT_ID`）。このときヘッダーの版の表示が `v2.2.0・試し` になります（幅の狭い画面では版ごと隠れます）。ほかの端末とは同期しません。
+- `table-check-dev` 向けのビルド（`vite build --mode development`）は止まります。`deploy:dev`・`deploy:preview`・`build:dev` は消しました。
+- `.firebaserc` の `default` を消しました。`-P` を付けない `firebase deploy` は、行き先が決まらず止まります（以前は `table-check-dev` に出ていた）。
+- **新しい版で店のデータを書き換えると、店の v1.1.3 が動かなくなることがあります。** たとえば 2.1 以降でコースや料理を選んだ卓は、v1.1.3 から状態を進められません（v1.1.3 は `course`・`menu` を書かないので、Firestore ルールの `keepsCourse`・`keepsMenu` が書き込みを拒否する）。店の端末を新しい版にそろえるまで、店のデータに新しい版をつながないでください。
+- 店を新しい版にするとき（`table-check-dev` に出す、または店を `table-check-prod` に移す）は、`STORE_PROJECT_ID` と上の表を見直します。
+
 ## 起動
 
 ```sh
@@ -21,7 +41,7 @@ npm install
 npm run dev
 ```
 
-表示されたローカルURLをブラウザで開きます。
+表示されたローカルURLをブラウザで開きます。Firebase にはつながず、このブラウザの localStorage だけで動きます（「店のデータを守る」を参照）。
 
 ## ビルド・テスト
 
@@ -64,16 +84,16 @@ npm run typecheck:ios
 
 ## Phase 2: Firebase 同期
 
-Firebase のプロジェクトは、営業で使う本番と、開発・練習用の2つに分けています。練習での操作が営業の画面や記録に混ざらないようにするためです。
+Firebase のプロジェクトは2つあります。もとは「本番」と「開発・練習」に分ける予定でしたが、今は店が `table-check-dev` で営業しています（「店のデータを守る」を参照）。
 
-| 用途 | プロジェクト | `.firebaserc` の別名 | 設定ファイル | URL |
-|---|---|---|---|---|
-| 本番（営業） | `table-check-prod` | `prod` | `apps/web/.env.production.local` | https://table-check-prod.web.app |
-| 開発・練習 | `table-check-dev` | `dev`（`default` も同じ） | `apps/web/.env.development.local` | https://table-check-dev.web.app と `test` プレビューチャンネル |
+| 名前の上の用途 | プロジェクト | `.firebaserc` の別名 | 設定ファイル | URL | 今の実際 |
+|---|---|---|---|---|---|
+| 本番 | `table-check-prod` | `prod` | `apps/web/.env.production.local` | https://table-check-prod.web.app | 店は使っていない |
+| 開発・練習 | `table-check-dev` | `dev` | `apps/web/.env.development.local` | https://table-check-dev.web.app | **店が営業で使っている（v1.1.3）** |
 
-`npm run dev` は開発用の設定ファイルを読みます。そこに4設定のどれかが無い場合は、従来の localStorage で動きます。4設定がすべてある場合は、匿名ログインしてから Firestore を購読します。既存の localStorage のデータは移行しません。
+`npm run dev` は開発用の設定ファイルを読みます。4設定のどれかが無いとき、または `table-check-dev` を指しているときは、localStorage で動きます。それ以外のプロジェクトを指しているときは、匿名ログインしてから Firestore を購読します。既存の localStorage のデータは移行しません。
 
-ビルド（`npm run build`・`build:dev`）は、Firebase の4設定のどれかが無いとき、または設定がモードと違うプロジェクト（本番のビルドなのに `table-check-dev` など）のときに失敗します。設定が欠けたまま配ると端末ごとの localStorage で動いて同期されず、違うプロジェクトだと本番と練習のデータが混ざるためです。以前の `apps/web/.env.local` は全モードで読まれるので、残っていたら消してください。ビルドのログに、つないだプロジェクトが `Firebase: table-check-prod（production）` のように出ます。
+ビルド（`npm run build`）は、Firebase の4設定のどれかが無いとき、または設定がモードと違うプロジェクト（本番のビルドなのに `table-check-dev` など）のときに失敗します。設定が欠けたまま配ると端末ごとの localStorage で動いて同期されず、違うプロジェクトだと本番と練習のデータが混ざるためです。以前の `apps/web/.env.local` は全モードで読まれるので、残っていたら消してください。ビルドのログに、つないだプロジェクトが `Firebase: table-check-prod（production）` のように出ます。
 
 ### 設定（人間が実施）
 
@@ -94,12 +114,10 @@ firebase login
 どのコマンドも、デプロイ先のプロジェクトを `-P` で決めています。`firebase use` で切り替える必要はありません。
 
 ```sh
-npm run deploy          # 本番：table-check-prod に Hosting と Firestore ルール
-npm run deploy:dev      # 開発：table-check-dev に Hosting と Firestore ルール
-npm run deploy:preview  # 開発：table-check-dev の test プレビューチャンネル（7日間有効）
+npm run deploy          # table-check-prod に Hosting と Firestore ルール（店は使っていない）
 ```
 
-プレビューデプロイは Hosting だけを反映します。ルールを変えたときは、先に `firebase deploy --only firestore:rules -P dev` を実行します。Authentication の承認済みドメインに、必要に応じてプレビュー URL のホスト名を追加してください。
+`table-check-dev`（店）へのデプロイは、店をどこで動かすかを決めるまでしません。ルールだけを出すときも `firebase deploy --only firestore:rules -P prod` のように必ず `-P` を付けます。
 
 ### 同期の挙動と確認
 
@@ -116,12 +134,12 @@ npm run deploy:preview  # 開発：table-check-dev の test プレビューチ�
 
 ### 実機で動かす（Expo Go）
 
-1. `apps/ios/.env.example` を `apps/ios/.env.development.local` にコピーし、開発用プロジェクト（`table-check-dev`）の値を記入します。値は Web の `apps/web/.env.development.local` と同じで、変数名の頭が `VITE_` ではなく `EXPO_PUBLIC_` になります。
+1. 今は設定ファイルが無くても動きます（Firebase につながず、アプリを開いている間だけ端末の中で覚えます）。`apps/ios/.env.development.local` が `table-check-dev`（店）を指していても、つながりません。ほかのプロジェクトにつなぐときは、`apps/ios/.env.example` をコピーして値を記入します。値は Web の設定ファイルと同じで、変数名の頭が `VITE_` ではなく `EXPO_PUBLIC_` になります。
 2. iPhone か iPad に App Store から「Expo Go」を入れ、Mac と同じ Wi-Fi につなぎます。
    - 実機の iPhone／iPad では、**Expo Go と Mac の Expo CLI が同じ Expo アカウントでログインしていないと開けません**。アカウント（無料）を https://expo.dev/signup で作り、Mac で `apps/ios` に移って `npx expo login` を実行し、Expo Go でも右上のアイコンから同じアカウントでログインします。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます（Expo Go を入れていないと「使用可能なデータがありません」と出ます）。`apps/ios` 以外で `npx expo start` を実行すると、その場所に `tsconfig.json` と `.expo/` が作られるので注意してください。
 
-ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。開発中は開発用プロジェクト（`table-check-dev`）につながるので、Web（`npm run dev` か https://table-check-dev.web.app）で操作した内容が数秒以内に反映されます。
+ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.2.0・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
 
 #### つながらないとき（トンネル接続）
 
@@ -156,5 +174,5 @@ LAN より読み込みが遅くなります。トンネルの URL は誰でも�
 
 1. リリース用のブランチで、リポジトリ直下で `npm version <新しい版> --no-git-tag-version` を実行し、PR を出してマージする
 2. main のマージコミットに `v<版>` のタグを付けて push する（`git tag v1.1.0 <コミット>` → `git push origin v1.1.0`）
-3. main で `npm run deploy:dev` か `npm run deploy:preview` で練習用に出して確かめてから、`npm run deploy` で本番に出す
+3. 手元（`npm run dev`・`npm run ios`）で確かめてから、`npm run deploy` で出す。店の `table-check-dev` には出さない（「店のデータを守る」を参照）
 4. 各端末で開き直し、ヘッダーの表示が新しい版になっていることを確認する
