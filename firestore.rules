@@ -4,6 +4,7 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function isTime(v) { return v is int && v > 0; }
     function isTimeOrNull(v) { return v == null || isTime(v); }
+    function isMinutesIn(v, lo, hi) { return v is int && v >= lo && v <= hi; }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
     // 案内できる卓：席の配置（shopLayout/main、No.75）を保存していればその卓番、無ければ今までの卓番
     function seatIds() {
@@ -93,13 +94,20 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if signedIn();
     }
-    // 店全体の設定（packages/core/src/shopSettings.ts）。今は「時間制限なし」だけ
+    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）。
+    // アプリは変えた項目だけを merge で書くので、無い項目は既定値として確かめる（範囲は MINUTE_SETTINGS と同じ）
     match /shopSettings/{id} {
       allow read: if signedIn();
       allow create, update: if signedIn() && id == 'main'
-        && request.resource.data.keys().hasOnly(['timeLimitOff','updatedAt'])
-        && request.resource.data.keys().hasAll(['timeLimitOff','updatedAt'])
-        && request.resource.data.timeLimitOff is bool
+        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','updatedAt'])
+        && request.resource.data.get('timeLimitOff', false) is bool
+        && request.resource.data.get('otoshi', true) is bool
+        && isMinutesIn(request.resource.data.get('otoshiWarnMin', 15), 5, 60)
+        && isMinutesIn(request.resource.data.get('lastOrderMin', 90), 10, 295)
+        && isMinutesIn(request.resource.data.get('seatLimitMin', 120), 30, 300)
+        && request.resource.data.get('lastOrderMin', 90) < request.resource.data.get('seatLimitMin', 120)
+        && isMinutesIn(request.resource.data.get('exitedKeepMin', 5), 1, 30)
+        && request.resource.data.get('shopName', '') is string && request.resource.data.get('shopName', '').size() <= 30
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }

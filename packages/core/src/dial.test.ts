@@ -13,14 +13,14 @@ const firstDrink = advance(courseWait, 10 * minute);
 
 describe('文字盤の進み', () => {
   it('案内から分で数え、120分で一周する（切り捨て）', () => {
-    expect(dialOf(seated, 35 * minute + 59_000)).toEqual({ elapsedMin: 35, progress: 35 / 120, over: false });
-    expect(dialOf(otoshi, 120 * minute - 1)).toEqual({ elapsedMin: 119, progress: 119 / 120, over: false });
-    expect(dialOf(otoshi, 120 * minute)).toEqual({ elapsedMin: 120, progress: 1, over: true });
-    expect(dialOf(otoshi, 150 * minute)).toEqual({ elapsedMin: 150, progress: 1, over: true });
+    expect(dialOf(seated, 35 * minute + 59_000)).toEqual({ elapsedMin: 35, progress: 35 / 120, over: false, limitMin: 120 });
+    expect(dialOf(otoshi, 120 * minute - 1)).toEqual({ elapsedMin: 119, progress: 119 / 120, over: false, limitMin: 120 });
+    expect(dialOf(otoshi, 120 * minute)).toEqual({ elapsedMin: 120, progress: 1, over: true, limitMin: 120 });
+    expect(dialOf(otoshi, 150 * minute)).toEqual({ elapsedMin: 150, progress: 1, over: true, limitMin: 120 });
   });
   it('コースはファーストドリンクから数え、開始待ちは数えない', () => {
-    expect(dialOf(courseWait, 30 * minute)).toEqual({ elapsedMin: null, progress: 0, over: false });
-    expect(dialOf(firstDrink, 40 * minute)).toEqual({ elapsedMin: 30, progress: 30 / 120, over: false });
+    expect(dialOf(courseWait, 30 * minute)).toEqual({ elapsedMin: null, progress: 0, over: false, limitMin: 120 });
+    expect(dialOf(firstDrink, 40 * minute)).toEqual({ elapsedMin: 30, progress: 30 / 120, over: false, limitMin: 120 });
   });
   it('退店済は退店の時刻で止める', () => {
     expect(dialOf(exited, 103 * minute).elapsedMin).toBe(100);

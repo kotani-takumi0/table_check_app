@@ -1,30 +1,29 @@
-import { limitsOf, RULES, startOf, type Session } from './domain';
+import { limitsOf, RULES, startOf, type Rules, type Session } from './domain';
 
 const MINUTE = 60_000;
-// 卓カードの文字盤。案内（コースはファーストドリンク）から数えた経過を、120分（お席の時間）で一周する弧にする
-export const DIAL_MIN = RULES.seatLimitMin;
-// 文字盤の縁に出す「L.O. から退席まで」の帯（90〜120分）
-export const DIAL_BAND = { fromMin: RULES.lastOrderMin, toMin: RULES.seatLimitMin } as const;
+// 卓カードの文字盤。案内（コースはファーストドリンク）から数えた経過を、お席の時間（120分）で一周する弧にする
 export interface Dial {
   elapsedMin: number | null;  // 経過（分、切り捨て）。コースの開始待ちは null
-  progress: number;           // 弧の長さ 0〜1（120分で1。超えたら1のまま）
-  over: boolean;              // お席の時間（120分）を過ぎている
+  progress: number;           // 弧の長さ 0〜1（お席の時間で1。超えたら1のまま）
+  over: boolean;              // お席の時間を過ぎている
+  limitMin: number;           // 一周の分（お席の時間）。読み上げの最大値に使う
 }
 // 経過は timerOf・alertOf と同じ基準（startOf から。退店済は退店の時刻で止める）
-export function dialOf(session: Session, now: number): Dial {
+export function dialOf(session: Session, now: number, rules: Rules = RULES): Dial {
+  const limitMin = rules.seatLimitMin;
   const start = startOf(session);
-  if (start === null) return { elapsedMin: null, progress: 0, over: false };
+  if (start === null) return { elapsedMin: null, progress: 0, over: false, limitMin };
   const end = session.status === 'exited' ? session.exitedAt ?? now : now;
   const elapsedMin = Math.floor(Math.max(0, end - start) / MINUTE);
-  const seatEndAt = limitsOf(session)?.seatEndAt ?? start + DIAL_MIN * MINUTE;
-  return { elapsedMin, progress: Math.min(1, elapsedMin / DIAL_MIN), over: end >= seatEndAt };
+  const seatEndAt = limitsOf(session, rules)?.seatEndAt ?? start + limitMin * MINUTE;
+  return { elapsedMin, progress: Math.min(1, elapsedMin / limitMin), over: end >= seatEndAt, limitMin };
 }
-// 文字盤の縁の「L.O. から退席まで」の帯（0〜1）。退店の時刻を決めた卓は、その時刻に合わせて前にずらす
-export function bandOf(session: Session): { from: number; to: number } {
+// 文字盤の縁の「L.O. から退席まで」の帯（0〜1。ふつうは 90〜120分）。退店の時刻を決めた卓は、その時刻に合わせて前にずらす
+export function bandOf(session: Session, rules: Rules = RULES): { from: number; to: number } {
   const start = startOf(session);
-  const limits = limitsOf(session);
-  if (start === null || limits === null) return { from: DIAL_BAND.fromMin / DIAL_MIN, to: DIAL_BAND.toMin / DIAL_MIN };
-  const at = (time: number) => Math.min(1, Math.max(0, (time - start) / MINUTE / DIAL_MIN));
+  const limits = limitsOf(session, rules);
+  if (start === null || limits === null) return { from: rules.lastOrderMin / rules.seatLimitMin, to: 1 };
+  const at = (time: number) => Math.min(1, Math.max(0, (time - start) / MINUTE / rules.seatLimitMin));
   return { from: at(limits.lastOrderAt), to: at(limits.seatEndAt) };
 }
 export type Remaining =
@@ -34,10 +33,10 @@ export type Remaining =
   | { kind: 'no_limit' };                    // 店全体で時間制限を切っている
 // 卓カードの右下に出す残り時間。L.O.確認済みにするまでは L.O.まで、そのあと（または L.O. の時間を過ぎたら）退席まで。
 // 分は切り上げ（残り30秒なら「1分」）。退店済・コースの開始待ちは出さない
-export function remainingOf(session: Session, now: number, timeLimitOff = false): Remaining | null {
-  const limits = limitsOf(session);
+export function remainingOf(session: Session, now: number, rules: Rules = RULES): Remaining | null {
+  const limits = limitsOf(session, rules);
   if (session.status === 'exited' || limits === null) return null;
-  if (timeLimitOff) return { kind: 'no_limit' };
+  if (rules.timeLimitOff) return { kind: 'no_limit' };
   if (now >= limits.seatEndAt) return { kind: 'over' };
   const loLeft = limits.lastOrderAt - now;
   if (session.status !== 'lo_done' && loLeft > 0) return { kind: 'last_order', minutes: Math.ceil(loLeft / MINUTE) };

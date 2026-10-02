@@ -21,8 +21,9 @@ export const COURSE_LABEL: Record<Course, string> = { no_drinks: '飲み放題�
 export function isCourse(value: unknown): value is Course {
   return COURSES.includes(value as Course);
 }
-export function displayOf(status: Status, course: Course | null): Display {
-  if (course === null) return status;
+// お通しを出さない店（rules.otoshi が false）は、2段目を「ファーストドリンク提供済み」と呼ぶ（段はそのまま残す。No.14）
+export function displayOf(status: Status, course: Course | null, rules: Rules = RULES): Display {
+  if (course === null) return !rules.otoshi && status === 'otoshi' ? 'first_drink' : status;
   return status === 'seated' ? 'course_wait' : status === 'otoshi' ? 'first_drink' : status;
 }
 export interface Session {
@@ -40,7 +41,16 @@ export interface Session {
   dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
   leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
 }
-export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
+// 店ごとに決める時間のルール（No.14。設定の「時間のルール」で変え、全端末で共有する）。RULES はふだんの値
+export interface Rules {
+  otoshiWarnMin: number;   // お通し未提供の警告（案内から）
+  lastOrderMin: number;    // L.O.（数え始めから）
+  seatLimitMin: number;    // お席の時間（数え始めから）
+  exitedKeepMin: number;   // 退店済みを卓に残す時間
+  otoshi: boolean;         // お通しを出す店か。出さない店は「お通し未提供」の警告を出さない
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている（L.O.・お席の時間の警告を出さない。お通しの警告はそのまま）
+}
+export const RULES: Rules = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5, otoshi: true, timeLimitOff: false };
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
 // 警告の理由の名前（卓カードの札・詳細パネルで同じものを使う）
@@ -115,22 +125,22 @@ export function timerOf(session: Session, now: number): { label: string; elapsed
   const start = startOf(session);
   return { label: session.course === null ? '案内から' : 'ファーストドリンクから', elapsedMs: start === null ? null : Math.max(0, now - start) };
 }
-// お席の終わり（退店の時刻）と L.O. の時刻。ふつうは数え始めから120分・90分。
-// 退店の時刻を決めた卓（leaveAt）はその時刻と、その30分前。コースの開始待ちは数えないので null
-export function limitsOf(session: Session): { lastOrderAt: number; seatEndAt: number } | null {
+// お席の終わり（退店の時刻）と L.O. の時刻。ふつうは数え始めからお席の時間（120分）・L.O.（90分）。
+// 退店の時刻を決めた卓（leaveAt）はその時刻と、その「お席の時間 − L.O.」（30分）前。コースの開始待ちは数えないので null
+export function limitsOf(session: Session, rules: Rules = RULES): { lastOrderAt: number; seatEndAt: number } | null {
   const start = startOf(session);
   if (start === null) return null;
-  const seatEndAt = session.leaveAt ?? start + RULES.seatLimitMin * MINUTE;
-  return { lastOrderAt: seatEndAt - (RULES.seatLimitMin - RULES.lastOrderMin) * MINUTE, seatEndAt };
+  const seatEndAt = session.leaveAt ?? start + rules.seatLimitMin * MINUTE;
+  return { lastOrderAt: seatEndAt - (rules.seatLimitMin - rules.lastOrderMin) * MINUTE, seatEndAt };
 }
-// timeLimitOff：店全体で時間制限を切っている（L.O.・お席の時間の警告を出さない。お通しの警告はそのまま）
-export function alertOf(session: Session, now: number, timeLimitOff = false): { level: Alert; reason: AlertReason } {
+export function alertOf(session: Session, now: number, rules: Rules = RULES): { level: Alert; reason: AlertReason } {
+  const { timeLimitOff } = rules;
   const start = startOf(session);
-  const limits = limitsOf(session);
+  const limits = limitsOf(session, rules);
   if (session.status === 'exited' || start === null || limits === null) return { level: 'none', reason: null };
   if (!timeLimitOff && now >= limits.seatEndAt) return { level: 'now', reason: 'seat_limit' };
-  // コースはお通しを出さないので「お通し未提供」は出さない
-  if (session.status === 'seated' && session.course === null && now - start >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
+  // コース・お通しを出さない店は「お通し未提供」を出さない
+  if (rules.otoshi && session.status === 'seated' && session.course === null && now - start >= rules.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
   if (!timeLimitOff && session.status === 'otoshi' && now >= limits.lastOrderAt) return { level: 'soon', reason: 'last_order' };
   return { level: 'none', reason: null };
 }
@@ -142,10 +152,10 @@ export function setLeaveAt(session: Session, at: number | null): Session | null 
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
 // （コースはファーストドリンクから数えるので、開始待ちの卓はそもそも時間が来ない）
 // 店全体で時間制限を切っているときは出さない
-export function lastOrderDue(sessions: Session[], now: number, timeLimitOff = false): Session[] {
-  if (timeLimitOff) return [];
+export function lastOrderDue(sessions: Session[], now: number, rules: Rules = RULES): Session[] {
+  if (rules.timeLimitOff) return [];
   return sessions
-    .flatMap(s => { const start = startOf(s); const limits = limitsOf(s); return s.status === 'otoshi' && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
+    .flatMap(s => { const start = startOf(s); const limits = limitsOf(s, rules); return s.status === 'otoshi' && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
     .sort((a, b) => a.start - b.start)
     .map(({ s }) => s);
 }
@@ -166,17 +176,17 @@ export function removeTable(session: Session, tableId: string): Session | null {
 export function togglePaid(session: Session, at: number): Session {
   return { ...session, paidAt: session.paidAt === null ? at : null };
 }
-export function isVisible(session: Session, now: number): boolean {
-  return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < RULES.exitedKeepMin * MINUTE);
+export function isVisible(session: Session, now: number, rules: Rules = RULES): boolean {
+  return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < rules.exitedKeepMin * MINUTE);
 }
 // 卓に出すお客さん：その卓を含む表示中のセッションのうち、最後に案内したもの
-export function occupantOf(sessions: Session[], tableId: string, now: number): Session | undefined {
-  return sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, now))
+export function occupantOf(sessions: Session[], tableId: string, now: number, rules: Rules = RULES): Session | undefined {
+  return sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, now, rules))
     .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
 }
 // 全卓消去の警告用：まだお店にいて会計していない客の卓数（退店済は数えない）
-export function unpaidTableCount(sessions: Session[], now: number): number {
-  return sessions.filter(s => isVisible(s, now) && s.status !== 'exited' && s.paidAt === null)
+export function unpaidTableCount(sessions: Session[], now: number, rules: Rules = RULES): number {
+  return sessions.filter(s => isVisible(s, now, rules) && s.status !== 'exited' && s.paidAt === null)
     .reduce((count, s) => count + s.tableIds.length, 0);
 }
 export function formatElapsed(ms: number): string {

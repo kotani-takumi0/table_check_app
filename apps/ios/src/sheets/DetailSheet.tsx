@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
 import { CloseButton, PanelButton } from '../ui';
@@ -15,7 +15,7 @@ interface Props {
   session: Session;
   time: number;
   othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
-  timeLimitOff: boolean;   // 店全体で時間制限を切っている
+  rules: Rules;   // 店の時間のルール（No.14。時間制限なし・お通しの有無を含む）
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
@@ -52,9 +52,9 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
   );
 }
 // Web の DetailPanel と同じ中身
-// 退店の時刻（Web の LeaveRow と同じ。No.80）：早めに退店してもらう卓だけ決める。L.O.はその30分前になる
-function LeaveRow({ session, onSave }: { session: Session; onSave(at: number | null): boolean }) {
-  const limits = limitsOf(session);
+// 退店の時刻（Web の LeaveRow と同じ。No.80）：早めに退店してもらう卓だけ決める。L.O.はその「お席の時間 − L.O.」（ふつう30分）前になる
+function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; onSave(at: number | null): boolean }) {
+  const limits = limitsOf(session, rules);
   const value = limits?.seatEndAt ?? null;
   const [draft, setDraft] = useState(value === null ? null : new Date(value));
   const [error, setError] = useState(false);
@@ -72,7 +72,7 @@ function LeaveRow({ session, onSave }: { session: Session; onSave(at: number | n
         <PanelButton label="決める" disabled={!changed} onPress={() => save(clockTimeNear(hhmm, value))} style={styles.fix} />
       </View>
       <View style={styles.leaveHelp}>
-        <Text style={[sheet.text, sheet.muted, styles.helpText]}>{session.leaveAt === null ? 'ふつう（120分）。早めに退店してもらう卓だけ決めます' : `L.O.は ${formatClock(limits.lastOrderAt)}`}</Text>
+        <Text style={[sheet.text, sheet.muted, styles.helpText]}>{session.leaveAt === null ? `ふつう（${rules.seatLimitMin}分）。早めに退店してもらう卓だけ決めます` : `L.O.は ${formatClock(limits.lastOrderAt)}`}</Text>
         {session.leaveAt !== null && <Pressable accessibilityRole="button" onPress={() => save(null, true)} style={({ pressed }) => [styles.textButton, pressed && { opacity: 0.6 }]}>
           <Text style={styles.textButtonLabel}>ふつうに戻す</Text>
         </Pressable>}
@@ -81,23 +81,25 @@ function LeaveRow({ session, onSave }: { session: Session; onSave(at: number | n
     </View>
   );
 }
-export function DetailSheet({ session, time, othersEditing = false, timeLimitOff, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
+export function DetailSheet({ session, time, othersEditing = false, rules, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const [changing, setChanging] = useState(false);
   const [showDishes, setShowDishes] = useState(false);
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
-  const display = displayOf(session.status, session.course);
+  const display = displayOf(session.status, session.course, rules);
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
-  const otoshiLabel = session.course === null ? 'お通し' : 'ドリンク';
-  const order = `案内 → ${session.course === null ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
+  // お通しを出さない店（No.14）も同じ欄にファーストドリンクの時刻を入れる
+  const otoshi = session.course === null && rules.otoshi;
+  const otoshiLabel = otoshi ? 'お通し' : 'ドリンク';
+  const order = `案内 → ${otoshi ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
   const progress = dishProgress(session);
   const dishes = menuOf(session.menu)?.dishes ?? [];
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
   };
-  const alert = alertOf(session, time, timeLimitOff);
-  const remaining = remainingOf(session, time, timeLimitOff);
+  const alert = alertOf(session, time, rules);
+  const remaining = remainingOf(session, time, rules);
   const paid = session.paidAt !== null;
   return <>
     {/* No.71：いちばん見てほしいのは「次にやること」1つ。大きいボタンはそれだけにし、戻す・お会計は小さく、ほかは「変更する」にしまう */}
@@ -114,7 +116,7 @@ export function DetailSheet({ session, time, othersEditing = false, timeLimitOff
       </View>}
     </View>
     {next
-      ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course)]} tone="primary" onPress={() => { feedback.step(); onNext(session); }} style={styles.next} />
+      ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course, rules)]} tone="primary" onPress={() => { feedback.step(); onNext(session); }} style={styles.next} />
       : session.status === 'exited' && <PanelButton label={session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'} tone="primary" onPress={() => { feedback.tap(); onSeat(from); }} style={styles.next} />}
     <View style={styles.quick}>
       <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onBack(session); }} style={({ pressed }) => [styles.textButton, pressed && { opacity: 0.6 }]}>
@@ -169,7 +171,7 @@ export function DetailSheet({ session, time, othersEditing = false, timeLimitOff
         {session.course !== null && progress && <SelectField label="料理" value={session.menu} options={MENU_OPTIONS} onChange={menu => onMenu(session, menu)} />}
         <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
         <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
-        <LeaveRow key={`leave-${limitsOf(session)?.seatEndAt}`} session={session} onSave={at => onLeaveAt(session, at)} />
+        <LeaveRow key={`leave-${limitsOf(session, rules)?.seatEndAt}`} session={session} rules={rules} onSave={at => onLeaveAt(session, at)} />
         <View style={sheet.row}>
           <Text style={sheet.rowLabel}>卓</Text>
           <View style={styles.chips}>

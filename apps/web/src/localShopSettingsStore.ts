@@ -25,8 +25,8 @@ export class LocalShopSettingsStore implements ShopSettingsStore {
       if (this.subscribers.size === 0) window.removeEventListener('storage', this.onStorage);
     };
   }
-  async setTimeLimitOff(off: boolean): Promise<void> {
-    this.current = { ...(this.current ?? this.read()), timeLimitOff: off };
+  async update(change: Partial<ShopSettings>): Promise<void> {
+    this.current = { ...(this.current ?? this.read()), ...change };
     try { window.localStorage.setItem(KEY, JSON.stringify(this.current)); } catch { /* 保存できなくてもこのページでは保つ */ }
     this.subscribers.forEach(cb => cb(this.current!));
   }
