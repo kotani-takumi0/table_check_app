@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { GUESTS_MAX, type Course } from '@table-check/core/domain';
+import { useEffect, useState } from 'react';
+import type { Course } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
+import { GuestPicker } from './GuestPicker';
 import { CloseButton } from './CloseButton';
 
 interface Props {
@@ -12,19 +13,16 @@ interface Props {
   onClose(): void;
   returnFocus: HTMLElement | null;
 }
-const QUICK_GUESTS = [1, 2, 3, 4, 5, 6, 7, 8];
-// ご案内の確認と、コース・人数。テーブルもカウンターも同じ画面にする（卓によって操作が違うと混乱するため）。
-// コースは初期値の「通常」のままでよければ触らず、人数のボタンを押したらその場で案内する。
-// 押し間違いで案内しない・前のお客さんを置き換えないよう、最初のフォーカスは右上の ×（やめる）に置く
+// ご案内（No.71）：最初の案内は人数・コース・料理と入力が多いので、詳細のポップオーバーとは別に、真ん中の画面で聞く。
+// どれもドロップダウンで、最後に大きな「ご案内」を1つだけ押す（いちばん見てほしいのは人数とこのボタン）。
+// テーブルもカウンターも同じ画面にする。押し間違いで案内しない・前のお客さんを置き換えないよう、最初のフォーカスは人数に置く
 export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, returnFocus }: Props) {
-  const cancel = useRef<HTMLButtonElement>(null);
+  const [guests, setGuests] = useState<number | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   // どのコースか。コースを選んだときだけ聞く（任意）
   const [menu, setMenu] = useState<string | null>(null);
-  // 「9名以上」を押したら −／＋ で選ぶ
-  const [many, setMany] = useState<number | null>(null);
   useEffect(() => {
-    cancel.current?.focus();
+    document.getElementById('seat-guests')?.focus();
     return () => returnFocus?.focus();
   }, [returnFocus]);
   useEffect(() => {
@@ -32,39 +30,25 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, r
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  const seat = (guests: number | null) => { onSeat(guests, course, course === null ? null : menu); onClose(); };
+  const seat = () => { onSeat(guests, course, course === null ? null : menu); onClose(); };
   const describedBy = [exited && 'seat-dialog-message', exited && previousUnpaid && 'seat-dialog-warning'].filter(Boolean).join(' ') || undefined;
   return <div className="panel-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="panel" role={exited ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="seat-dialog-title" aria-describedby={describedBy}>
+    <section className="panel seat-panel" role={exited ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="seat-dialog-title" aria-describedby={describedBy}>
       <h2 id="seat-dialog-title" className="panel-title">{tableId}番にご案内</h2>
       {exited && <p id="seat-dialog-message" className="confirm-message">{tableId}番は退店済みです。ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</p>}
       {exited && previousUnpaid && <p id="seat-dialog-warning" className="confirm-warning">前のお客さんはお会計済みになっていません</p>}
-      <div className="guest-picker">
-        <span id="seat-dialog-course" className="guest-question">コース</span>
-        <CoursePicker value={course} onChange={setCourse} labelledBy="seat-dialog-course" />
+      <div className="field-rows">
+        <label className="field-label" htmlFor="seat-guests">人数</label>
+        <GuestPicker id="seat-guests" value={guests} onChange={setGuests} emptyLabel="あとで入れる" />
+        <label className="field-label" htmlFor="seat-course">コース</label>
+        <CoursePicker id="seat-course" value={course} onChange={setCourse} />
         {course !== null && <>
-          <span id="seat-dialog-menu" className="menu-question">どのコースですか？（あとでも選べます）</span>
-          <MenuPicker value={menu} onChange={setMenu} labelledBy="seat-dialog-menu" />
+          <label className="field-label" htmlFor="seat-menu">料理</label>
+          <MenuPicker id="seat-menu" value={menu} onChange={setMenu} />
         </>}
       </div>
-      <div className="guest-picker" role="group" aria-labelledby="seat-dialog-guests">
-        <span id="seat-dialog-guests" className="guest-question">何名様ですか？</span>
-        <div className="guest-grid">
-          {QUICK_GUESTS.map(n => <button key={n} className="guest-button" aria-label={`${n}名でご案内`} onClick={() => seat(n)}>{n}</button>)}
-        </div>
-        {many === null
-          ? <button className="panel-button" onClick={() => setMany(QUICK_GUESTS.length + 1)}>9名以上</button>
-          : <div className="guest-stepper">
-            <button className="guest-step" aria-label="1名減らす" disabled={many <= 1} onClick={() => setMany(many - 1)}>−</button>
-            <span className="guest-many" aria-live="polite">{many}名</span>
-            <button className="guest-step" aria-label="1名増やす" disabled={many >= GUESTS_MAX} onClick={() => setMany(many + 1)}>＋</button>
-            <button className="panel-button primary" onClick={() => seat(many)}>{many}名でご案内</button>
-          </div>}
-      </div>
-      <div className="panel-actions">
-        <button className="panel-button" onClick={() => seat(null)}>人数はあとで</button>
-      </div>
-      <CloseButton ref={cancel} onClick={onClose} />
+      <button className="panel-button primary seat-go" onClick={seat}>{guests === null ? 'ご案内（人数はあとで）' : `${guests}名でご案内`}</button>
+      <CloseButton onClick={onClose} />
     </section>
   </div>;
 }

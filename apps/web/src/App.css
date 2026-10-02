@@ -244,7 +244,6 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .panel-section { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .panel-heading { margin: 0; display: flex; align-items: baseline; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .panel-heading-sub { color: var(--text); font-variant-numeric: tabular-nums; }
-.pay-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .dish-bar { height: 8px; overflow: hidden; border-radius: 4px; background: var(--dial-face); }
 .dish-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--action); }
 .dish-next { margin: 0; font-size: 15px; }
@@ -312,25 +311,9 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .guest-count.unknown .guest-num { font-weight: 500; }
 /* スマホの細いカードは卓番の横に並ばないので、卓番の下の行にする（横長のカードは低いので横に並べたまま） */
 .card.mini.slim .guest-count { display: block; margin: 0; text-align: center; }
-.guest-picker { display: flex; flex-direction: column; gap: 8px; }
-.guest-question { font-size: 16px; font-weight: 700; }
-.guest-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.guest-button { min-height: 56px; border: none; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 22px; font-weight: 700; }
-.guest-stepper { display: flex; align-items: center; gap: 8px; grid-column: 2 / -1; }
-.guest-step { min-width: 50px; min-height: 50px; border: none; border-radius: 25px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 22px; }
-.guest-step:disabled { opacity: 0.4; cursor: default; }
-.guest-many { min-width: 3.5em; text-align: center; font-size: 18px; font-weight: 700; }
-.guest-stepper .panel-button { flex: 1; white-space: normal; }
 
 /* コース：通常＋飲み放題の区分ごとの3つから1つ選ぶ。選んでいるものは操作の緑で囲む */
-.course-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
-.course-option { min-width: 0; min-height: 50px; padding: 4px 2px; border: 2px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 14px; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.course-option[aria-pressed="true"] { border-color: var(--action); background: var(--action-bg); font-weight: 700; }
-.course-sub { font-size: 12px; white-space: nowrap; }
 /* どのコースか：未定＋5コース。コースの欄の下（詳細パネルは「料理」の行）に出す */
-.menu-question { font-size: 14px; color: var(--muted); }
-.menu-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
-.menu-picker .course-option { font-size: 15px; word-break: keep-all; }
 /* 料理の進み：出した料理に ✓、次に出す料理を太字で囲む */
 .dish-section { display: flex; flex-direction: column; gap: 8px; }
 .dish-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
@@ -371,3 +354,23 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* カウンターは卓番が円の上にあるので、札は下の段階の文字の場所に出す（編集中の間だけ） */
 .counter.editing .status { visibility: hidden; }
 .panel-editing { flex-basis: 100%; margin: 0; padding: 6px 12px; border-radius: 10px; background: var(--action-bg); color: var(--action-text); font-size: 14px; font-weight: 700; }
+/* No.71：詳細は押した卓のそばに小さく出す。後ろは暗くせず（フロアを見ながら操作できる）、外側を押すと閉じる */
+.panel-backdrop.beside { display: block; padding: 0; background: transparent; }
+.detail-panel.beside-left, .detail-panel.beside-right { max-height: calc(100dvh - 72px); gap: 12px; padding: 18px; border-radius: 26px; box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 12px 40px var(--glass-shadow), 0 2px 8px var(--glass-shadow); }
+.panel-arrow { position: absolute; z-index: 11; width: 16px; height: 16px; transform: rotate(45deg); background: color-mix(in srgb, var(--surface) 84%, transparent); pointer-events: none; }
+.panel-arrow.right { box-shadow: -1px 1px 0 var(--glass-edge); clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.panel-arrow.left { box-shadow: 1px -1px 0 var(--glass-edge); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.panel-remaining { color: var(--muted); }
+.panel-next { width: 100%; min-height: 60px; font-size: 18px; font-weight: 700; }
+.panel-quick { display: flex; align-items: center; gap: 8px; }
+.panel-quick .pay-state { margin-left: auto; font-size: 14px; }
+.panel-button.small { min-height: 40px; padding: 0 14px; font-size: 14px; }
+.text-button { min-height: 40px; padding: 0 4px; border: none; background: none; color: var(--action-text); font-size: 14px; font-weight: 700; text-decoration: underline; }
+/* ドロップダウン（コース・料理・人数）。大きなボタンを並べず、選んだものだけを見せる */
+.field-select { min-width: 0; min-height: 48px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--bg); color: var(--text); font: inherit; font-size: 16px; }
+.field-rows { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; }
+.field-label { font-size: 15px; font-weight: 700; }
+.time-row .field-select { grid-column: 2 / -1; }
+/* ご案内：入力が多いので真ん中に出す。大きいボタンは最後の「ご案内」だけ */
+.seat-panel { width: min(420px, 100%); }
+.seat-go { min-height: 64px; font-size: 19px; font-weight: 700; }

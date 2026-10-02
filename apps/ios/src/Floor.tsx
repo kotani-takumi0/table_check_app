@@ -13,7 +13,7 @@ interface Props {
   picking: boolean;
   onSeat(tableId: string): void;
   onNext(session: Session): void;
-  onOpen(session: Session, from: string): void;
+  onOpen(session: Session, from: string, at?: { x: number; y: number }): void;
   editingIds: Set<string>;   // ほかの端末で詳細を開いているお客さん（No.72）
   toasts: ReactNode;   // 通知。フロア図の空き（横向きはカウンター上辺の右）に置く
 }

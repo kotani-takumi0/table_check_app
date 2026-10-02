@@ -1,15 +1,12 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { Course } from '@table-check/core/domain';
-import { FILL, COLORS } from '../theme';
 import { feedback } from '../feedback';
 import { CloseButton, PanelButton } from '../ui';
-import { CoursePicker } from './CoursePicker';
-import { MenuPicker } from './MenuPicker';
-import { GuestStepper } from './GuestStepper';
+import { SelectField } from './SelectField';
+import { COURSE_OPTIONS, guestOptions, MENU_OPTIONS } from './pickers';
 import { sheet } from './common';
 
-const QUICK_GUESTS = [1, 2, 3, 4, 5, 6, 7, 8];
 interface Props {
   tableId: string;
   exited: boolean;           // 退店済の卓への案内
@@ -17,53 +14,28 @@ interface Props {
   onSeat(guests: number | null, course: Course | null, menu: string | null): void;
   onClose(): void;
 }
-// ご案内の確認と、コース・人数（Web の SeatDialog と同じ）。人数のボタンを押したらその場で案内する
+// ご案内（Web の SeatDialog と同じ。No.71）：最初の案内は入力が多いので、詳細のポップオーバーとは別にシートで聞く。
+// 人数・コース・料理はドロップダウンで、最後に大きな「ご案内」を1つだけ押す
 export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, onClose }: Props) {
+  const [guests, setGuests] = useState<number | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   // どのコースか。コースを選んだときだけ聞く（任意）
   const [menu, setMenu] = useState<string | null>(null);
-  // 「9名以上」を押したら −／＋ で選ぶ
-  const [many, setMany] = useState<number | null>(null);
-  const seat = (guests: number | null) => { feedback.done(); onSeat(guests, course, course === null ? null : menu); onClose(); };
+  const seat = () => { feedback.done(); onSeat(guests, course, course === null ? null : menu); onClose(); };
   return <>
     <Text style={sheet.title} accessibilityRole="header">{tableId}番にご案内</Text>
     {exited && <Text style={sheet.message}>{tableId}番は退店済みです。ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</Text>}
     {exited && previousUnpaid && <Text style={sheet.warning}>前のお客さんはお会計済みになっていません</Text>}
-    <View style={styles.group}>
-      <Text style={sheet.question}>コース</Text>
-      <CoursePicker value={course} onChange={setCourse} />
-      {course !== null && <>
-        <Text style={[sheet.text, sheet.muted]}>どのコースですか？（あとでも選べます）</Text>
-        <MenuPicker value={menu} onChange={setMenu} />
-      </>}
+    <View style={styles.fields}>
+      <SelectField label="人数" value={guests} options={guestOptions('あとで入れる', guests)} onChange={setGuests} />
+      <SelectField label="コース" value={course} options={COURSE_OPTIONS} onChange={setCourse} />
+      {course !== null && <SelectField label="料理" value={menu} options={MENU_OPTIONS} onChange={setMenu} />}
     </View>
-    <View style={styles.group}>
-      <Text style={sheet.question}>何名様ですか？</Text>
-      <View style={styles.grid}>
-        {QUICK_GUESTS.map(n => (
-          <Pressable key={n} accessibilityRole="button" accessibilityLabel={`${n}名でご案内`} onPress={() => seat(n)}
-            style={({ pressed }) => [styles.guest, pressed && styles.pressed]}>
-            <Text style={styles.guestLabel}>{n}</Text>
-          </Pressable>
-        ))}
-      </View>
-      {many === null
-        ? <PanelButton label="9名以上" onPress={() => { feedback.tap(); setMany(QUICK_GUESTS.length + 1); }} />
-        : <GuestStepper value={many} onChange={setMany}>
-          <PanelButton label={`${many}名でご案内`} tone="primary" onPress={() => seat(many)} style={styles.grow} />
-        </GuestStepper>}
-    </View>
-    <View style={sheet.actions}>
-      <PanelButton label="人数はあとで" onPress={() => seat(null)} style={sheet.action} />
-    </View>
+    <PanelButton label={guests === null ? 'ご案内（人数はあとで）' : `${guests}名でご案内`} tone="primary" onPress={seat} style={styles.go} />
     <CloseButton onPress={onClose} />
   </>;
 }
 const styles = StyleSheet.create({
-  group: { gap: 8 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  guest: { flexBasis: '22%', flexGrow: 1, minHeight: 56, borderRadius: 18, backgroundColor: FILL, alignItems: 'center', justifyContent: 'center' },
-  guestLabel: { fontSize: 22, fontWeight: '700', color: COLORS.text },
-  grow: { flex: 1 },
-  pressed: { opacity: 0.6 },
+  fields: { gap: 10 },
+  go: { minHeight: 64 },
 });
