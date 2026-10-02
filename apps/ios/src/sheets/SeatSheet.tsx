@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Course } from '@table-check/core/domain';
 import { FILL, COLORS } from '../theme';
 import { feedback } from '../feedback';
-import { PanelButton } from '../ui';
+import { CloseButton, PanelButton } from '../ui';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
 import { GuestStepper } from './GuestStepper';
@@ -55,8 +55,8 @@ export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, onClose }: 
     </View>
     <View style={sheet.actions}>
       <PanelButton label="人数はあとで" onPress={() => seat(null)} style={sheet.action} />
-      <PanelButton label="やめる" onPress={onClose} style={sheet.action} />
     </View>
+    <CloseButton onPress={onClose} />
   </>;
 }
 const styles = StyleSheet.create({

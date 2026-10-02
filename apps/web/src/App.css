@@ -196,6 +196,11 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .panel:focus { outline: none; }
 /* 詳細パネル・ダイアログ：中央に出すモーダル。角丸を大きくし、見出し・区切りで中身を整理する */
 .panel { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; width: min(440px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 32px; --glass-tint: 84%; color: var(--text); }
+/* 右上の × ボタン：見出しと重ならないよう、見出しの右を空ける */
+.panel { position: relative; }
+.close-x { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.close-x svg { width: 18px; height: 18px; }
+.panel > .panel-title, .panel > .panel-head { padding-right: 48px; }
 /* アラート（iOS 26）：幅を狭く、角丸を大きく。見出しと説明は左ぞろえ、ボタンはカプセルを横に並べる */
 .panel.alert { width: min(380px, 100%); gap: 12px; padding: 24px; border-radius: 36px; }
 .panel.alert .panel-title { font-size: 19px; }

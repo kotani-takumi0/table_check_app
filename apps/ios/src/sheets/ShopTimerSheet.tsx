@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { formatClock } from '@table-check/core/domain';
-import { PanelButton } from '../ui';
+import { CloseButton, PanelButton } from '../ui';
 import { feedback } from '../feedback';
 import { sheet } from './common';
 
@@ -13,8 +13,8 @@ export function ShopTimerSheet({ label, icon, doneAt, onReset, onClose }: { labe
       <Text style={[sheet.text, doneAt === undefined && sheet.muted]}>{doneAt === undefined ? 'まだ済にしていません' : `${formatClock(doneAt)} に済`}</Text>
     </View>
     <View style={sheet.actions}>
-      <PanelButton label="閉じる" onPress={onClose} style={sheet.action} />
       <PanelButton label="済にしてリセット" tone="primary" onPress={() => { feedback.done(); onReset(); onClose(); }} style={sheet.action} />
     </View>
+    <CloseButton onPress={onClose} />
   </>;
 }
