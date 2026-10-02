@@ -14,18 +14,26 @@ export function useReduceTransparency(): boolean {
   }, []);
   return reduce;
 }
+// 端末の「視差効果を減らす」。分かるまでは null
+export function useReduceMotion(): boolean | null {
+  const [reduce, setReduce] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (active) setReduce(value); });
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
+    return () => { active = false; subscription.remove(); };
+  }, []);
+  return reduce;
+}
 // 出てくるときの進み（0→1）。Web の animation と同じ長さ・曲線（既定は ease-out）。「視差効果を減らす」がオンなら最初から 1
 export function useAppear(durationMs: number, easing: (t: number) => number = Easing.out(Easing.ease)): Animated.Value {
   const progress = useRef(new Animated.Value(0)).current;
+  const reduceMotion = useReduceMotion();
   useEffect(() => {
-    let active = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then(reduce => {
-      if (!active) return;
-      if (reduce) progress.setValue(1);
-      else Animated.timing(progress, { toValue: 1, duration: durationMs, easing, useNativeDriver: true }).start();
-    });
-    return () => { active = false; };
-  }, [progress, durationMs, easing]);
+    if (reduceMotion === null) return;
+    if (reduceMotion) progress.setValue(1);
+    else Animated.timing(progress, { toValue: 1, duration: durationMs, easing, useNativeDriver: true }).start();
+  }, [progress, durationMs, easing, reduceMotion]);
   return progress;
 }
 const EASE_OUT = Easing.out(Easing.ease);
@@ -41,16 +49,20 @@ export const LIQUID_GLASS = isLiquidGlassAvailable() && isGlassEffectAPIAvailabl
 // Liquid Glass が使えない iOS では、Web と同じすりガラス風の面（ほぼ不透明＋白い縁＋柔らかい影）。「透明度を下げる」がオンなら不透明な面
 export function Glass({ style, interactive = false, tint, appear, children }: { style?: StyleProp<ViewStyle>; interactive?: boolean; tint?: number; appear?: number; children?: ReactNode }) {
   const reduce = useReduceTransparency();
-  // 最初の描画は 'none'、次のフレームで regular にして、ガラスが出てくる動きにする
+  const reduceMotion = useReduceMotion();
+  // appear のときは最初の描画を 'none' にし、次のフレームで regular にして、ガラスが出てくる動きにする。
+  // 「視差効果を減らす」がオンなら動かさず、最初から regular で出す
   const [shown, setShown] = useState(appear === undefined);
   useEffect(() => {
-    if (appear === undefined) return;
+    if (appear === undefined || reduceMotion === null) return;
+    if (reduceMotion) { setShown(true); return; }
     const frame = requestAnimationFrame(() => setShown(true));
     return () => cancelAnimationFrame(frame);
-  }, [appear]);
+  }, [appear, reduceMotion]);
+  const glassStyle = !shown ? 'none' as const : appear === undefined || reduceMotion ? 'regular' as const : { style: 'regular' as const, animate: true, animationDuration: appear };
   const fallbackIn = useAppear(appear === undefined ? 0 : appear * 1000, EASE_OUT);
   if (LIQUID_GLASS && !reduce) {
-    return <GlassView glassEffectStyle={!shown ? 'none' : appear === undefined ? 'regular' : { style: 'regular', animate: true, animationDuration: appear }} isInteractive={interactive} tintColor={tint === undefined ? undefined : `rgba(254, 253, 252, ${tint})`} colorScheme="light" style={[styles.base, style]}>{children}</GlassView>;
+    return <GlassView glassEffectStyle={glassStyle} isInteractive={interactive} tintColor={tint === undefined ? undefined : `rgba(254, 253, 252, ${tint})`} colorScheme="light" style={[styles.base, style]}>{children}</GlassView>;
   }
   return <Animated.View style={[styles.base, reduce ? styles.solid : styles.fallback, style, appear !== undefined && { opacity: fallbackIn }]}>{children}</Animated.View>;
 }

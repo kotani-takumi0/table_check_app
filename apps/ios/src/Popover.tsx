@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glass, useAppear } from './Glass';
 import { TOOLBAR_HEIGHT } from './Header';
@@ -9,7 +9,7 @@ import { TOOLBAR_HEIGHT } from './Header';
 // ガラス（GlassView）は自分や親の opacity を 0 にすると描かれなくなるので、ガラスの面は Glass の appear で出し、中身だけ opacity を動かす
 export function Popover({ anchor, mini, onClose, children }: { anchor: 'start' | 'end'; mini: boolean; onClose(): void; children: ReactNode }) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   // Web の .popover と同じ 0.2 秒・少し行き過ぎて戻る曲線
   const grow = useAppear(200, POP);
   const side = mini ? 8 : 16;
@@ -18,10 +18,13 @@ export function Popover({ anchor, mini, onClose, children }: { anchor: 'start' |
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
       <Pressable accessibilityLabel="閉じる" style={StyleSheet.absoluteFill} onPress={onClose} />
-      <Animated.View accessibilityViewIsModal style={[styles.wrap, place, { top, width: Math.min(380, width - side * 2) },
+      <Animated.View accessibilityViewIsModal style={[styles.wrap, place, { top, width: Math.min(380, width - side * 2), maxHeight: height - top - insets.bottom - side },
         { transformOrigin: anchor === 'end' ? 'top right' : 'top left', transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]}>
         <Glass tint={0.84} appear={0.2} style={styles.card}>
-          <Animated.View style={[styles.content, { opacity: grow }]}>{children}</Animated.View>
+          {/* 文字を大きくしていてもボタンまで届くよう、画面に入らなければ中をスクロールする */}
+          <ScrollView bounces={false}>
+            <Animated.View style={[styles.content, { opacity: grow }]}>{children}</Animated.View>
+          </ScrollView>
         </Glass>
       </Animated.View>
     </Modal>
@@ -30,6 +33,6 @@ export function Popover({ anchor, mini, onClose, children }: { anchor: 'start' |
 const POP = Easing.bezier(0.2, 0.9, 0.3, 1.2);
 const styles = StyleSheet.create({
   wrap: { position: 'absolute' },
-  card: { borderRadius: 36 },
+  card: { flexShrink: 1, borderRadius: 36 },
   content: { padding: 24, gap: 12 },
 });
