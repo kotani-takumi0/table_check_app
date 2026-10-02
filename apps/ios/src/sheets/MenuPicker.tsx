@@ -28,7 +28,7 @@ export function MenuPicker({ value, onChange }: { value: string | null; onChange
 }
 const styles = StyleSheet.create({
   picker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: 1 },
-  option: { flexBasis: '30%', flexGrow: 1, minHeight: 50, paddingHorizontal: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 8, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  option: { flexBasis: '30%', flexGrow: 1, minHeight: 50, paddingHorizontal: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   selectedOption: { borderWidth: 2, borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
   label: { fontSize: 15, color: COLORS.text },
   sub: { fontSize: 12, color: COLORS.text },

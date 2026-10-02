@@ -28,7 +28,7 @@ export function CoursePicker({ value, onChange }: { value: Course | null; onChan
 }
 const styles = StyleSheet.create({
   picker: { flexDirection: 'row', gap: 8, flex: 1 },
-  option: { flex: 1, minHeight: 50, paddingHorizontal: 2, paddingVertical: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 8, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  option: { flex: 1, minHeight: 50, paddingHorizontal: 2, paddingVertical: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   selectedOption: { borderWidth: 2, borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
   label: { fontSize: 14, color: COLORS.text },
   sub: { fontSize: 12, color: COLORS.text },

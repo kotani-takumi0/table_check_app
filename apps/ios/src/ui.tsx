@@ -15,7 +15,7 @@ export function PanelButton({ label, onPress, tone = 'default', disabled, style,
   );
 }
 const styles = StyleSheet.create({
-  button: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 6, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  button: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   primary: { borderColor: COLORS.action, backgroundColor: COLORS.action },
   danger: { borderColor: COLORS.now, backgroundColor: COLORS.nowBg },
   disabled: { opacity: 0.4 },
