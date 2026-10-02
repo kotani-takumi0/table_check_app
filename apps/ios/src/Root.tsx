@@ -59,7 +59,12 @@ export function Root({ children }: { children(services: Services): ReactNode }) 
     if (!firebase) return;
     setBusy(true);
     setError('');
-    signInWithEmail(firebase.auth, email, password).then(startAccount, (reason: unknown) => setError(loginErrorMessage(reason))).finally(() => setBusy(false));
+    const { auth, db } = firebase;
+    // 今の店で書いた送信待ちも、ログインで利用者が変わる前に送り終える
+    flushPendingWrites(db).then(flushed => {
+      if (!flushed) { setError(PENDING_WRITES_MESSAGE); return; }
+      return signInWithEmail(auth, email, password).then(startAccount, (reason: unknown) => setError(loginErrorMessage(reason)));
+    }).finally(() => setBusy(false));
   };
   // ログアウト・ログインし直す：送信待ちを送り終えてから、覚えた使い方を消して最初の画面に戻る
   const leave = useCallback(() => {
