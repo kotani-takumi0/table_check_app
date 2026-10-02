@@ -42,7 +42,7 @@ export interface Session {
 export const RULES = { otoshiWarnMin: 15, lastOrderMin: 90, seatLimitMin: 120, exitedKeepMin: 5 } as const;
 export type Alert = 'none' | 'soon' | 'now';
 export type AlertReason = 'otoshi_missing' | 'last_order' | 'seat_limit' | null;
-// 警告の理由の名前（卓カードの札・詳細パネル・一覧で同じものを使う）
+// 警告の理由の名前（卓カードの札・詳細パネルで同じものを使う）
 export const REASON_LABEL: Record<Exclude<AlertReason, null>, string> = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
@@ -114,20 +114,23 @@ export function timerOf(session: Session, now: number): { label: string; elapsed
   const start = startOf(session);
   return { label: session.course === null ? '案内から' : 'ファーストドリンクから', elapsedMs: start === null ? null : Math.max(0, now - start) };
 }
-export function alertOf(session: Session, now: number): { level: Alert; reason: AlertReason } {
+// timeLimitOff：店全体で時間制限を切っている（L.O.・お席の時間の警告を出さない。お通しの警告はそのまま）
+export function alertOf(session: Session, now: number, timeLimitOff = false): { level: Alert; reason: AlertReason } {
   const start = startOf(session);
   if (session.status === 'exited' || start === null) return { level: 'none', reason: null };
   const elapsed = now - start;
-  if (elapsed >= RULES.seatLimitMin * MINUTE) return { level: 'now', reason: 'seat_limit' };
+  if (!timeLimitOff && elapsed >= RULES.seatLimitMin * MINUTE) return { level: 'now', reason: 'seat_limit' };
   // コースはお通しを出さないので「お通し未提供」は出さない
   if (session.status === 'seated' && session.course === null && elapsed >= RULES.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
-  if (session.status === 'otoshi' && elapsed >= RULES.lastOrderMin * MINUTE) return { level: 'soon', reason: 'last_order' };
+  if (!timeLimitOff && session.status === 'otoshi' && elapsed >= RULES.lastOrderMin * MINUTE) return { level: 'soon', reason: 'last_order' };
   return { level: 'none', reason: null };
 }
 // L.O. の時間を過ぎても L.O.確認済みにしていないセッション（数え始めが古い順）
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
 // （コースはファーストドリンクから数えるので、開始待ちの卓はそもそも時間が来ない）
-export function lastOrderDue(sessions: Session[], now: number): Session[] {
+// 店全体で時間制限を切っているときは出さない
+export function lastOrderDue(sessions: Session[], now: number, timeLimitOff = false): Session[] {
+  if (timeLimitOff) return [];
   return sessions
     .flatMap(s => { const start = startOf(s); return s.status === 'otoshi' && start !== null && now - start >= RULES.lastOrderMin * MINUTE ? [{ s, start }] : []; })
     .sort((a, b) => a.start - b.start)

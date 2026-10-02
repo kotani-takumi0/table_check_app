@@ -10,23 +10,31 @@ import { ClearAllDialog } from './ClearAllDialog';
 import { SeatDialog } from './SeatDialog';
 import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
-import { TableList } from './TableList';
+import { SideMenu, type Screen } from './SideMenu';
+import { Settings } from './Settings';
 import { useDismissed } from './useDismissed';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
+import { DEFAULT_SHOP_SETTINGS, type ShopSettings, type ShopSettingsStore } from '@table-check/core/shopSettings';
 import { worstSyncState, type SessionStore, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
 import { editingSessionIds, type EditingMark, type EditingStore } from '@table-check/core/editing';
 import { now } from '@table-check/core/clock';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
-export default function App({ store, shopTimerStore, editingStore, trial = false }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; trial?: boolean }) {
+export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, trial = false }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; trial?: boolean }) {
   const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
   const [pick, setPick] = useState<{ sessionId: string; mode: 'move' | 'add'; from: string } | null>(null);
-  // 全卓一覧（左から出す）。最初はしまっておく
-  const [listOpen, setListOpen] = useState(false);
+  // メニュー（左から出す）で切り替える画面。最初はテーブル状況で、メニューはしまっておく
+  const [screen, setScreen] = useState<Screen>('floor');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
+  // 店全体の設定（時間制限なし）。全端末で共有する
+  const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
+  useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
+  const timeLimitOff = shopSettings.timeLimitOff;
   const closePanel = useCallback(() => setOpenId(null), []);
   // 開くと背景が inert になりフォーカスが外れるので、開く前に覚えておく
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -49,6 +57,11 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
   const [time, setTime] = useState(now);
   const [sessionSync, setSessionSync] = useState<SyncState>('synced');
   const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
+  const [shopSettingsSync, setShopSettingsSync] = useState<SyncState>('synced');
+  useEffect(() => {
+    setShopSettingsSync('synced');
+    return shopSettingsStore.subscribeSync?.(setShopSettingsSync);
+  }, [shopSettingsStore]);
   useEffect(() => {
     setSessionSync('synced');
     return store.subscribeSync?.(setSessionSync);
@@ -57,7 +70,7 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
     setShopTimerSync('synced');
     return shopTimerStore.subscribeSync?.(setShopTimerSync);
   }, [shopTimerStore]);
-  const syncState = worstSyncState([sessionSync, shopTimerSync]);
+  const syncState = worstSyncState([sessionSync, shopTimerSync, shopSettingsSync]);
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
@@ -76,7 +89,7 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
     return () => clearInterval(interval);
   }, []);
   // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, timeLimitOff).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? next(notice.session) : markShopTimerDone(notice.timerId) },
   }));
@@ -108,7 +121,7 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
   const startPick = useCallback((mode: 'move' | 'add') => {
     if (!openId) return;
     setPick({ sessionId: openId, mode, from: moveFrom });
-    setListOpen(false);
+    setMenuOpen(false);
     setOpenId(null);
   }, [openId, moveFrom]);
   const applyPick = (tableId: string) => {
@@ -126,13 +139,13 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pick]);
-  // 一覧は Esc で閉じる（パネルやダイアログを開いている間は、そちらを先に閉じる）。外側のタップは一覧の後ろの透明な面で受ける
+  // メニューは Esc で閉じる（パネルやダイアログを開いている間は、そちらを先に閉じる）。外側のタップはメニューの後ろの透明な面で受ける
   useEffect(() => {
-    if (!listOpen || modal) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setListOpen(false); };
+    if (!menuOpen || modal) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [listOpen, modal]);
+  }, [menuOpen, modal]);
   // 縦向きは手描きの配置図と同じ向き（時計回りに90°）。スマホは小さいカード＋タップで詳細
   const portrait = useMediaQuery('(orientation: portrait)');
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
@@ -142,15 +155,17 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
-    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
-    <section inert={modal || (listOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
-      <div className="counter-label" aria-hidden="true">カウンター</div>
-      <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
-    </section>
-    {listOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setListOpen(false)} />}
-    {listOpen && !pick && <TableList sessions={sessions} time={time} onOpen={openPanel} inert={modal} />}
-    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
+    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
+      timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
+    {screen === 'settings' ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} inert={modal || menuOpen} />
+      : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
+        <div className="counter-label" aria-hidden="true">カウンター</div>
+        <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} timeLimitOff={timeLimitOff} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
+      </section>}
+    {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
+    {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} inert={modal} />}
+    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} timeLimitOff={timeLimitOff} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}

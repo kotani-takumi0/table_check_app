@@ -11,12 +11,13 @@ interface CardProps {
   onSeat(tableId: string): void;
   onOpen(session: Session, from: string): void;
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている（L.O.・お席の時間の警告と帯を出さない）
   mini: boolean;   // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean; // 移動先・追加先を選んでいる間：空席だけ押せる
 }
 // 卓カード。テーブルは文字盤（大きい卓は真ん中、低い卓・細い卓は横）と四隅の情報、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen, mini, picking }: CardProps) {
+export function SeatCard({ seat, session, time, editing = false, timeLimitOff, onSeat, onOpen, mini, picking }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -66,9 +67,9 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen,
       <span className="seat-number">{seat.id}</span>
     </button>;
   }
-  const alert = alertOf(session, time);
+  const alert = alertOf(session, time, timeLimitOff);
   const dial = dialOf(session, time);
-  const remaining = remainingOf(session, time);
+  const remaining = remainingOf(session, time, timeLimitOff);
   const exited = session.status === 'exited';
   const paid = session.paidAt !== null;
   // コースの「開始待ち」「ファーストドリンク提供済み」は通常と名前を変える（色は変えない）
@@ -103,7 +104,7 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen,
       {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}
         {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={seat.kind === 'table'} /></span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={seat.kind === 'table' && !timeLimitOff} /></span>
       <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
@@ -130,7 +131,7 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen,
     {full ? <>
       <span className="corner tl">{number}</span>
       <span className="corner tr">{meta}</span>
-      <span className="dial-box"><Dial dial={dial} label={meter} /></span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={!timeLimitOff} /></span>
       <span className="corner bl">{stage}</span>
       <span className="corner br">{corner}</span>
     </> : <>
@@ -140,7 +141,7 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen,
         {stage}
         <span className="remaining">{corner}</span>
       </span>
-      <span className="dial-box"><Dial dial={dial} label={meter} /></span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={!timeLimitOff} /></span>
     </>}
   </button>;
 }

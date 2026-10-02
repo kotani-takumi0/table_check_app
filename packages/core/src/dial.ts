@@ -21,12 +21,14 @@ export function dialOf(session: Session, now: number): Dial {
 export type Remaining =
   | { kind: 'last_order'; minutes: number }  // L.O.まで N分
   | { kind: 'seat_limit'; minutes: number }  // 退席まで N分
-  | { kind: 'over' };                        // お席の時間を過ぎている
+  | { kind: 'over' }                         // お席の時間を過ぎている
+  | { kind: 'no_limit' };                    // 店全体で時間制限を切っている
 // 卓カードの右下に出す残り時間。L.O.確認済みにするまでは L.O.まで、そのあと（または L.O. の時間を過ぎたら）退席まで。
 // 分は切り上げ（残り30秒なら「1分」）。退店済・コースの開始待ちは出さない
-export function remainingOf(session: Session, now: number): Remaining | null {
+export function remainingOf(session: Session, now: number, timeLimitOff = false): Remaining | null {
   const start = startOf(session);
   if (session.status === 'exited' || start === null) return null;
+  if (timeLimitOff) return { kind: 'no_limit' };
   const elapsed = now - start;
   if (elapsed >= RULES.seatLimitMin * MINUTE) return { kind: 'over' };
   const loLeft = RULES.lastOrderMin * MINUTE - elapsed;
@@ -38,6 +40,7 @@ export function remainingLabel(remaining: Remaining): string {
     case 'last_order': return `L.O.まで${remaining.minutes}分`;
     case 'seat_limit': return `退席まで${remaining.minutes}分`;
     case 'over': return 'お席の時間を過ぎています';
+    case 'no_limit': return '時間制限なし';
   }
 }
 // 時:分（1:05、0:35）。フロアは秒を出さず1分ごとに動かす

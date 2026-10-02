@@ -12,6 +12,7 @@ interface Props {
   session: Session;
   time: number;
   othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
@@ -61,7 +62,7 @@ function placeBeside(anchor: DOMRect | null, height: number): { panel: CSSProper
     arrow: { top: arrowTop - 8, left: side === 'right' ? panelLeft - 8 : panelLeft + POPOVER_WIDTH - 8 },
   };
 }
-export function DetailPanel({ session, time, othersEditing = false, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
+export function DetailPanel({ session, time, othersEditing = false, timeLimitOff, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -90,8 +91,8 @@ export function DetailPanel({ session, time, othersEditing = false, onClose, onN
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
   };
-  const alert = alertOf(session, time);
-  const remaining = remainingOf(session, time);
+  const alert = alertOf(session, time, timeLimitOff);
+  const remaining = remainingOf(session, time, timeLimitOff);
   const paid = session.paidAt !== null;
   // 押した卓のそばに出す。高さは中身で変わる（変更するを開くなど）ので、描いたあとに測って位置を決め直す
   const [height, setHeight] = useState(0);

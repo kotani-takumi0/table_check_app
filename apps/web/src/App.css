@@ -338,29 +338,19 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .dish-list li.next { border: 2px solid var(--action); font-weight: 700; }
 .dish-mark { flex-shrink: 0; min-width: 1.4em; text-align: center; font-variant-numeric: tabular-nums; }
 
-/* 全卓一覧：ツールバーの「一覧」で左から出す。フロアの上に重ねる（フロアは縮めない）。面はツールバーと同じガラス */
+/* メニュー：ツールバーの「メニュー」で左から出す。フロアの上に重ねる（フロアは縮めない）。面はツールバーと同じガラス */
 .list-toggle { display: grid; place-items: center; min-width: 36px; min-height: 36px; padding: 0; border: none; border-radius: 18px; background: transparent; color: var(--text); font-size: 15px; font-weight: 700; white-space: nowrap; }
 .list-toggle[aria-expanded="true"] { background: var(--action-bg); color: var(--action-text); }
 .list-toggle-group { flex-shrink: 0; }
 .list-backdrop { position: absolute; inset: 0; z-index: 4; }
-.table-list { position: absolute; z-index: 6; top: 64px; left: 16px; bottom: 16px; width: min(380px, calc(100% - 32px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; animation: list-in 0.18s ease-out; }
+.side-menu { position: absolute; z-index: 6; top: 64px; left: 16px; width: min(280px, calc(100% - 32px)); overflow: hidden; border-radius: 20px; animation: list-in 0.18s ease-out; }
 @keyframes list-in { from { transform: translateX(-24px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .table-list { animation: none; } }
-.table-list-title { margin: 0; padding: 14px 16px 8px; display: flex; align-items: baseline; gap: 8px; font-size: 16px; font-weight: 700; }
-.table-list-count { color: var(--muted); font-size: 13px; font-weight: 500; }
-.table-list-empty { margin: 0; padding: 8px 16px 16px; color: var(--muted); }
-.table-list-rows { margin: 0; padding: 0 8px 8px; list-style: none; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; }
-.table-row { --st: var(--text); width: 100%; min-height: 56px; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 12px; border: 1.5px solid transparent; border-radius: 14px; background: var(--surface); text-align: left; }
-.table-row.alert-soon { --st: var(--soon-text); background: var(--soon-bg); }
-.table-row.alert-now { --st: var(--now-text); background: var(--now-bg); }
-.table-row.exited { opacity: 0.5; }
-.table-row-number { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.table-row-main { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.table-row-main .status { font-size: 15px; }
-.table-row-meta { max-width: 100%; overflow: hidden; color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
-.table-row-time { font: 700 20px 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* スマホ：画面の幅いっぱいのシートとして左から出す */
-.mini .table-list { top: 50px; left: 8px; right: 8px; bottom: 8px; width: auto; }
+@media (prefers-reduced-motion: reduce) { .side-menu { animation: none; } }
+.side-menu-items { margin: 0; padding: 8px; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.side-menu-item { width: 100%; min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: none; border-radius: 14px; background: transparent; font-size: 16px; font-weight: 500; text-align: left; }
+.side-menu-item[aria-current="page"] { background: var(--action-bg); color: var(--action-text); font-weight: 700; }
+/* スマホ：画面の幅いっぱいに左から出す */
+.mini .side-menu { top: 50px; left: 8px; right: 8px; width: auto; }
 .mini .list-toggle { min-width: 30px; min-height: 30px; }
 
 /* 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札を重ねる */
@@ -390,3 +380,28 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* ご案内：入力が多いので真ん中に出す。大きいボタンは最後の「ご案内」だけ */
 .seat-panel { width: min(420px, 100%); }
 .seat-go { min-height: 64px; font-size: 19px; font-weight: 700; }
+/* ツールバーの「時間制限なし」の目印（押すと設定） */
+.limit-off { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.mini .limit-off { min-height: 28px; padding: 0 8px; font-size: 12px; }
+/* スマホは幅が足りないので「制限なし」と短くし、右のゴミ箱を押し出さない */
+.mini .limit-off-long { display: none; }
+/* 右のまとまり（時計・ゴミ箱）は中身より縮めない（縮めるのは左のトイレのチップと、オフラインの文言だけ） */
+.toolbar-right { min-width: min-content; }
+.limit-off { flex-shrink: 0; }
+/* 設定の画面：ツールバーの下に、ガラスのまとまりで並べる */
+.settings { flex: 1; min-height: 0; overflow-y: auto; padding: 56px 0 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.settings > * { width: min(640px, 100%); }
+.settings-title { margin: 0; font-size: 24px; font-weight: 700; }
+.settings-group { padding: 16px 20px; border-radius: 20px; --glass-tint: 84%; }
+.settings-group-title { margin: 0 0 8px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.settings-row { display: flex; align-items: center; gap: 16px; padding: 8px 0; }
+.settings-row-text { flex: 1; min-width: 0; font-size: 17px; }
+.settings-help { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.settings-note { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.5; }
+/* スイッチ（iOS の切り替えと同じ形）：オンは操作の緑 */
+.switch { position: relative; flex-shrink: 0; width: 52px; height: 32px; padding: 0; border: none; border-radius: 16px; background: color-mix(in srgb, var(--text) 18%, transparent); transition: background 0.15s; }
+.switch[aria-checked="true"] { background: var(--action); }
+.switch-knob { position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); transition: transform 0.15s; }
+.switch[aria-checked="true"] .switch-knob { transform: translateX(20px); }
+@media (prefers-reduced-motion: reduce) { .switch, .switch-knob { transition: none; } }
+.mini .settings { padding-top: 48px; }

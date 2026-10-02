@@ -8,6 +8,7 @@ import { now } from '@table-check/core/clock';
 import { isVisible, occupantOf, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
+import { DEFAULT_SHOP_SETTINGS, type ShopSettings } from '@table-check/core/shopSettings';
 import { worstSyncState, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
 import { editingSessionIds, type EditingMark } from '@table-check/core/editing';
@@ -23,7 +24,8 @@ import { LIQUID_GLASS } from './Glass';
 const FLOOR_TOP = { regular: 40, portrait: TOOLBAR_HEIGHT.regular + 12, mini: TOOLBAR_HEIGHT.mini + 6 } as const;
 import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
-import { TableList } from './TableList';
+import { SideMenu, type Screen } from './SideMenu';
+import { Settings } from './Settings';
 import { PanelButton } from './ui';
 import { SeatSheet } from './sheets/SeatSheet';
 import { DetailSheet } from './sheets/DetailSheet';
@@ -42,7 +44,7 @@ export default function App() {
 }
 
 // Web の App と同じ画面：フロア図・ヘッダー・通知と、案内・詳細・トイレ・全卓消去のシート
-function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { services: Services }) {
+function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, trial } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
   const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
@@ -55,6 +57,12 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   const [shopTimerSync, setShopTimerSync] = useState<SyncState>('synced');
   useEffect(() => store.subscribeSync?.(setSessionSync), [store]);
   useEffect(() => shopTimerStore.subscribeSync?.(setShopTimerSync), [shopTimerStore]);
+  const [shopSettingsSync, setShopSettingsSync] = useState<SyncState>('synced');
+  useEffect(() => shopSettingsStore.subscribeSync?.(setShopSettingsSync), [shopSettingsStore]);
+  // 店全体の設定（時間制限なし）。全端末で共有する
+  const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
+  useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
+  const timeLimitOff = shopSettings.timeLimitOff;
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
@@ -68,8 +76,10 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   const [clearing, setClearing] = useState(false);
   // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
   const [pick, setPick] = useState<{ sessionId: string; mode: 'move' | 'add'; from: string } | null>(null);
-  // 全卓一覧（左から出す）。最初はしまっておく
-  const [listOpen, setListOpen] = useState(false);
+  // メニュー（左から出す）で切り替える画面。最初はテーブル状況で、メニューはしまっておく
+  const [screen, setScreen] = useState<Screen>('floor');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
 
   // 詳細は押した場所のそばに出す（No.71）。スマホは幅が足りないので、今までどおり下からのシート
   const [openAt, setOpenAt] = useState<{ x: number; y: number } | undefined>(undefined);
@@ -94,7 +104,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   const startPick = useCallback((mode: 'move' | 'add') => {
     if (!openId) return;
     setPick({ sessionId: openId, mode, from: moveFrom });
-    setListOpen(false);
+    setMenuOpen(false);
     setOpenId(null);
   }, [openId, moveFrom]);
   const applyPick = (tableId: string) => {
@@ -109,7 +119,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   useEffect(() => { if (pick && !picked) setPick(null); }, [pick, picked]);
 
   // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, timeLimitOff).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') next(notice.session); else markShopTimerDone(notice.timerId); } },
   }));
@@ -124,7 +134,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
     content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSheet} />;
   } else if (opened) {
-    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} timeLimitOff={timeLimitOff} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }
@@ -140,16 +150,18 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
   return (
     <View style={[styles.hall, mini && styles.miniHall]}>
       {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
-      <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
-        <Floor sessions={sessions} time={time} editingIds={editingIds} portrait={portrait} mini={mini} picking={Boolean(pick)}
-          onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
-          toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
-      </View>
-      {/* 全卓一覧：フロアの上に重ねる。外側のタップは後ろの透明な面で受けて閉じる */}
-      {listOpen && !pick && <>
-        <Pressable accessibilityLabel="全卓一覧を閉じる" style={StyleSheet.absoluteFill} onPress={() => setListOpen(false)} />
+      {screen === 'settings'
+        ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
+          <Floor sessions={sessions} time={time} editingIds={editingIds} timeLimitOff={timeLimitOff} portrait={portrait} mini={mini} picking={Boolean(pick)}
+            onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
+            toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
+        </View>}
+      {/* メニュー：フロアの上に重ねる。外側のタップは後ろの透明な面で受けて閉じる */}
+      {menuOpen && !pick && <>
+        <Pressable accessibilityLabel="メニューを閉じる" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
         <View style={[styles.listArea, { top: (mini ? TOOLBAR_HEIGHT.mini + 10 : TOOLBAR_HEIGHT.regular + 14) }, mini && styles.miniListArea]} pointerEvents="box-none">
-          <TableList sessions={sessions} time={time} onOpen={openPanel} mini={mini} />
+          <SideMenu screen={screen} onSelect={selectScreen} mini={mini} />
         </View>
       </>}
       <View style={[styles.overlay, mini && styles.miniOverlay]} pointerEvents="box-none">
@@ -160,9 +172,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
             </Text>
             <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
           </View>
-          : <Header trial={trial} time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
+          : <Header trial={trial} time={time} syncState={worstSyncState([sessionSync, shopTimerSync, shopSettingsSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
             canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini}
-            listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
+            menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)} timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
       </View>
       {popover && <Popover key={popoverAt ? `detail-${openId}` : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
       {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
@@ -183,8 +195,8 @@ const styles = StyleSheet.create({
   // ツールバー・移動先を選ぶ帯を浮かべる層（hall の左右の余白に合わせる）
   overlay: { position: 'absolute', top: 4, left: 16, right: 16, height: TOOLBAR_HEIGHT.regular },
   miniOverlay: { left: 8, right: 8, height: TOOLBAR_HEIGHT.mini },
-  listArea: { position: 'absolute', left: 16, right: 16, bottom: 12 },
-  miniListArea: { left: 8, right: 8, bottom: 8 },
+  listArea: { position: 'absolute', left: 16, right: 16 },
+  miniListArea: { left: 8, right: 8 },
   pickBar: { height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 4, borderWidth: 1.5, borderColor: COLORS.action, borderRadius: 24, backgroundColor: COLORS.actionBg },
   pickText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.actionText },
   miniPickText: { fontSize: 12 },

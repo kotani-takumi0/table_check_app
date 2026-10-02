@@ -7,7 +7,7 @@ import { version } from '../../../package.json';
 import { COLORS, FILL, TABULAR } from './theme';
 import { Glass } from './Glass';
 import { CactusClock } from './CactusClock';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 interface Props {
   time: number;
@@ -17,12 +17,14 @@ interface Props {
   canClearAll: boolean;
   onClearAll(): void;
   mini: boolean;
-  listOpen: boolean;   // 全卓一覧を開いているか
-  onToggleList(): void;
+  menuOpen: boolean;   // メニューを開いているか
+  onToggleMenu(): void;
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている（目印を出し、押すと設定を開く）
+  onOpenSettings(): void;
   trial: boolean;      // Firebase につながず端末の中だけで動いている（開発中の試し）
 }
-// フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, listOpen, onToggleList, trial }: Props) {
+// フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左に「メニュー」とトイレのタイマー（時間制限なしの目印）、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
+export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, trial }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す（薄くして押せなくすると壊れているように見えるため）
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -34,11 +36,11 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
   return (
     <View style={[styles.toolbar, mini && styles.miniToolbar]} pointerEvents="box-none">
       <Glass style={[styles.group, styles.listGroup, mini && styles.miniGroup]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="全卓一覧" accessibilityState={{ expanded: listOpen }} onPress={onToggleList}
-          style={({ pressed }) => [styles.listToggle, mini && styles.miniListToggle, listOpen && styles.listToggleOpen, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="メニュー" accessibilityState={{ expanded: menuOpen }} onPress={onToggleMenu}
+          style={({ pressed }) => [styles.listToggle, mini && styles.miniListToggle, menuOpen && styles.listToggleOpen, pressed && styles.pressed]}>
           {/* よく使う操作はアイコンにする（iOS 26：同じカプセルの中で文字とアイコンを混ぜない） */}
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={listOpen ? COLORS.actionText : COLORS.text} strokeWidth={1.8} strokeLinecap="round" accessible={false}>
-            <Rect x={3} y={4} width={18} height={16} rx={4} /><Path d="M9 4v16M5.5 8.5h1M5.5 12h1M5.5 15.5h1" />
+          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={menuOpen ? COLORS.actionText : COLORS.text} strokeWidth={1.8} strokeLinecap="round" accessible={false}>
+            <Path d="M4.5 7h15M4.5 12h15M4.5 17h15" />
           </Svg>
         </Pressable>
       </Glass>
@@ -54,6 +56,11 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
             </Pressable>
           );
         })}
+        {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく（押すと設定） */}
+        {timeLimitOff && <Pressable accessibilityRole="button" accessibilityLabel="時間制限なし（押すと設定）" onPress={onOpenSettings}
+          style={({ pressed }) => [styles.chip, styles.limitOff, mini && styles.miniChip, pressed && styles.pressed]}>
+          <Text style={[styles.chipLabel, styles.limitOffLabel, mini && styles.miniChipLabel]} numberOfLines={1}>{mini ? '制限なし' : '時間制限なし'}</Text>
+        </Pressable>}
       </Glass>
       <Glass style={[styles.group, styles.right, mini && styles.miniGroup]}>
         {syncState !== 'synced' && <Text style={[styles.sync, { color: syncState === 'pending' ? COLORS.soonText : COLORS.nowText }]} numberOfLines={1}>
@@ -101,6 +108,8 @@ const styles = StyleSheet.create({
   miniChipLabel: { fontSize: 12 },
   due: { borderColor: COLORS.now, backgroundColor: COLORS.nowBg },
   dueLabel: { color: COLORS.nowText, fontWeight: '700' },
+  limitOff: { flexShrink: 0, borderColor: COLORS.lineStrong, backgroundColor: COLORS.surface },
+  limitOffLabel: { color: COLORS.text, fontWeight: '700' },
   sync: { fontSize: 12, flexShrink: 1 },
   version: { flexShrink: 0, fontSize: 11, color: COLORS.muted, opacity: 0.8 },
   clock: { flexShrink: 0, fontSize: 17, fontWeight: '500', color: COLORS.text },

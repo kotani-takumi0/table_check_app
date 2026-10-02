@@ -13,15 +13,17 @@ interface Props {
   onShopTimerOpen(id: ShopTimerId): void;   // 詳細を開く（押しただけでは済にしない）
   canClearAll: boolean;
   onClearAll(): void;   // 確認ダイアログを開く（押しただけでは消さない）
-  listOpen: boolean;    // 全卓一覧を開いているか
-  onToggleList(): void;
+  menuOpen: boolean;    // メニューを開いているか
+  onToggleMenu(): void;
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている（目印を出し、押すと設定を開く）
+  onOpenSettings(): void;
   inert?: boolean;
   trial?: boolean;      // Firebase につながず端末の中だけで動いている（開発中の試し）
 }
 // 「消す卓はありません」を出しておく長さ
 const NOTHING_TO_CLEAR_MS = 2500;
-// フロアの上に浮かぶツールバー（ガラス）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, listOpen, onToggleList, inert, trial }: Props) {
+// フロアの上に浮かぶツールバー（ガラス）：左に「メニュー」とトイレのタイマー（時間制限なしの目印）、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
+export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, inert, trial }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -31,8 +33,8 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
   }, [nothingToClear]);
   return <header className="toolbar" inert={inert}>
     <div className="toolbar-group glass list-toggle-group">
-      <button className="list-toggle" aria-label="全卓一覧" title="全卓一覧" aria-expanded={listOpen} aria-controls="table-list" onClick={onToggleList}>
-        <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="4" /><path d="M9 4v16M5.5 8.5h1M5.5 12h1M5.5 15.5h1" /></svg>
+      <button className="list-toggle" aria-label="メニュー" title="メニュー" aria-expanded={menuOpen} aria-controls="side-menu" onClick={onToggleMenu}>
+        <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15" /></svg>
       </button>
     </div>
     <div className="toolbar-group glass shop-timers">
@@ -44,6 +46,8 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
           <span className="shop-timer-icon" aria-hidden="true">{timer.icon}</span> <span className="shop-timer-rest">{rest}</span>
         </button>;
       })}
+      {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく */}
+      {timeLimitOff && <button className="limit-off" aria-label="時間制限なし（押すと設定）" onClick={onOpenSettings}><span className="limit-off-long">時間</span>制限なし</button>}
     </div>
     <div className="toolbar-group glass toolbar-right">
       {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
