@@ -187,10 +187,10 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .shop-timer.due { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
 /* 通知の並び：入る行数（--toast-rows）で空きを等分し、はみ出さない高さにする（iOS の flex: 1 / rows と同じ）。
    はみ出しを切らない（overflow: visible）ので、ガラスの影がツールバーと同じ大きさで出せ、下の端も四角く切れない */
-.toasts { --toast-rows: 2; grid-column: 6 / 16; grid-row: 2; min-height: 0; display: grid; grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
+.toasts { --toast-rows: 2; grid-column: 6 / 16; grid-row: 2; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
 .toasts.rows-1 { --toast-rows: 1; }
 /* 通知：iOS 26 の通知バナーのように、フロアの上に浮かぶガラスのカプセル。急ぎ具合は左の丸の色と文言で出す */
-.toast { --tone: var(--now); --tone-text: var(--now-text); --glass-tint: 82%; min-height: 0; max-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 5px 4px 16px; border-radius: 999px; color: var(--text); }
+.toast { --tone: var(--now); --tone-text: var(--now-text); --glass-tint: 82%; min-width: 0; min-height: 0; max-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 5px 4px 16px; border-radius: 999px; color: var(--text); }
 .toast::before { content: ''; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--tone); }
 .toast.warning { --tone: var(--soon); --tone-text: var(--soon-text); }
 
