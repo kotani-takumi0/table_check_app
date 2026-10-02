@@ -1,17 +1,21 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { alertOf, dishProgress, displayOf, REASON_LABEL, STATUS_SHORT, type Session } from '@table-check/core/domain';
 import { dialOf, formatHourMinute } from '@table-check/core/dial';
 import { urgentOrder } from '@table-check/core/tableList';
 import { cardTone, COLORS, TABULAR } from './theme';
-import { Glass } from './Glass';
+import { Glass, useAppear } from './Glass';
 import { feedback } from './feedback';
 
 // 全卓一覧（Web の TableList と同じ）：ツールバーの「一覧」で左から出す。フロアの上に重ねる（フロアは縮めない）。
 // 急ぐ順（いま対応 → もうすぐ → 経過の長い順）に、卓番・段階・経過・人数・コース・料理の進みを並べ、行を押すと詳細シート
 export function TableList({ sessions, time, onOpen, mini }: { sessions: Session[]; time: number; onOpen(session: Session, from: string): void; mini: boolean }) {
   const rows = urgentOrder(sessions, time);
+  // Web と同じ出方：左から 24px すべり込みながら 0.18 秒で出す（ガラスの面は Glass の appear、中身は opacity）
+  const appear = useAppear(180, EASE_OUT);
   return (
-    <Glass tint={0.84} style={[styles.list, mini && styles.miniList]}>
+    <Animated.View style={[styles.list, mini && styles.miniList, { transform: [{ translateX: appear.interpolate({ inputRange: [0, 1], outputRange: [-24, 0] }) }] }]}>
+    <Glass tint={0.84} appear={0.18} style={styles.glass}>
+      <Animated.View style={[styles.content, { opacity: appear }]}>
       <Text style={styles.title} accessibilityRole="header">全卓一覧 <Text style={styles.count}>{rows.length}組</Text></Text>
       {rows.length === 0 ? <Text style={styles.empty}>ご案内中の卓はありません</Text> : (
         <ScrollView contentContainerStyle={styles.rows}>
@@ -45,11 +49,16 @@ export function TableList({ sessions, time, onOpen, mini }: { sessions: Session[
           })}
         </ScrollView>
       )}
+      </Animated.View>
     </Glass>
+    </Animated.View>
   );
 }
+const EASE_OUT = Easing.out(Easing.ease);
 const styles = StyleSheet.create({
-  list: { position: 'absolute', zIndex: 6, top: 0, left: 0, bottom: 0, width: 380, maxWidth: '100%', borderRadius: 20 },
+  list: { position: 'absolute', zIndex: 6, top: 0, left: 0, bottom: 0, width: 380, maxWidth: '100%' },
+  glass: { flex: 1, borderRadius: 20 },
+  content: { flex: 1 },
   miniList: { width: '100%' },
   title: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, fontSize: 16, fontWeight: '700', color: COLORS.text },
   count: { fontSize: 13, fontWeight: '500', color: COLORS.muted },
