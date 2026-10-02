@@ -12,7 +12,6 @@ interface Props {
   mini: boolean;
   picking: boolean;
   onSeat(tableId: string): void;
-  onNext(session: Session): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;
   editingIds: Set<string>;   // ほかの端末で詳細を開いているお客さん（No.72）
   toasts: ReactNode;   // 通知。フロア図の空き（横向きはカウンター上辺の右）に置く
@@ -30,7 +29,7 @@ const DECOR = {
   },
 } as const;
 // フロア図：Web と同じ 15列×7行（縦向きは 7列×15行）に卓を並べる
-export function Floor({ sessions, time, editingIds, portrait, mini, picking, onSeat, onNext, onOpen, toasts }: Props) {
+export function Floor({ sessions, time, editingIds, portrait, mini, picking, onSeat, onOpen, toasts }: Props) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const grid = portrait ? PORTRAIT_GRID : GRID;
   const seats = portrait ? SEATS.map(rotateClockwise) : SEATS;
@@ -53,7 +52,7 @@ export function Floor({ sessions, time, editingIds, portrait, mini, picking, onS
         {seats.map(seat => (
           <SeatCard key={seat.id} seat={seat} session={occupantOf(sessions, seat.id, time)} time={time} frame={frame(seat)}
             editing={(() => { const occupant = occupantOf(sessions, seat.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()}
-            onSeat={onSeat} onNext={onNext} onOpen={onOpen} mini={mini} picking={picking} />
+            onSeat={onSeat} onOpen={onOpen} mini={mini} picking={picking} />
         ))}
         <View pointerEvents="box-none" style={[styles.toasts, frame(decor.toasts)]}>{toasts}</View>
       </ScrollView>}

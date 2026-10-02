@@ -142,7 +142,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, trial } }: { se
       {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
       <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
         <Floor sessions={sessions} time={time} editingIds={editingIds} portrait={portrait} mini={mini} picking={Boolean(pick)}
-          onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
+          onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
           toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
       </View>
       {/* 全卓一覧：フロアの上に重ねる。外側のタップは後ろの透明な面で受けて閉じる */}

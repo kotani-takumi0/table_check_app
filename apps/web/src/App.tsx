@@ -146,7 +146,7 @@ export default function App({ store, shopTimerStore, editingStore, trial = false
     <section inert={modal || (listOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
     </section>
     {listOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setListOpen(false)} />}
     {listOpen && !pick && <TableList sessions={sessions} time={time} onOpen={openPanel} inert={modal} />}

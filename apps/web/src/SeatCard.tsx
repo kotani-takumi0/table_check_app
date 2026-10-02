@@ -9,7 +9,6 @@ interface CardProps {
   session?: Session;
   time: number;
   onSeat(tableId: string): void;
-  onNext(session: Session): void;
   onOpen(session: Session, from: string): void;
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   mini: boolean;   // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
@@ -17,7 +16,7 @@ interface CardProps {
 }
 // 卓カード。テーブルは文字盤（大きい卓は真ん中、低い卓・細い卓は横）と四隅の情報、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, onSeat, onNext, onOpen, mini, picking }: CardProps) {
+export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen, mini, picking }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -108,8 +107,9 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onNext,
     </button>;
   }
   if (seat.kind === 'counter') {
-    // カウンター：卓番は円の上、時間は円の中、段階は円の下。タップで次の状態へ（退店済はご案内）
-    return <button {...handlers} className={className} disabled={picking} aria-label={`${label}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>
+    // カウンター：卓番は円の上、時間は円の中、段階は円の下。テーブルと同じくタップで詳細（退店済はご案内）。
+    // 押しただけで状態が進むと、押し間違いや複数人での同時操作で気づかずに進んでしまうため（No.70）
+    return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`} onClick={() => exited ? onSeat(seat.id) : onOpen(session, seat.id)}>
       {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       {number}
       <span className="dial-box"><Dial dial={dial} label={meter} band={false} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>

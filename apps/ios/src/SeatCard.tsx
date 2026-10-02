@@ -12,7 +12,6 @@ interface Props {
   time: number;
   frame: ViewStyle & { width: number; height: number };   // フロア図の中の位置と大きさ
   onSeat(tableId: string): void;
-  onNext(session: Session): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;   // at：押した場所（詳細をそのそばに出す）
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
@@ -20,7 +19,7 @@ interface Props {
 }
 // Web の SeatCard と同じ出し分け。テーブルは文字盤と四隅、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, frame, onSeat, onNext, onOpen, mini, picking }: Props) {
+export function SeatCard({ seat, session, time, editing = false, frame, onSeat, onOpen, mini, picking }: Props) {
   const { width, height } = frame;
   if (!session) {
     // 空席：点線の枠（テーブルは角丸の四角、カウンターは円）
@@ -102,12 +101,12 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
     );
   }
   if (seat.kind === 'counter') {
-    // カウンター：卓番は円の上、時間は円の中、段階は円の下（横長のマスは卓番を円の左に置く）。タップで次の状態へ（退店済はご案内）
+    // カウンター：卓番は円の上、時間は円の中、段階は円の下（横長のマスは卓番を円の左に置く）。テーブルと同じくタップで詳細（退店済はご案内。No.70）
     const wide = width > height * 1.3;
     const size = wide ? Math.min(width * 0.7, height - 18) : Math.min(width, height - 34);
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}${exited ? '（押すとご案内）' : ''}`} disabled={picking}
-        onPress={() => { feedback.step(); if (exited) onSeat(seat.id); else onNext(session); }} onLongPress={open} delayLongPress={600}
+      <Pressable accessibilityRole="button" accessibilityLabel={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`} disabled={picking}
+        onPress={event => { if (exited) { feedback.step(); onSeat(seat.id); } else open(event); }} onLongPress={open} delayLongPress={600}
         style={({ pressed }) => [frame, styles.counter, faded, picking && styles.pickDisabled, pressed && styles.pressed]}>
         {wide ? <View style={styles.counterRow}>{number(14)}{dialView(size)}</View> : <>{number(14)}{dialView(size)}</>}
         {paid && <Text style={styles.paidMark}>¥✓</Text>}
