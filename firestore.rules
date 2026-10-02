@@ -12,14 +12,15 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/shopLayout/main).data.seatIds : tableIds();
     }
     function isGuestsOrNull(v) { return v == null || (v is int && v >= 1 && v <= 99); }
-    // 飲み放題の区分の id（No.90 から店が設定で決める。packages/core/src/domain.ts の isCourse と同じ形）
-    function isCourseOrNull(v) { return v == null || (v is string && v.matches('^[a-z0-9_]{1,24}$')); }
+    // course は前の版のアプリも読める3区分のまま。店が設定で決めた区分（No.90）の id は drinkPlan に入れる（domain.ts の isCourse と同じ形）
+    function isCourseOrNull(v) { return v == null || v in ['no_drinks','drinks','premium_drinks']; }
+    function isDrinkPlanOrNull(v) { return v == null || (v is string && v.matches('^[a-z0-9_]{1,24}$')); }
     // どのコースか（packages/core/src/courseMenus.ts の id）と、料理を何品目まで出したか
     function isMenuOrNull(v) { return v == null || v in ['casual','meat_share','cheese','premium','nijikai']; }
     function isDishesServed(v) { return v is int && v >= 0 && v <= 30; }
     function validSession(d) {
       // paidAt・guests・course・menu・dishesServed・leaveAt はお会計・人数・コース・料理・退店時刻の追加前のアプリが書かないので必須にしない
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','menu','dishesServed','leaveAt','updatedAt'])
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','dishesServed','leaveAt','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 60
         && seatIds().hasAll(d.tableIds)
@@ -28,6 +29,7 @@ service cloud.firestore {
         && isTimeOrNull(d.get('paidAt', null))
         && isGuestsOrNull(d.get('guests', null))
         && isCourseOrNull(d.get('course', null))
+        && isDrinkPlanOrNull(d.get('drinkPlan', null))
         && isMenuOrNull(d.get('menu', null))
         && isDishesServed(d.get('dishesServed', 0))
         && isTimeOrNull(d.get('leaveAt', null))
@@ -49,6 +51,11 @@ service cloud.firestore {
       return resource == null || resource.data.get('course', null) == null
         || request.resource.data.keys().hasAny(['course']);
     }
+    // 飲み放題の区分（No.90）も同じく、前の版のアプリの上書きで消させない（新しいアプリは通常でも drinkPlan: null を書く）
+    function keepsDrinkPlan() {
+      return resource == null || resource.data.get('drinkPlan', null) == null
+        || request.resource.data.keys().hasAny(['drinkPlan']);
+    }
     // どのコースか・料理の進みも同じく、料理の追加前のアプリの上書きで消させない（新しいアプリは未選択でも menu: null を書く）
     function keepsMenu() {
       return resource == null || resource.data.get('menu', null) == null
@@ -61,7 +68,7 @@ service cloud.firestore {
     }
     match /sessions/{id} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid() && keepsGuests() && keepsCourse() && keepsMenu() && keepsLeaveAt();
+      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid() && keepsGuests() && keepsCourse() && keepsDrinkPlan() && keepsMenu() && keepsLeaveAt();
       allow delete: if signedIn();
     }
     match /tables/{tableId} {

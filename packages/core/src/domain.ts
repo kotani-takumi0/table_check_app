@@ -22,7 +22,7 @@ export interface DrinkPlan { id: string; name: string }
 export const DEFAULT_DRINK_PLANS: DrinkPlan[] = [
   { id: 'no_drinks', name: '飲み放題なし' }, { id: 'drinks', name: '飲み放題' }, { id: 'premium_drinks', name: 'プレミアム飲み放題' },
 ];
-// id は英小文字・数字・_ の24文字まで（firestore.rules の isCourseOrNull と同じ）
+// id は英小文字・数字・_ の24文字まで（firestore.rules の isDrinkPlanOrNull と同じ）
 export function isCourse(value: unknown): value is Course {
   return typeof value === 'string' && /^[a-z0-9_]{1,24}$/.test(value);
 }

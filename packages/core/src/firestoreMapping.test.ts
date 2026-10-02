@@ -38,6 +38,17 @@ describe('Firestore document mapping', () => {
     expect(fromSessionDoc('session', { ...data, course: 'plan_abc' })?.course).toBe('plan_abc');
     for (const bad of ['', 'Course!', 1, true]) expect(fromSessionDoc('session', { ...data, course: bad })).toBeNull();
   });
+  it('店が足した区分（No.90）は course を前の版も読める drinks にし、本当の区分は drinkPlan に入れる', () => {
+    const custom = { ...seated, course: 'plan_abc' };
+    const doc = toSessionDoc(custom);
+    expect(doc).toMatchObject({ course: 'drinks', drinkPlan: 'plan_abc' });
+    expect(fromSessionDoc('session', doc)?.course).toBe('plan_abc');
+    expect(toSessionDoc({ ...seated, course: 'premium_drinks' })).toMatchObject({ course: 'premium_drinks', drinkPlan: 'premium_drinks' });
+    // 前の版のアプリは drinkPlan を書かない。通常に戻したら drinkPlan が残っていても通常
+    expect(fromSessionDoc('session', { ...data, course: 'drinks' })?.course).toBe('drinks');
+    expect(fromSessionDoc('session', { ...doc, course: null })?.course).toBeNull();
+    expect(fromSessionDoc('session', { ...doc, drinkPlan: 'Bad!' })).toBeNull();
+  });
   it('通常でも course: null を書く（古いアプリの上書きを見分けるため）', () => {
     expect(toSessionDoc(seated)).toHaveProperty('course', null);
     expect(toSessionDoc({ ...seated, course: 'drinks' }).course).toBe('drinks');
