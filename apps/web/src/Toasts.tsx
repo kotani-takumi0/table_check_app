@@ -11,7 +11,7 @@ export function Toasts({ toasts, onDismiss, rows }: { toasts: Toast[]; onDismiss
   if (toasts.length === 0) return null;
   const shown = toasts.length > rows ? toasts.slice(0, 1) : toasts;
   const rest = toasts.slice(shown.length);
-  return <div className="toasts" role="status">
+  return <div className={`toasts rows-${rows}`} role="status">
     {shown.map(toast => <div key={toast.key} className={`toast ${toast.tone}`}>
       <strong className="toast-message">{toast.message}{rows === 1 && rest.length > 0 && <span className="toast-more">ほか {rest.length}件</span>}</strong>
       {toast.action && <button className="toast-button primary" onClick={toast.action.onClick}>{toast.action.label}</button>}
