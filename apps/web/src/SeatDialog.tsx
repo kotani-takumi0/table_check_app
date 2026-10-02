@@ -35,7 +35,7 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, r
   const describedBy = [exited && 'seat-dialog-message', exited && previousUnpaid && 'seat-dialog-warning'].filter(Boolean).join(' ') || undefined;
   return <div className="panel-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel" role={exited ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="seat-dialog-title" aria-describedby={describedBy}>
-      <strong id="seat-dialog-title" className="panel-status">{tableId}番にご案内</strong>
+      <h2 id="seat-dialog-title" className="panel-title">{tableId}番にご案内</h2>
       {exited && <p id="seat-dialog-message" className="confirm-message">{tableId}番は退店済みです。ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</p>}
       {exited && previousUnpaid && <p id="seat-dialog-warning" className="confirm-warning">前のお客さんはお会計済みになっていません</p>}
       <div className="guest-picker">
