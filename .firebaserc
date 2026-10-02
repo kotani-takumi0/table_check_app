@@ -1,1 +1,1 @@
-{ "projects": { "default": "table-check-dev", "dev": "table-check-dev", "prod": "table-check-prod" } }
+{ "projects": { "dev": "table-check-dev", "prod": "table-check-prod" } }
