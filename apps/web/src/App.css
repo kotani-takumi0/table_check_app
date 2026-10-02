@@ -185,17 +185,18 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .shop-timer { min-width: 0; overflow: hidden; text-overflow: ellipsis; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
 .shop-timer-rest { font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
 .shop-timer.due { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
-.toasts { grid-column: 6 / 16; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+/* 通知の並び：入る行数（--toast-rows）で空きを等分し、はみ出さない高さにする（iOS の flex: 1 / rows と同じ）。
+   はみ出しを切らない（overflow: visible）ので、ガラスの影がツールバーと同じ大きさで出せ、下の端も四角く切れない */
+.toasts { --toast-rows: 2; grid-column: 6 / 16; grid-row: 2; min-height: 0; display: grid; grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
+.toasts.rows-1 { --toast-rows: 1; }
 /* 通知：iOS 26 の通知バナーのように、フロアの上に浮かぶガラスのカプセル。急ぎ具合は左の丸の色と文言で出す */
-.toast { --tone: var(--now); --tone-text: var(--now-text); --glass-tint: 82%; flex-shrink: 0; min-height: 0; display: flex; align-items: center; gap: 10px; padding: 4px 5px 4px 16px; border-radius: 999px; color: var(--text); }
-/* 通知の並びは overflow で切れるので、影は小さく（大きな影は四角く切り取られて見える） */
-.toast { box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 1px 4px var(--glass-shadow); }
+.toast { --tone: var(--now); --tone-text: var(--now-text); --glass-tint: 82%; min-height: 0; max-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 5px 4px 16px; border-radius: 999px; color: var(--text); }
 .toast::before { content: ''; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--tone); }
 .toast.warning { --tone: var(--soon); --tone-text: var(--soon-text); }
-.toast-rest { min-height: 40px; }
+
 .toast-rest .toast-message { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
 .toast-message { flex: 1; color: var(--text); font-size: 15px; }
-.toast-button { min-height: 36px; padding: 0 16px; border: none; border-radius: 18px; background: color-mix(in srgb, var(--text) 8%, transparent); font-size: 14px; }
+.toast-button { height: min(36px, 100%); padding: 0 16px; border: none; border-radius: 18px; background: color-mix(in srgb, var(--text) 8%, transparent); font-size: 14px; }
 .toast-button.primary { border-color: var(--action); background: var(--action); color: var(--on-action); }
 
 .panel-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #000 22%, transparent); }
