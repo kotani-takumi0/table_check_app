@@ -15,6 +15,7 @@ import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
 import { useDismissed } from './useDismissed';
+import { useAppUpdate } from './useAppUpdate';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings, type ShopSettingsStore } from '@table-check/core/shopSettings';
 import { worstSyncState, type SessionStore, type SyncState } from '@table-check/core/store';
@@ -154,6 +155,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // 縦向きは手描きの配置図と同じ向き（時計回りに90°）。スマホは小さいカード＋タップで詳細
   const portrait = useMediaQuery('(orientation: portrait)');
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
+  // 新しい版（No.83）：詳細・ダイアログ・メニュー・卓選び・席の配置の途中では読み込み直さない
+  const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout', syncState);
   const grid = portrait ? PORTRAIT_GRID : GRID;
   const seats = portrait ? layout.seats.map(rotateClockwise) : layout.seats;
   const labels = portrait ? layout.labels.map(rotateLabelClockwise) : layout.labels;
@@ -162,7 +165,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
     </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
-      timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
+      timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload} />}
     {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time)).flatMap(s => s.tableIds))}
         onSave={async next => {
           const missing = [...new Set(sessions.filter(s => isVisible(s, now())).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));

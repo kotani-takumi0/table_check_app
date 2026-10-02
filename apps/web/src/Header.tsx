@@ -17,13 +17,15 @@ interface Props {
   onToggleMenu(): void;
   timeLimitOff: boolean;   // 店全体で時間制限を切っている（目印を出し、押すと設定を開く）
   onOpenSettings(): void;
+  updateReady?: boolean;   // サーバーに新しい版がある（押すと読み込み直す。手が空けば自動でも読み込み直す）
+  onUpdate?(): void;
   inert?: boolean;
   trial?: boolean;      // Firebase につながず端末の中だけで動いている（開発中の試し）
 }
 // 「消す卓はありません」を出しておく長さ
 const NOTHING_TO_CLEAR_MS = 2500;
 // フロアの上に浮かぶツールバー（ガラス）：左に「メニュー」とトイレのタイマー（時間制限なしの目印）、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, inert, trial }: Props) {
+export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, updateReady, onUpdate, inert, trial }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -51,6 +53,7 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
     </div>
     <div className="toolbar-group glass toolbar-right">
       {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
+      {updateReady && <button className="app-update" aria-label="新しい版があります（押すと読み込み直します）" onClick={onUpdate}>新しい版<span className="app-update-long">に更新</span></button>}
       <span className="app-version" title={trial ? 'Firebase につながず、この端末の中だけで動いています（同期しません）' : 'このアプリのバージョン'}>{APP_VERSION}{trial && '・試し'}</span>
       <CactusClock time={time} />
       <time>{formatClock(time)}</time>
