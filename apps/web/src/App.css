@@ -184,6 +184,8 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .toasts { grid-column: 6 / 16; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
 /* 通知：iOS 26 の通知バナーのように、フロアの上に浮かぶガラスのカプセル。急ぎ具合は左の丸の色と文言で出す */
 .toast { --tone: var(--now); --tone-text: var(--now-text); --glass-tint: 82%; flex-shrink: 0; min-height: 0; display: flex; align-items: center; gap: 10px; padding: 4px 5px 4px 16px; border-radius: 999px; color: var(--text); }
+/* 通知の並びは overflow で切れるので、影は小さく（大きな影は四角く切り取られて見える） */
+.toast { box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 1px 4px var(--glass-shadow); }
 .toast::before { content: ''; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--tone); }
 .toast.warning { --tone: var(--soon); --tone-text: var(--soon-text); }
 .toast-rest { min-height: 40px; }
@@ -266,7 +268,8 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .mini .toolbar-group { padding: 0 4px; gap: 4px; }
 .mini .toolbar-right { gap: 6px; padding-left: 8px; }
 .mini .toolbar time { font-size: 14px; }
-.mini .floor { padding-top: 34px; }
+/* スマホは卓が小さく、卓番が上の端の近くにあるので、ツールバーの下にもぐらせない */
+.mini .floor { padding-top: 44px; }
 .mini .shop-timer { min-height: 28px; padding: 0 8px; font-size: 12px; }
 .mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini .floor { --gy: 4px; --gx: 4px; }

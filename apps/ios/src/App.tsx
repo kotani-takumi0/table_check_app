@@ -18,8 +18,8 @@ import { Header, TOOLBAR_HEIGHT } from './Header';
 import { Popover } from './Popover';
 import { LIQUID_GLASS } from './Glass';
 // フロアの上端。ツールバー（上から4、高さ TOOLBAR_HEIGHT）の下に卓の上端が少しもぐる。
-// 縦向きは上の段がカウンター席で、卓番が丸の上にあるので、もぐらせない
-const FLOOR_TOP = { regular: 40, portrait: TOOLBAR_HEIGHT.regular + 12, mini: 34 } as const;
+// 縦向きは上の段がカウンター席で卓番が丸の上にあり、スマホは卓が小さく卓番が上の端の近くにあるので、どちらももぐらせない
+const FLOOR_TOP = { regular: 40, portrait: TOOLBAR_HEIGHT.regular + 12, mini: TOOLBAR_HEIGHT.mini + 6 } as const;
 import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { TableList } from './TableList';
