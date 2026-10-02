@@ -68,6 +68,18 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
       <Text style={sheet.title}>{STATUS_LABEL[display]}</Text>
       <Text style={[styles.timer, TABULAR]}>{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</Text>
     </View>
+    {/* 卓カードから移した操作：段階を進める・戻す、お会計 */}
+    <View style={sheet.actions}>
+      <PanelButton label={session.status === 'seated' ? '案内を取り消す' : '1つ戻す'} onPress={() => { feedback.step(); onBack(session); }} style={sheet.action} />
+      {next
+        ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course)]} tone="primary" onPress={() => { feedback.step(); onNext(session); }} style={sheet.action} />
+        : session.status === 'exited' && <PanelButton label={session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'} tone="primary" onPress={() => { feedback.tap(); onSeat(from); }} style={sheet.action} />}
+    </View>
+    <View style={sheet.row}>
+      <Text style={sheet.rowLabel}>お会計</Text>
+      <Text style={[sheet.text, styles.grow, session.paidAt !== null && sheet.muted]}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</Text>
+      <PanelButton label={session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'} onPress={() => { feedback.tap(); onPay(session); }} />
+    </View>
     <View style={sheet.row}>
       <Text style={sheet.rowLabel}>コース</Text>
       <CoursePicker value={session.course} onChange={course => onCourse(session, course)} />
@@ -99,11 +111,6 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
     <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
     <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
     <View style={sheet.row}>
-      <Text style={sheet.rowLabel}>お会計</Text>
-      <Text style={[sheet.text, styles.grow, session.paidAt !== null && sheet.muted]}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</Text>
-      <PanelButton label={session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'} onPress={() => { feedback.tap(); onPay(session); }} />
-    </View>
-    <View style={sheet.row}>
       <Text style={sheet.rowLabel}>人数</Text>
       <GuestStepper value={session.guests} onChange={guests => onGuests(session, guests)} />
     </View>
@@ -128,10 +135,6 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
       <PanelButton label="卓を追加（団体）" onPress={() => { feedback.tap(); onPick('add'); }} style={sheet.action} />
     </View>
     <View style={sheet.actions}>
-      <PanelButton label={session.status === 'seated' ? '案内を取り消す' : '1つ戻す'} onPress={() => { feedback.step(); onBack(session); }} style={sheet.action} />
-      {next
-        ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course)]} tone="primary" onPress={() => { feedback.step(); onNext(session); }} style={sheet.action} />
-        : session.status === 'exited' && <PanelButton label={session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'} tone="primary" onPress={() => { feedback.tap(); onSeat(from); }} style={sheet.action} />}
       <PanelButton label="閉じる" onPress={onClose} style={sheet.action} />
     </View>
   </>;

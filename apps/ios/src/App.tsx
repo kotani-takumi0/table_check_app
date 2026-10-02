@@ -125,7 +125,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
         : <Header time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
           canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini} />}
       <Floor sessions={sessions} time={time} portrait={portrait} mini={mini} picking={Boolean(pick)}
-        onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay}
+        onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
         toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
         <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">

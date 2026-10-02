@@ -42,7 +42,7 @@
 
 ダークは同じ段の dark 側を使い、地だけ `bg` を sand-2、`surface` を sand-3 に上げます。Web は端末の設定と `data-theme` で切り替わります。iOS はいまライトだけです。
 
-卓カードは、ふだん `surface` の面・`line` の枠・`text` の状態名。L.O.の卓は `alert-soon` で `soon-bg`・`soon-line`・`soon-text`、お通し未提供とお席の時間の卓は `alert-now` で `now-bg`・`now-line`・`now-text` に替わります。退店済みは `exited` で状態名を `muted` に落とすだけです。
+卓カードは文字盤が主役です。真ん中（低い卓・細い卓は横、カウンターは円そのもの）に `dial-face` で塗った丸を置き、中に経過（時:分）、縁に12個の点（`dial-dot`、アイコンのトゲ）と 90〜120分の淡い琥珀の帯（`dial-band`）、12時から時計回りに経過の弧（120分で一周）。ふだんの卓は `surface` の面に `text` の弧と段階名。L.O.の卓は `alert-soon` で `soon-bg` の地・`soon-face` の丸・`soon-arc` の弧・`soon` の札、お通し未提供とお席の時間の卓は `alert-now` で `now-bg` の地・`now-face` の丸・`now` の弧と札に替わります。札は塗りに段12の文字（`on-soon` `on-now`）。退店済みはカードごと薄くします。
 
 ### コントラストの実測
 

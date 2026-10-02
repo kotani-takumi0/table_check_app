@@ -123,12 +123,8 @@ export default function App({ store, shopTimerStore }: { store: SessionStore; sh
     </div> : <Header inert={modal} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} />}
     <section inert={modal} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
-      <div className="line line-top" aria-hidden="true" />
-      <div className="line line-middle" aria-hidden="true" />
-      <div className="line line-vertical first" aria-hidden="true" />
-      <div className="line line-vertical second" aria-hidden="true" />
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} onPay={pay} mini={mini} picking={Boolean(pick)} />)}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
     </section>
     {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}

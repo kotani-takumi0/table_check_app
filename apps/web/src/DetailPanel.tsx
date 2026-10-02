@@ -76,6 +76,17 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
         <strong className="panel-status">{STATUS_LABEL[display]}</strong>
         <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</span>
       </div>
+      {/* 卓カードから移した操作：段階を進める・戻す、お会計 */}
+      <div className="panel-actions">
+        <button className="panel-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
+        {next ? <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course)]}</button>
+          : session.status === 'exited' && <button className="panel-button primary" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
+      </div>
+      <div className="time-row">
+        <span>お会計</span>
+        <span className={session.paidAt === null ? '' : 'muted'}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</span>
+        <button className="panel-button" onClick={() => onPay(session)}>{session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'}</button>
+      </div>
       <div className="time-row">
         <span id="panel-course">コース</span>
         <CoursePicker value={session.course} onChange={course => onCourse(session, course)} labelledBy="panel-course" />
@@ -101,11 +112,6 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
       <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
       <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
       <div className="time-row">
-        <span>お会計</span>
-        <span className={session.paidAt === null ? '' : 'muted'}>{session.paidAt === null ? '未払い' : `お会計済み（${formatClock(session.paidAt)}）`}</span>
-        <button className="panel-button" onClick={() => onPay(session)}>{session.paidAt === null ? 'お会計済みにする' : '未払いに戻す'}</button>
-      </div>
-      <div className="time-row">
         <span>人数</span>
         <div className="guest-stepper" role="group" aria-label="人数">
           <button className="guest-step" aria-label="1名減らす" disabled={session.guests === null || session.guests <= 1} onClick={() => onGuests(session, (session.guests ?? 1) - 1)}>−</button>
@@ -126,9 +132,6 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
         <button className="panel-button" onClick={() => onPick('add')}>卓を追加（団体）</button>
       </div>
       <div className="panel-actions">
-        <button className="panel-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
-        {next ? <button className="panel-button primary" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course)]}</button>
-          : session.status === 'exited' && <button className="panel-button primary" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
         <button className="panel-button" onClick={onClose}>閉じる</button>
       </div>
     </section>
