@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { alertOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, GUESTS_MAX, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
+import { CloseButton } from './CloseButton';
 import { menuOf } from '@table-check/core/courseMenus';
 
 
@@ -155,9 +156,7 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
           </div>
         </div>
       </details>
-      <div className="panel-actions">
-        <button className="panel-button" onClick={onClose}>閉じる</button>
-      </div>
+      <CloseButton onClick={onClose} />
     </section>
   </div>;
 }

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Course } from '@table-check/core/domain';
-import { COLORS } from '../theme';
+import { FILL, COLORS } from '../theme';
 import { feedback } from '../feedback';
-import { PanelButton } from '../ui';
+import { CloseButton, PanelButton } from '../ui';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
 import { GuestStepper } from './GuestStepper';
@@ -55,14 +55,14 @@ export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, onClose }: 
     </View>
     <View style={sheet.actions}>
       <PanelButton label="人数はあとで" onPress={() => seat(null)} style={sheet.action} />
-      <PanelButton label="やめる" onPress={onClose} style={sheet.action} />
     </View>
+    <CloseButton onPress={onClose} />
   </>;
 }
 const styles = StyleSheet.create({
   group: { gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  guest: { flexBasis: '22%', flexGrow: 1, minHeight: 56, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  guest: { flexBasis: '22%', flexGrow: 1, minHeight: 56, borderRadius: 18, backgroundColor: FILL, alignItems: 'center', justifyContent: 'center' },
   guestLabel: { fontSize: 22, fontWeight: '700', color: COLORS.text },
   grow: { flex: 1 },
   pressed: { opacity: 0.6 },

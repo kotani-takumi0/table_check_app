@@ -15,6 +15,11 @@ import { COLORS, useScreen } from './theme';
 import { feedback } from './feedback';
 import { useDismissed } from './useDismissed';
 import { Header, TOOLBAR_HEIGHT } from './Header';
+import { Popover } from './Popover';
+import { LIQUID_GLASS } from './Glass';
+// フロアの上端。ツールバー（上から4、高さ TOOLBAR_HEIGHT）の下に卓の上端が少しもぐる。
+// 縦向きは上の段がカウンター席で卓番が丸の上にあり、スマホは卓が小さく卓番が上の端の近くにあるので、どちらももぐらせない
+const FLOOR_TOP = { regular: 40, portrait: TOOLBAR_HEIGHT.regular + 12, mini: TOOLBAR_HEIGHT.mini + 6 } as const;
 import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { TableList } from './TableList';
@@ -107,10 +112,13 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   } else if (opened) {
     content = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
-  } else if (openedShopTimer) {
-    content = <ShopTimerSheet label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeSheet} />;
-  } else if (clearing) {
-    content = <ClearAllSheet unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeSheet} />;
+  }
+  // トイレ・全卓消去は iOS 26 のアラートのように、押したボタンのそばからポップオーバーで出す
+  let popover: ReactNode = null;
+  if (content === null && openedShopTimer) {
+    popover = <ShopTimerSheet label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeSheet} />;
+  } else if (content === null && clearing) {
+    popover = <ClearAllSheet unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeSheet} />;
   }
   // シートが下がっていく間も、閉じる前の中身を出しておく
   const lastContent = useRef<ReactNode>(null);
@@ -119,8 +127,8 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   const { portrait, mini } = useScreen();
   return (
     <View style={[styles.hall, mini && styles.miniHall]}>
-      {/* フロアを画面いっぱいに広げ、上に浮かぶツールバーの分だけ余白を取る（卓に重ならないように） */}
-      <View style={[styles.floorArea, { paddingTop: mini ? TOOLBAR_HEIGHT.mini + 6 : TOOLBAR_HEIGHT.regular + 12 }]}>
+      {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
+      <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
         <Floor sessions={sessions} time={time} portrait={portrait} mini={mini} picking={Boolean(pick)}
           onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
           toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
@@ -128,7 +136,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
       {/* 全卓一覧：フロアの上に重ねる。外側のタップは後ろの透明な面で受けて閉じる */}
       {listOpen && !pick && <>
         <Pressable accessibilityLabel="全卓一覧を閉じる" style={StyleSheet.absoluteFill} onPress={() => setListOpen(false)} />
-        <View style={[styles.listArea, { top: (mini ? TOOLBAR_HEIGHT.mini + 6 : TOOLBAR_HEIGHT.regular + 12) }, mini && styles.miniListArea]} pointerEvents="box-none">
+        <View style={[styles.listArea, { top: (mini ? TOOLBAR_HEIGHT.mini + 10 : TOOLBAR_HEIGHT.regular + 14) }, mini && styles.miniListArea]} pointerEvents="box-none">
           <TableList sessions={sessions} time={time} onOpen={openPanel} mini={mini} />
         </View>
       </>}
@@ -144,8 +152,10 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
             canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini}
             listOpen={listOpen} onToggleList={() => setListOpen(open => !open)} />}
       </View>
+      {popover && <Popover anchor={clearing ? 'end' : 'start'} mini={mini} onClose={closeSheet}>{popover}</Popover>}
+      {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
-        <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={[styles.sheet, LIQUID_GLASS && styles.glassSheet]} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
           {content ?? lastContent.current}
         </ScrollView>
       </Modal>
@@ -169,5 +179,6 @@ const styles = StyleSheet.create({
   miniPickText: { fontSize: 12 },
   pickCancel: { minHeight: 34, backgroundColor: COLORS.surface, borderColor: COLORS.line },
   sheet: { flex: 1, backgroundColor: COLORS.surface },
-  sheetContent: { padding: 20, gap: 16 },
+  glassSheet: { backgroundColor: 'rgba(254, 253, 252, 0.84)' },
+  sheetContent: { padding: 24, gap: 16 },
 });

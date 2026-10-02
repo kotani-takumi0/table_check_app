@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COURSE_MENUS, priceLabel } from '@table-check/core/courseMenus';
-import { COLORS } from '../theme';
+import { FILL, COLORS } from '../theme';
 import { feedback } from '../feedback';
 
 const OPTIONS: { value: string | null; label: string; sub: string | null; name: string }[] = [
@@ -28,8 +28,8 @@ export function MenuPicker({ value, onChange }: { value: string | null; onChange
 }
 const styles = StyleSheet.create({
   picker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: 1 },
-  option: { flexBasis: '30%', flexGrow: 1, minHeight: 50, paddingHorizontal: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
-  selectedOption: { borderWidth: 2, borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
+  option: { flexBasis: '30%', flexGrow: 1, minHeight: 50, paddingHorizontal: 4, borderWidth: 2, borderColor: 'transparent', borderRadius: 18, backgroundColor: FILL, alignItems: 'center', justifyContent: 'center' },
+  selectedOption: { borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
   label: { fontSize: 15, color: COLORS.text },
   sub: { fontSize: 12, color: COLORS.text },
   selected: { fontWeight: '700' },

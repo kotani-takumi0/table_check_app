@@ -3,7 +3,9 @@ import { COLORS } from '../theme';
 
 // シートの中で共通の見た目（Web の .panel・.time-row など）
 export const sheet = StyleSheet.create({
-  title: { fontSize: 22, fontWeight: '700', color: COLORS.text },
+  title: { fontSize: 22, fontWeight: '700', color: COLORS.text, paddingRight: 48 },
+  // アラート（ポップオーバー）の見出し：少し小さく、左ぞろえ
+  alertTitle: { fontSize: 19 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   rowLabel: { width: 56, fontSize: 15, color: COLORS.text },
   text: { fontSize: 15, color: COLORS.text },

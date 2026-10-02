@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GUESTS_MAX, type Course } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
+import { CloseButton } from './CloseButton';
 
 interface Props {
   tableId: string;
@@ -14,7 +15,7 @@ interface Props {
 const QUICK_GUESTS = [1, 2, 3, 4, 5, 6, 7, 8];
 // ご案内の確認と、コース・人数。テーブルもカウンターも同じ画面にする（卓によって操作が違うと混乱するため）。
 // コースは初期値の「通常」のままでよければ触らず、人数のボタンを押したらその場で案内する。
-// 押し間違いで案内しない・前のお客さんを置き換えないよう、最初のフォーカスは「やめる」に置く
+// 押し間違いで案内しない・前のお客さんを置き換えないよう、最初のフォーカスは右上の ×（やめる）に置く
 export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, returnFocus }: Props) {
   const cancel = useRef<HTMLButtonElement>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -62,8 +63,8 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, onClose, r
       </div>
       <div className="panel-actions">
         <button className="panel-button" onClick={() => seat(null)}>人数はあとで</button>
-        <button ref={cancel} className="panel-button" onClick={onClose}>やめる</button>
       </div>
+      <CloseButton ref={cancel} onClick={onClose} />
     </section>
   </div>;
 }

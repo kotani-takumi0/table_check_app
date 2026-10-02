@@ -4,7 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { alertOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
-import { PanelButton } from '../ui';
+import { CloseButton, PanelButton } from '../ui';
 import { menuOf } from '@table-check/core/courseMenus';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
@@ -167,13 +167,11 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
         </View>
       </View>}
     </View>
-    <View style={sheet.actions}>
-      <PanelButton label="閉じる" onPress={onClose} style={sheet.action} />
-    </View>
+    <CloseButton onPress={onClose} />
   </>;
 }
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 12, rowGap: 6 },
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 12, rowGap: 6, paddingRight: 48 },
   badge: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   badgeLabel: { fontSize: 13, fontWeight: '700' },
   // 区切り：お会計・料理の見出し、変更する（折りたたみ）
