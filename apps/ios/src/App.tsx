@@ -5,7 +5,7 @@ import { randomUUID } from 'expo-crypto';
 import { useKeepAwake } from 'expo-keep-awake';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { now } from '@table-check/core/clock';
-import { isVisible, occupantOf, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { isVisible, occupantOf, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings } from '@table-check/core/shopSettings';
@@ -28,6 +28,9 @@ import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
 import { LayoutEditor } from './LayoutEditor';
+import { CourseEditor } from './CourseEditor';
+import { coursesInUse, newCourse, putCourse } from '@table-check/core/courseEditor';
+import type { CourseMenu } from '@table-check/core/courseMenus';
 import { PanelButton } from './ui';
 import { SeatSheet } from './sheets/SeatSheet';
 import { DetailSheet } from './sheets/DetailSheet';
@@ -49,7 +52,10 @@ export default function App() {
 function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
+  // 店全体の設定（時間のルール・飲み放題の区分・コースなど）。全端末で共有する
+  const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
+  useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID, shopSettings.courseMenus);
   const [time, setTime] = useState(now);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
@@ -61,9 +67,6 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   useEffect(() => shopTimerStore.subscribeSync?.(setShopTimerSync), [shopTimerStore]);
   const [shopSettingsSync, setShopSettingsSync] = useState<SyncState>('synced');
   useEffect(() => shopSettingsStore.subscribeSync?.(setShopSettingsSync), [shopSettingsStore]);
-  // 店全体の設定（時間制限なし）。全端末で共有する
-  const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
-  useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
   const timeLimitOff = shopSettings.timeLimitOff;
   // 席の配置（No.75）。設定 → 席の配置 で作り直す（iOS は No.86）
   const [layout, setLayout] = useState<ShopLayout>(DEFAULT_LAYOUT);
@@ -85,6 +88,8 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   const [screen, setScreen] = useState<Screen>('floor');
   const [menuOpen, setMenuOpen] = useState(false);
   const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
+  // 直しているコース（No.89）。新しく足すときは、開いたときに作った下書き
+  const [editingCourse, setEditingCourse] = useState<{ course: CourseMenu; isNew: boolean } | null>(null);
 
   // 詳細は押した場所のそばに出す（No.71）。スマホは幅が足りないので、今までどおり下からのシート
   const [openAt, setOpenAt] = useState<{ x: number; y: number } | undefined>(undefined);
@@ -124,7 +129,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   useEffect(() => { if (pick && !picked) setPick(null); }, [pick, picked]);
 
   // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, shopSettings).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus)).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') next(notice.session); else markShopTimerDone(notice.timerId); } },
   }));
@@ -137,9 +142,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   let popoverAt: { x: number; y: number } | undefined;
   if (seating !== null && !seatingTaken) {
     content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
-      onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} drinkPlans={shopSettings.drinkPlans} onClose={closeSheet} />;
+      onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSheet} />;
   } else if (opened) {
-    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} rules={shopSettings} drinkPlans={shopSettings.drinkPlans} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }
@@ -162,10 +167,25 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
             await shopLayoutStore.save(next, shopSettings);
           }} onClose={() => selectScreen('settings')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} portrait={portrait} mini={mini} />
-        : screen === 'settings'
-        ? <Settings settings={shopSettings} onChange={change => { void shopSettingsStore.update(change); }} onOpenLayout={() => selectScreen('layout')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        : screen === 'course' && editingCourse
+        ? <CourseEditor key={editingCourse.course.id} course={editingCourse.course} isNew={editingCourse.isNew} settings={shopSettings}
+          usedBy={coursesInUse(sessions, time, shopSettings).get(editingCourse.course.id) ?? []}
+          onSave={course => {
+            const courseMenus = putCourse(shopSettings.courseMenus, course);
+            if (courseMenus) void shopSettingsStore.update({ courseMenus });
+            return courseMenus !== null;
+          }}
+          onDelete={() => { void shopSettingsStore.update({ courseMenus: shopSettings.courseMenus.filter(menu => menu.id !== editingCourse.course.id) }); }}
+          onClose={() => selectScreen('settings')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        : screen === 'settings' || screen === 'course'
+        ? <Settings settings={shopSettings} onChange={change => { void shopSettingsStore.update(change); }} onOpenLayout={() => selectScreen('layout')}
+          onEditCourse={id => {
+            const course = id === null ? null : shopSettings.courseMenus.find(menu => menu.id === id);
+            setEditingCourse(course ? { course, isNew: false } : { course: newCourse(shopSettings.courseMenus, Date.now()), isNew: true });
+            selectScreen('course');
+          }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
-          <Floor sessions={sessions} time={time} editingIds={editingIds} rules={shopSettings} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
+          <Floor sessions={sessions} time={time} editingIds={editingIds} settings={shopSettings} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
             toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
         </View>}

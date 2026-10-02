@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { advance, newSession } from './domain';
 import { fromSessionDoc, resolveSessions, tablesToWrite, toSessionDoc } from './firestoreMapping';
+import { dishProgress } from './domain';
 
 const seated = newSession('session', '31', 10_000);
 const data = { tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null };
@@ -57,13 +58,22 @@ describe('Firestore document mapping', () => {
     const course = { ...data, course: 'drinks' };
     expect(fromSessionDoc('session', course)).toMatchObject({ menu: null, dishesServed: 0 });
     expect(fromSessionDoc('session', { ...course, menu: 'cheese', dishesServed: 3 })).toMatchObject({ menu: 'cheese', dishesServed: 3 });
-    for (const bad of [{ menu: 'x' }, { menu: 1 }, { dishesServed: -1 }, { dishesServed: 1.5 }, { dishesServed: '1' }]) {
+    for (const bad of [{ menu: 'X!' }, { courseMenu: 'X!' }, { menu: 1 }, { dishesServed: -1 }, { dishesServed: 1.5 }, { dishesServed: '1' }]) {
       expect(fromSessionDoc('session', { ...course, ...bad })).toBeNull();
     }
   });
-  it('通常の卓のメニューは読まず、出した品数はメニューの品数までに収める', () => {
+  it('通常の卓のメニューは読まず、出した品数はメニューの品数までに収める（収めるのは dishProgress）', () => {
     expect(fromSessionDoc('session', { ...data, menu: 'cheese', dishesServed: 3 })).toMatchObject({ menu: null, dishesServed: 0 });
-    expect(fromSessionDoc('session', { ...data, course: 'drinks', menu: 'nijikai', dishesServed: 20 })?.dishesServed).toBe(5);
+    expect(dishProgress(fromSessionDoc('session', { ...data, course: 'drinks', menu: 'nijikai', dishesServed: 20 })!)?.served).toBe(5);
+  });
+  it('店が作ったコース（No.89）は menu を前の版も読める null にし、本当のコースは courseMenu に入れる', () => {
+    const custom = { ...seated, course: 'drinks', menu: 'menu_abc', dishesServed: 2 };
+    const doc = toSessionDoc(custom);
+    expect(doc).toMatchObject({ menu: null, courseMenu: 'menu_abc', dishesServed: 2 });
+    expect(fromSessionDoc('session', doc)).toMatchObject({ menu: 'menu_abc', dishesServed: 2 });
+    expect(toSessionDoc({ ...custom, menu: 'cheese' })).toMatchObject({ menu: 'cheese', courseMenu: 'cheese' });
+    // 前の版のアプリは courseMenu を書かない
+    expect(fromSessionDoc('session', { ...data, course: 'drinks', menu: 'cheese', dishesServed: 1 })).toMatchObject({ menu: 'cheese' });
   });
   it('未選択でも menu: null と dishesServed を書く（古いアプリの上書きを見分けるため）', () => {
     expect(toSessionDoc(seated)).toMatchObject({ menu: null, dishesServed: 0 });

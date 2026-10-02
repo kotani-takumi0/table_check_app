@@ -408,6 +408,14 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .drink-plan-row .setting-input { flex: 1 1 auto; }
 .drink-plan-row .panel-button.small { min-height: 44px; }
 .add-plan { width: 100%; margin-top: 4px; }
+.course-list-head { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.course-fields { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; }
+.course-help { grid-column: 2; margin-top: -4px; }
+.course-dishes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.course-dish { display: grid; grid-template-columns: 24px minmax(0, 1fr) 44px 44px auto; align-items: center; gap: 6px; }
+.course-dish-number { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.course-dish .panel-button.small { min-height: 44px; padding: 0 10px; }
+.course-editor .layout-foot { width: min(640px, 100%); }
 .settings-note { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.5; }
 /* スイッチ（iOS の切り替えと同じ形）：オンは操作の緑 */
 .switch { position: relative; flex-shrink: 0; width: 52px; height: 32px; padding: 0; border: none; border-radius: 16px; background: color-mix(in srgb, var(--text) 18%, transparent); transition: background 0.15s; }

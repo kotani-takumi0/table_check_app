@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { DrinkPlan } from '@table-check/core/domain';
-import { DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
+import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
+import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
-export function Settings({ settings, onChange, onOpenLayout, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; inert?: boolean }) {
+// onEditCourse：コースを直す画面を開く（null は新しいコースを足す。No.89）
+export function Settings({ settings, onChange, onOpenLayout, onEditCourse, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; inert?: boolean }) {
   return <section className="settings" aria-labelledby="settings-title" inert={inert}>
     <h1 id="settings-title" className="settings-title">設定</h1>
     <div className="settings-group glass">
@@ -22,6 +24,7 @@ export function Settings({ settings, onChange, onOpenLayout, inert }: { settings
     <div className="settings-group glass">
       <h2 className="settings-group-title">コース</h2>
       <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
+      <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
     </div>
     <div className="settings-group glass">
       <h2 className="settings-group-title">お店</h2>
@@ -85,6 +88,25 @@ function DrinkPlanRows({ plans, onChange }: { plans: DrinkPlan[]; onChange(plans
       <button className="panel-button small danger" aria-label={`「${plan.name}」を消す`} onClick={() => onChange(plans.filter(p => p.id !== plan.id))}>消す</button>
     </div>)}
     {plans.length < DRINK_PLANS_MAX && <button className="panel-button add-plan" onClick={() => onChange([...plans, { id: newDrinkPlanId(plans, Date.now()), name: '新しい区分' }])}>＋ 区分を足す</button>}
+  </>;
+}
+// コースのメニュー（No.89）：値段と名前・料理の数・時間を並べ、「直す」で1つずつ直す
+function CourseRows({ menus, onEdit }: { menus: CourseMenu[]; onEdit(id: string | null): void }) {
+  return <>
+    <div className="settings-row course-list-head">
+      <div className="settings-row-text">
+        <strong>料理のコース</strong>
+        <p className="settings-help">ご案内のときに「料理」で選びます。料理を出す順に並べておくと、詳細で1品ずつ進められます。</p>
+      </div>
+    </div>
+    {menus.map(menu => <div key={menu.id} className="settings-row">
+      <div className="settings-row-text">
+        <strong>{priceLabel(menu)} {menu.short}</strong>
+        <p className="settings-help">{menu.name}・{menu.dishes.length}品{menu.lastOrderMin !== null || menu.seatLimitMin !== null ? '・このコースだけの時間あり' : ''}</p>
+      </div>
+      <button className="panel-button" aria-label={`${priceLabel(menu)} ${menu.short}を直す`} onClick={() => onEdit(menu.id)}>直す</button>
+    </div>)}
+    {menus.length < COURSE_LIMITS.menus && <button className="panel-button add-plan" onClick={() => onEdit(null)}>＋ コースを足す</button>}
   </>;
 }
 // 文字の設定：入力を終えたら（ほかを押す・Enter）保存する。打っている途中・かな漢字変換を確定する Enter では保存しない

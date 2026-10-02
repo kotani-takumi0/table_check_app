@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
-import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, sessionRules, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
+import type { ShopSettings } from '@table-check/core/shopSettings';
 import { bandOf, dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { cardTone, COLORS, TABULAR } from './theme';
@@ -14,13 +15,13 @@ interface Props {
   onSeat(tableId: string): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;   // at：押した場所（詳細をそのそばに出す）
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
-  rules: Rules;   // 店の時間のルール（No.14。時間制限なし・お通しの有無を含む）
+  settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
 }
 // Web の SeatCard と同じ出し分け。テーブルは文字盤と四隅、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, rules, frame, onSeat, onOpen, mini, picking }: Props) {
+export function SeatCard({ seat, session, time, editing = false, settings, frame, onSeat, onOpen, mini, picking }: Props) {
   const { width, height } = frame;
   if (!session) {
     // 空席：点線の枠（テーブルは角丸の四角、カウンターは円）
@@ -39,6 +40,8 @@ export function SeatCard({ seat, session, time, editing = false, rules, frame, o
       </Pressable>
     );
   }
+  // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
+  const rules = sessionRules(settings, session, settings.courseMenus);
   const alert = alertOf(session, time, rules);
   const dial = dialOf(session, time, rules);
   const remaining = remainingOf(session, time, rules);
@@ -52,7 +55,7 @@ export function SeatCard({ seat, session, time, editing = false, rules, frame, o
   const groupMark = others.length === 0 ? '' : `+${others.length <= 2 ? others.join('+') : `${others.length}卓`}`;
   // 人数・コースの料理の進みはテーブル卓だけ。団体はどの卓にも全員の人数を出す
   const guests = seat.kind === 'table' ? session.guests : undefined;
-  const progress = seat.kind === 'table' ? dishProgress(session) : null;
+  const progress = seat.kind === 'table' ? dishProgress(session, settings.courseMenus) : null;
   // 右下：L.O.まで・退席まで。退店済は「押すとご案内」、コースの開始待ちはタイマー停止中
   const corner = remaining ? remainingLabel(remaining)
     : exited ? '押すとご案内' : 'タイマー停止中';

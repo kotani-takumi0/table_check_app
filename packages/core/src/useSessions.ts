@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, serveDish, setCourse, setGuests, setLeaveAt, setMenu, togglePaid, unserveDish, type Course, type EditableTime, type Session } from './domain';
 import type { SessionStore } from './store';
+import { DEFAULT_COURSE_MENUS, type CourseMenu } from './courseMenus';
 import { now } from './clock';
 // createId はお客さん（セッション）の ID を作る。React Native には crypto.randomUUID が無いので、iOS は expo-crypto を渡す
+// menus は店が作ったコース（No.89。料理を進める・コースを選び直すときに品数を見る）
 const randomId = () => crypto.randomUUID();
-export function useSessions(store: SessionStore, createId: () => string = randomId): {
+export function useSessions(store: SessionStore, createId: () => string = randomId, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): {
   sessions: Session[];
   seat(tableId: string, guests?: number | null, course?: Course | null, menu?: string | null): void;
   next(session: Session): void;
@@ -53,17 +55,17 @@ export function useSessions(store: SessionStore, createId: () => string = random
     if (changed) void store.put(changed);
   }, [store]);
   const changeMenu = useCallback((session: Session, menu: string | null) => {
-    const changed = setMenu(session, menu);
+    const changed = setMenu(session, menu, menus);
     if (changed) void store.put(changed);
-  }, [store]);
+  }, [store, menus]);
   const serve = useCallback((session: Session) => {
-    const served = serveDish(session);
+    const served = serveDish(session, menus);
     if (served) void store.put(served);
-  }, [store]);
+  }, [store, menus]);
   const unserve = useCallback((session: Session) => {
-    const reverted = unserveDish(session);
+    const reverted = unserveDish(session, menus);
     if (reverted) void store.put(reverted);
-  }, [store]);
+  }, [store, menus]);
   const moveTo = useCallback((session: Session, from: string, to: string) => {
     const moved = moveTable(session, from, to);
     if (moved) void store.put(moved);

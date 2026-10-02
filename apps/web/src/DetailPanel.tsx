@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type DrinkPlan, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import type { ShopSettings } from '@table-check/core/shopSettings';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
 import { GuestPicker } from './GuestPicker';
@@ -12,11 +13,10 @@ interface Props {
   session: Session;
   time: number;
   othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
-  rules: Rules;   // 店の時間のルール（No.14。時間制限なし・お通しの有無を含む）
+  settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
-  drinkPlans: DrinkPlan[];   // 飲み放題の区分（No.90。店の設定）
   onBack(session: Session): void;
   onRetime(session: Session, field: EditableTime, at: number): boolean;
   onPay(session: Session): void;
@@ -82,7 +82,7 @@ function placeBeside(anchor: DOMRect | null, height: number): { panel: CSSProper
     arrow: { top: arrowTop - 8, left: side === 'right' ? panelLeft - 8 : panelLeft + POPOVER_WIDTH - 8 },
   };
 }
-export function DetailPanel({ session, time, othersEditing = false, rules, drinkPlans, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
+export function DetailPanel({ session, time, othersEditing = false, settings, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -101,14 +101,16 @@ export function DetailPanel({ session, time, othersEditing = false, rules, drink
   const downInPanel = useRef(false);
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
+  // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
+  const rules = sessionRules(settings, session, settings.courseMenus);
   const display = displayOf(session.status, session.course, rules);
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
   // お通しを出さない店（No.14）も同じ欄にファーストドリンクの時刻を入れる
   const otoshi = session.course === null && rules.otoshi;
   const otoshiLabel = otoshi ? 'お通し' : 'ドリンク';
   const order = `案内 → ${otoshi ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
-  const progress = dishProgress(session);
-  const dishes = menuOf(session.menu)?.dishes ?? [];
+  const progress = dishProgress(session, settings.courseMenus);
+  const dishes = menuOf(session.menu, settings.courseMenus)?.dishes ?? [];
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
@@ -177,7 +179,7 @@ export function DetailPanel({ session, time, othersEditing = false, rules, drink
           {/* どのコースかが未定なら、ここで選ぶと料理の進みを付けられる */}
           <div className="field-rows">
             <label className="field-label" htmlFor="panel-menu-now">どのコース</label>
-            <MenuPicker id="panel-menu-now" value={session.menu} onChange={menu => onMenu(session, menu)} />
+            <MenuPicker id="panel-menu-now" value={session.menu} menus={settings.courseMenus} onChange={menu => onMenu(session, menu)} />
           </div>
         </>}
       </section>}
@@ -191,11 +193,11 @@ export function DetailPanel({ session, time, othersEditing = false, rules, drink
           </div>
           <div className="time-row">
             <label htmlFor="panel-course">コース</label>
-            <CoursePicker id="panel-course" value={session.course} plans={drinkPlans} onChange={course => onCourse(session, course)} />
+            <CoursePicker id="panel-course" value={session.course} plans={settings.drinkPlans} onChange={course => onCourse(session, course)} />
           </div>
           {session.course !== null && progress && <div className="time-row">
             <label htmlFor="panel-menu">料理</label>
-            <MenuPicker id="panel-menu" value={session.menu} onChange={menu => onMenu(session, menu)} />
+            <MenuPicker id="panel-menu" value={session.menu} menus={settings.courseMenus} onChange={menu => onMenu(session, menu)} />
           </div>}
           <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
           <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { advance, alertOf, displayOf, isVisible, lastOrderDue, limitsOf, newSession, RULES } from './domain';
+import { advance, alertOf, displayOf, isVisible, lastOrderDue, limitsOf, newSession, RULES, sessionRules } from './domain';
+import { DEFAULT_COURSE_MENUS } from './courseMenus';
 import { bandOf, dialOf, remainingLabel, remainingOf } from './dial';
 import { noticesOf } from './notices';
 import { DEFAULT_SHOP_SETTINGS, MemoryShopSettingsStore, newDrinkPlanId, parseShopSettings, stepMinutes, type ShopSettings } from './shopSettings';
@@ -106,5 +107,22 @@ describe('飲み放題の区分（No.90）', () => {
     const id = newDrinkPlanId([], 1000);
     expect(id).toMatch(/^plan_[a-z0-9]+$/);
     expect(newDrinkPlanId([{ id, name: 'a' }], 1000)).not.toBe(id);
+  });
+});
+describe('コースごとの L.O.・お席の時間（No.89）', () => {
+  const menus = [{ ...DEFAULT_COURSE_MENUS[0], id: 'short', lastOrderMin: 60, seatLimitMin: 90 }, { ...DEFAULT_COURSE_MENUS[1], id: 'lo_only', lastOrderMin: 100, seatLimitMin: null }, { ...DEFAULT_COURSE_MENUS[2], id: 'bad', lastOrderMin: 130, seatLimitMin: null }];
+  const course = (menu: string | null) => ({ ...advance(newSession('c', '12', 0, 4, 'drinks', menu), 0) });
+  it('コースに決めてあればその分、片方だけならもう片方は店の設定', () => {
+    expect(sessionRules(RULES, course('short'), menus)).toMatchObject({ lastOrderMin: 60, seatLimitMin: 90 });
+    expect(sessionRules(RULES, course('lo_only'), menus)).toMatchObject({ lastOrderMin: 100, seatLimitMin: 120 });
+  });
+  it('決めていない・未選択・通常の卓・L.O. がお席の時間に届くときは店の設定', () => {
+    expect(sessionRules(RULES, course('bad'), menus)).toBe(RULES);
+    expect(sessionRules(RULES, course(null), menus)).toBe(RULES);
+    expect(sessionRules(RULES, otoshi, menus)).toBe(RULES);
+  });
+  it('L.O. の通知は卓ごとのルールで出す', () => {
+    const short = course('short');
+    expect(lastOrderDue([short, otoshi], 60 * minute, s => sessionRules(RULES, s, menus))).toEqual([short]);
   });
 });
