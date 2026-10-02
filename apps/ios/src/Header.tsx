@@ -59,7 +59,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
         {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく（押すと設定） */}
         {timeLimitOff && <Pressable accessibilityRole="button" accessibilityLabel="時間制限なし（押すと設定）" onPress={onOpenSettings}
           style={({ pressed }) => [styles.chip, styles.limitOff, mini && styles.miniChip, pressed && styles.pressed]}>
-          <Text style={[styles.chipLabel, styles.limitOffLabel, mini && styles.miniChipLabel]} numberOfLines={1}>時間制限なし</Text>
+          <Text style={[styles.chipLabel, styles.limitOffLabel, mini && styles.miniChipLabel]} numberOfLines={1}>{mini ? '制限なし' : '時間制限なし'}</Text>
         </Pressable>}
       </Glass>
       <Glass style={[styles.group, styles.right, mini && styles.miniGroup]}>

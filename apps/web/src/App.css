@@ -383,6 +383,11 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* ツールバーの「時間制限なし」の目印（押すと設定） */
 .limit-off { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .mini .limit-off { min-height: 28px; padding: 0 8px; font-size: 12px; }
+/* スマホは幅が足りないので「制限なし」と短くし、右のゴミ箱を押し出さない */
+.mini .limit-off-long { display: none; }
+/* 右のまとまり（時計・ゴミ箱）は中身より縮めない（縮めるのは左のトイレのチップと、オフラインの文言だけ） */
+.toolbar-right { min-width: min-content; }
+.limit-off { flex-shrink: 0; }
 /* 設定の画面：ツールバーの下に、ガラスのまとまりで並べる */
 .settings { flex: 1; min-height: 0; overflow-y: auto; padding: 56px 0 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .settings > * { width: min(640px, 100%); }

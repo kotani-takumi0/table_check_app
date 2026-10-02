@@ -47,7 +47,7 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
         </button>;
       })}
       {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく */}
-      {timeLimitOff && <button className="limit-off" aria-label="時間制限なし（押すと設定）" onClick={onOpenSettings}>時間制限なし</button>}
+      {timeLimitOff && <button className="limit-off" aria-label="時間制限なし（押すと設定）" onClick={onOpenSettings}><span className="limit-off-long">時間</span>制限なし</button>}
     </div>
     <div className="toolbar-group glass toolbar-right">
       {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
