@@ -11,12 +11,13 @@ interface CardProps {
   onSeat(tableId: string): void;
   onNext(session: Session): void;
   onOpen(session: Session, from: string): void;
+  editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   mini: boolean;   // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean; // 移動先・追加先を選んでいる間：空席だけ押せる
 }
 // 卓カード。テーブルは文字盤（大きい卓は真ん中、低い卓・細い卓は横）と四隅の情報、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, picking }: CardProps) {
+export function SeatCard({ seat, session, time, editing = false, onSeat, onNext, onOpen, mini, picking }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -85,8 +86,8 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
     : exited ? '押すとご案内'
       : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
-  const label = `${seat.id}番${group}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
-  const className = `card ${shape} occupied ${tone} ${modes}`;
+  const label = `${editing ? 'ほかの端末で編集中 ' : ''}${seat.id}番${group}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
+  const className = `card ${shape} occupied ${tone} ${modes} ${editing ? 'editing' : ''}`;
   // 段階：警告のときは理由の札（塗り）、ふだんは段階名
   const stage = alert.reason
     ? <span className="badge">{REASON_LABEL[alert.reason]}</span>
@@ -97,6 +98,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
   if (mini) {
     // スマホ：文字盤は出さず、卓番・段階・時:分。警告は淡い地の色だけ
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>
+      {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}
         {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
       <strong className="status">{STATUS_SHORT[display]}</strong>
@@ -106,6 +108,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
   if (seat.kind === 'counter') {
     // カウンター：卓番は円の上、時間は円の中、段階は円の下。タップで次の状態へ（退店済はご案内）
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>
+      {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       {number}
       <span className="dial-box"><Dial dial={dial} label={meter} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
       <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
@@ -120,6 +123,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
   </span>;
   return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`}
     onClick={() => exited ? onSeat(seat.id) : onOpen(session, seat.id)}>
+      {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
     {full ? <>
       <span className="corner tl">{number}</span>
       <span className="corner tr">{meta}</span>

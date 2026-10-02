@@ -14,6 +14,7 @@ import { sheet } from './common';
 interface Props {
   session: Session;
   time: number;
+  othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
@@ -49,7 +50,7 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
   );
 }
 // Web の DetailPanel と同じ中身
-export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
+export function DetailSheet({ session, time, othersEditing = false, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const [changing, setChanging] = useState(false);
   const [showDishes, setShowDishes] = useState(false);
   const timer = timerOf(session, time);
@@ -73,6 +74,7 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
         <Text style={styles.seat}>{session.tableIds.join('・')}番  </Text>{STATUS_LABEL[display]}
       </Text>
       <Text style={[styles.timer, TABULAR]}>{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</Text>
+      {othersEditing && <Text style={styles.editing} accessibilityRole="alert">ほかの端末でもこの卓を開いています。操作がぶつからないよう声をかけてください</Text>}
       {alert.reason && <View style={[styles.badge, { backgroundColor: alert.level === 'soon' ? COLORS.soon : COLORS.now }]}>
         <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]}>{REASON_LABEL[alert.reason]}</Text>
       </View>}
@@ -188,6 +190,7 @@ const styles = StyleSheet.create({
   timeRow: { gap: 6 },
   fix: { marginLeft: 'auto', minWidth: 72 },
   error: { fontSize: 14, color: COLORS.nowText },
+  editing: { alignSelf: 'stretch', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: COLORS.actionBg, color: COLORS.actionText, fontSize: 14, fontWeight: '700' },
   grow: { flex: 1 },
   dishes: { gap: 8 },
   dish: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 2, borderColor: 'transparent' },

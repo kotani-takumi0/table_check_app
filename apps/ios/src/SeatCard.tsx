@@ -14,12 +14,13 @@ interface Props {
   onSeat(tableId: string): void;
   onNext(session: Session): void;
   onOpen(session: Session, from: string): void;
+  editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
 }
 // Web の SeatCard と同じ出し分け。テーブルは文字盤と四隅、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, mini, picking }: Props) {
+export function SeatCard({ seat, session, time, editing = false, frame, onSeat, onNext, onOpen, mini, picking }: Props) {
   const { width, height } = frame;
   if (!session) {
     // 空席：点線の枠（テーブルは角丸の四角、カウンターは円）
@@ -56,7 +57,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
   const corner = remaining ? remainingLabel(remaining)
     : exited ? '押すとご案内' : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
-  const label = `${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
+  const label = `${editing ? 'ほかの端末で編集中 ' : ''}${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const open = () => { feedback.open(); onOpen(session, seat.id); };
   const number = (size: number) => (
     <Text style={[styles.number, { fontSize: size }]} numberOfLines={1}>
@@ -78,6 +79,10 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
   const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} />;
   const faded = exited && styles.exited;
+  // 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札と、点線の枠を重ねる
+  const editingTag = editing ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.editingFrame, seat.kind === 'counter' && !mini && styles.editingCounter]}>
+    <View style={[styles.editingTag, seat.kind === 'counter' && !mini && styles.editingCounterTag]}><Text style={styles.editingLabel}>編集中</Text></View>
+  </View> : null;
 
   if (mini) {
     // スマホ：文字盤は出さず、卓番・段階・時:分。警告は淡い地の色だけ
@@ -92,6 +97,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
         {guests !== undefined && seat.colSpan === 1 && <Text style={styles.miniGuests}>{guests ?? '?'}名</Text>}
         <Text style={[styles.miniStatus, { color: tone.text }]} numberOfLines={1} adjustsFontSizeToFit>{STATUS_SHORT[display]}</Text>
         <Text style={[styles.miniTimer, TABULAR]} numberOfLines={1} adjustsFontSizeToFit>{dial.elapsedMin === null ? '--:--' : formatHourMinute(dial.elapsedMin)}</Text>
+        {editingTag}
       </Pressable>
     );
   }
@@ -106,6 +112,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
         {wide ? <View style={styles.counterRow}>{number(14)}{dialView(size)}</View> : <>{number(14)}{dialView(size)}</>}
         {paid && <Text style={styles.paidMark}>¥✓</Text>}
         <Text style={[styles.counterStatus, { color: tone.text }]} numberOfLines={1}>{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</Text>
+        {editingTag}
       </Pressable>
     );
   }
@@ -127,6 +134,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
           <View style={styles.shrink}>{stage}</View>
           <Text style={styles.remaining} numberOfLines={1}>{corner}</Text>
         </View>
+        {editingTag}
       </Pressable>
     );
   }
@@ -143,11 +151,18 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
       style={state => [...card(state), narrow ? styles.narrow : styles.low]}>
       {info}
       {dialView(narrow ? Math.min(width - 12, height - 110) : Math.min(height - 12, width / 2))}
+      {editingTag}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  editingFrame: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.action, borderRadius: 12, alignItems: 'center' },
+  // カウンターは卓番が円の上にあるので、札は下（段階の文字の場所）に出す
+  editingCounter: { borderRadius: 999, justifyContent: 'flex-end' },
+  editingCounterTag: { marginTop: 0, marginBottom: 0 },
+  editingTag: { marginTop: 2, paddingHorizontal: 8, paddingVertical: 1, borderRadius: 999, backgroundColor: COLORS.action },
+  editingLabel: { fontSize: 11, fontWeight: '700', color: COLORS.onAction },
   fill: { flex: 1, alignSelf: 'stretch' },
   card: { position: 'absolute', borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', overflow: 'hidden' },
   exited: { opacity: 0.5 },
