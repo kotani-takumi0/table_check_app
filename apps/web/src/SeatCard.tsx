@@ -5,7 +5,6 @@ import type { Seat } from '@table-check/core/layout';
 import { Dial } from './Dial';
 
 const REASONS = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
-const MINUTE = 60_000;
 interface CardProps {
   seat: Seat;
   session?: Session;
@@ -82,9 +81,9 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
   // 人数・コースの料理の進みはテーブル卓だけ。団体はどの卓にも全員の人数を出す
   const guests = seat.kind === 'table' ? session.guests : undefined;
   const progress = seat.kind === 'table' ? dishProgress(session) : null;
-  // 右下：L.O.まで・退席まで。退店済は退店からの分、コースの開始待ちはタイマー停止中
+  // 右下：L.O.まで・退席まで。退店済は「押すとご案内」、コースの開始待ちはタイマー停止中
   const corner = remaining ? remainingLabel(remaining)
-    : exited ? `退店から${Math.floor(Math.max(0, time - (session.exitedAt ?? time)) / MINUTE)}分`
+    : exited ? '押すとご案内'
       : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
   const label = `${seat.id}番${group}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASONS[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
