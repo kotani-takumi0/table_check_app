@@ -19,8 +19,8 @@ function requireFirebase(): Plugin {
       if (config.env.VITE_FIREBASE_PROJECT_ID !== expected || config.env.VITE_FIREBASE_AUTH_DOMAIN !== `${expected}.firebaseapp.com`) {
         throw new Error(`${config.mode} のビルドは ${expected ?? '（対応するプロジェクトなし）'} につなぐはずが、${actual} の設定になっています（${file} を確認してください）`);
       }
-      // 店が使っているプロジェクト向けのビルドは、店をどこで動かすかを決めるまで作らない（deploy:dev で店の画面が変わるため）
-      if (isStoreProject(expected)) throw new Error(`${STORE_PROJECT_ID} は店が使っているので、今はビルドしません（packages/core/src/firebaseProjects.ts）`);
+      // 店が使っているプロジェクト向けのビルドは、店に出すと決めたとき（npm run deploy:store、No.84）だけ作る。うっかり店の画面を変えないため
+      if (isStoreProject(expected) && process.env.STORE_DEPLOY !== '1') throw new Error(`${STORE_PROJECT_ID} は店が使っているので、店に出すとき（npm run deploy:store）しかビルドしません（packages/core/src/firebaseProjects.ts）`);
       config.logger.info(`Firebase: ${expected}（${config.mode}）`);
     },
   };
