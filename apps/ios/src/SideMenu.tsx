@@ -4,8 +4,9 @@ import { COLORS } from './theme';
 import { Glass, useAppear } from './Glass';
 import { feedback } from './feedback';
 
-export type Screen = 'floor' | 'settings';
-export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況', settings: '設定' };
+export type Screen = 'floor' | 'settings' | 'layout';
+export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況', settings: '設定', layout: '席の配置' };
+// 席の配置は設定の中から開く（メニューには出さず、開いている間は「設定」を選んでいる印にする）
 const SCREENS: Screen[] = ['floor', 'settings'];
 const EASE_OUT = Easing.out(Easing.ease);
 // メニュー（Web の SideMenu と同じ）：ツールバー左の「メニュー」で左から出す。選ぶとその画面に切り替えて閉じる（No.77。全卓一覧はなくした）
@@ -17,7 +18,7 @@ export function SideMenu({ screen, onSelect, mini }: { screen: Screen; onSelect(
       <Glass tint={0.84} appear={0.18} style={styles.glass}>
         <Animated.View style={[styles.items, { opacity: appear }]} accessibilityRole="menu">
           {SCREENS.map(item => {
-            const current = item === screen;
+            const current = item === screen || (item === 'settings' && screen === 'layout');
             return (
               <Pressable key={item} accessibilityRole="menuitem" accessibilityState={{ selected: current }} onPress={() => { feedback.tap(); onSelect(item); }}
                 style={({ pressed }) => [styles.item, current && styles.current, pressed && styles.pressed]}>
