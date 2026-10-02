@@ -29,7 +29,7 @@ Web からは `import { now } from '@table-check/core/clock'` のようにファ
 | `npm run deploy:store` | `table-check-dev`（Hosting と Firestore ルール） | 店の画面とルールが変わる（営業時間外だけ） |
 | https://table-check-prod.web.app | `table-check-prod` | 触れない |
 
-- 手元の Web・iOS は、設定ファイルが `table-check-dev` を指していても、つながずに端末の中だけで動きます（`packages/core/src/firebaseProjects.ts` の `STORE_PROJECT_ID`）。このときヘッダーの版の表示が `v2.2.1・試し` になります（幅の狭い画面では版ごと隠れます）。ほかの端末とは同期しません。
+- 手元の Web・iOS は、設定ファイルが `table-check-dev` を指していても、つながずに端末の中だけで動きます（`packages/core/src/firebaseProjects.ts` の `STORE_PROJECT_ID`）。このときヘッダーの版の表示が `v2.2.2・試し` になります（幅の狭い画面では版ごと隠れます）。ほかの端末とは同期しません。
 - `table-check-dev` 向けのビルド（`vite build --mode development`）は止まります。`deploy:dev`・`deploy:preview`・`build:dev` は消しました。店に出すのは、店に出すと決めたときの `npm run deploy:store` だけです（下の「デプロイ」を参照）。
 - `.firebaserc` の `default` を消しました。`-P` を付けない `firebase deploy` は、行き先が決まらず止まります（以前は `table-check-dev` に出ていた）。
 - **新しい版で店のデータを書き換えると、店の v1.1.3 が動かなくなることがあります。** たとえば 2.1 以降でコースや料理を選んだ卓は、v1.1.3 から状態を進められません（v1.1.3 は `course`・`menu` を書かないので、Firestore ルールの `keepsCourse`・`keepsMenu` が書き込みを拒否する）。店の端末を新しい版にそろえるまで、店のデータに新しい版をつながないでください。端末が何台かあるときは、v1.1.3 と v2.2.0 が混ざらないよう、全部まとめて開き直します。
@@ -150,7 +150,7 @@ npm run deploy:store    # table-check-dev（店）に Hosting と Firestore ル�
    - 実機の iPhone／iPad では、**Expo Go と Mac の Expo CLI が同じ Expo アカウントでログインしていないと開けません**。アカウント（無料）を https://expo.dev/signup で作り、Mac で `apps/ios` に移って `npx expo login` を実行し、Expo Go でも右上のアイコンから同じアカウントでログインします。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます（Expo Go を入れていないと「使用可能なデータがありません」と出ます）。`apps/ios` 以外で `npx expo start` を実行すると、その場所に `tsconfig.json` と `.expo/` が作られるので注意してください。
 
-ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.2.1・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
+ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.2.2・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
 
 #### つながらないとき（トンネル接続）
 
