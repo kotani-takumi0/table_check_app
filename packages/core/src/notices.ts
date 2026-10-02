@@ -10,10 +10,11 @@ export const NOTICE_ACTION: Record<Notice['kind'], string> = { last_order: 'L.O.
 // L.O. の通知（数え始めが古い順）のあとに、トイレの通知を並べる
 // 数え始めの時刻（案内・ファーストドリンク）を直したら、閉じた通知も別の通知として出し直す
 // 店全体で時間制限を切っているときは L.O. の通知を出さない
+const ruleKey = (rules: Rules) => rules.lastOrderMin === RULES.lastOrderMin && rules.seatLimitMin === RULES.seatLimitMin ? '' : `:${rules.lastOrderMin}-${rules.seatLimitMin}`;
 export function noticesOf(sessions: Session[], shopTimers: ShopTimerDone, now: number, rules: Rules = RULES): Notice[] {
   const lastOrder = lastOrderDue(sessions, now, rules).map((session): Notice => ({
-    // 退店の時刻を直したときも出し直す（決めていない卓は以前と同じ key）
-    key: `lo:${session.id}:${startOf(session)}${session.leaveAt === null ? '' : `:${session.leaveAt}`}`, tone: 'warning', message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`, kind: 'last_order', session,
+    // 退店の時刻・店の L.O.／お席の時間（No.14）を直したときも出し直す（どちらもふつうの卓は以前と同じ key）
+    key: `lo:${session.id}:${startOf(session)}${session.leaveAt === null ? '' : `:${session.leaveAt}`}${ruleKey(rules)}`, tone: 'warning', message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`, kind: 'last_order', session,
   }));
   const shop = SHOP_TIMERS.flatMap((timer): Notice[] => {
     const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], now);

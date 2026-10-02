@@ -69,6 +69,11 @@ describe('店ごとの時間のルール（No.14）', () => {
     expect(alertOf(seated, 10 * minute, rules)).toEqual({ level: 'now', reason: 'otoshi_missing' });
     expect(lastOrderDue([otoshi], 60 * minute, rules)).toEqual([otoshi]);
   });
+  it('L.O.・お席の時間を変えたら、閉じた L.O. の通知も別の通知として出し直す（ふつうの値なら key は今までどおり）', () => {
+    const key = (r: typeof RULES) => noticesOf([otoshi], { toilet_check: 200 * minute, toilet_clean: 200 * minute }, 130 * minute, r)[0].key;
+    expect(key(RULES)).toBe(`lo:s:0`);
+    expect(key(rules)).not.toBe(key({ ...rules, lastOrderMin: 65 }));
+  });
   it('退店の時刻を決めた卓は、その「お席の時間 − L.O.」前を L.O. にする', () => {
     expect(limitsOf({ ...otoshi, leaveAt: 80 * minute }, rules)).toEqual({ lastOrderAt: 50 * minute, seatEndAt: 80 * minute });
   });
