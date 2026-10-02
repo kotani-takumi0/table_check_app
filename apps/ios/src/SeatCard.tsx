@@ -76,7 +76,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
       <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASON_LABEL[alert.reason]}</Text>
     </View>
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
-  const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} />;
+  const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter'} />;
   const faded = exited && styles.exited;
 
   if (mini) {

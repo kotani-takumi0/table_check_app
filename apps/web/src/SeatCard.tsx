@@ -107,7 +107,7 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
     // カウンター：卓番は円の上、時間は円の中、段階は円の下。タップで次の状態へ（退店済はご案内）
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>
       {number}
-      <span className="dial-box"><Dial dial={dial} label={meter} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={false} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
       <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
