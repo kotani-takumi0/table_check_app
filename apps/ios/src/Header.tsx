@@ -23,7 +23,7 @@ interface Props {
 export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, listOpen, onToggleList }: Props) {
   return (
     <View style={[styles.toolbar, mini && styles.miniToolbar]} pointerEvents="box-none">
-      <Glass interactive style={[styles.group, styles.listGroup, mini && styles.miniGroup]}>
+      <Glass style={[styles.group, styles.listGroup, mini && styles.miniGroup]}>
         <Pressable accessibilityRole="button" accessibilityLabel="全卓一覧" accessibilityState={{ expanded: listOpen }} onPress={onToggleList}
           style={({ pressed }) => [styles.listToggle, mini && styles.miniListToggle, listOpen && styles.listToggleOpen, pressed && styles.pressed]}>
           {/* よく使う操作はアイコンにする（iOS 26：同じカプセルの中で文字とアイコンを混ぜない） */}
@@ -32,7 +32,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
           </Svg>
         </Pressable>
       </Glass>
-      <Glass interactive style={[styles.group, styles.shopTimers, mini && styles.miniGroup]}>
+      <Glass style={[styles.group, styles.shopTimers, mini && styles.miniGroup]}>
         {SHOP_TIMERS.map(timer => {
           // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
           const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
@@ -45,7 +45,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
           );
         })}
       </Glass>
-      <Glass interactive style={[styles.group, styles.right, mini && styles.miniGroup]}>
+      <Glass style={[styles.group, styles.right, mini && styles.miniGroup]}>
         {syncState !== 'synced' && <Text style={[styles.sync, { color: syncState === 'pending' ? COLORS.soonText : COLORS.nowText }]} numberOfLines={1}>
           {syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}
         </Text>}
