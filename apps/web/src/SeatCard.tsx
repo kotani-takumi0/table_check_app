@@ -110,7 +110,7 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onNext,
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}${exited ? '（押すとご案内）' : ''}`} onClick={() => exited ? onSeat(seat.id) : onNext(session)}>
       {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       {number}
-      <span className="dial-box"><Dial dial={dial} label={meter} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={false} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
       <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }

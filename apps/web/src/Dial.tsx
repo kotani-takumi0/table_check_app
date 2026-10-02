@@ -5,13 +5,14 @@ const C = 50, R = 44;
 const DOTS = Array.from({ length: 12 }, (_, i) => dialPoint(i / 12, C, C, R));
 const BAND = arcPath(DIAL_BAND.fromMin / DIAL_MIN, DIAL_BAND.toMin / DIAL_MIN, C, C, R);
 // 卓の文字盤：塗った丸の中に経過（時:分）。12時から時計回りに経過の弧が伸び、120分で一周する。
-// 縁の 90〜120分（L.O.から退席まで）に淡い琥珀の帯。色はカードの --dial-face・--arc で決まる
-export function Dial({ dial, label }: { dial: DialValue; label: string }) {
+// 縁の 90〜120分（L.O.から退席まで）に淡い琥珀の帯（band）。色はカードの --dial-face・--arc で決まる
+// カウンターの小さい文字盤では帯が目立って読みにくいので出さない（No.73）
+export function Dial({ dial, label, band = true }: { dial: DialValue; label: string; band?: boolean }) {
   const text = dial.elapsedMin === null ? '開始前' : formatHourMinute(dial.elapsedMin);
   return <svg className="dial" viewBox="0 0 100 100" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={DIAL_MIN}
     aria-valuenow={Math.min(dial.elapsedMin ?? 0, DIAL_MIN)} aria-valuetext={label}>
     <circle className="dial-face" cx={C} cy={C} r={R} />
-    <path className="dial-band" d={BAND} />
+    {band && <path className="dial-band" d={BAND} />}
     {DOTS.map((dot, i) => <circle key={i} className="dial-dot" cx={dot.x} cy={dot.y} r={1.8} />)}
     {dial.progress > 0 && <path className="dial-arc" d={arcPath(0, dial.progress, C, C, R)} />}
     <text className={`dial-time ${dial.elapsedMin === null ? 'waiting' : ''}`} x={C} y={C} textAnchor="middle" dominantBaseline="central">{text}</text>

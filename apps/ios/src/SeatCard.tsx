@@ -77,7 +77,7 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
       <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASON_LABEL[alert.reason]}</Text>
     </View>
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
-  const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} />;
+  const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter'} />;
   const faded = exited && styles.exited;
   // 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札と、点線の枠を重ねる
   const editingTag = editing ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.editingFrame, seat.kind === 'counter' && !mini && styles.editingCounter]}>
