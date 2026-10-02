@@ -290,3 +290,28 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .dish-list li.served { color: var(--muted); }
 .dish-list li.next { border: 2px solid var(--action); font-weight: 700; }
 .dish-mark { flex-shrink: 0; min-width: 1.4em; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* 全卓一覧：ツールバーの「一覧」で左から出す。フロアの上に重ねる（フロアは縮めない）。面はツールバーと同じガラス */
+.list-toggle { min-height: 36px; padding: 0 14px; border: none; border-radius: 18px; background: transparent; color: var(--text); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.list-toggle[aria-expanded="true"] { background: var(--action-bg); color: var(--action-text); }
+.list-toggle-group { flex-shrink: 0; }
+.list-backdrop { position: absolute; inset: 0; z-index: 4; }
+.table-list { position: absolute; z-index: 6; top: 64px; left: 16px; bottom: 16px; width: min(380px, calc(100% - 32px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; animation: list-in 0.18s ease-out; }
+@keyframes list-in { from { transform: translateX(-24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .table-list { animation: none; } }
+.table-list-title { margin: 0; padding: 14px 16px 8px; display: flex; align-items: baseline; gap: 8px; font-size: 16px; font-weight: 700; }
+.table-list-count { color: var(--muted); font-size: 13px; font-weight: 500; }
+.table-list-empty { margin: 0; padding: 8px 16px 16px; color: var(--muted); }
+.table-list-rows { margin: 0; padding: 0 8px 8px; list-style: none; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; }
+.table-row { --st: var(--text); width: 100%; min-height: 56px; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 12px; border: 1.5px solid transparent; border-radius: 14px; background: var(--surface); text-align: left; }
+.table-row.alert-soon { --st: var(--soon-text); background: var(--soon-bg); }
+.table-row.alert-now { --st: var(--now-text); background: var(--now-bg); }
+.table-row.exited { opacity: 0.5; }
+.table-row-number { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.table-row-main { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.table-row-main .status { font-size: 15px; }
+.table-row-meta { max-width: 100%; overflow: hidden; color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.table-row-time { font: 700 20px 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* スマホ：画面の幅いっぱいのシートとして左から出す */
+.mini .table-list { top: 50px; left: 8px; right: 8px; bottom: 8px; width: auto; }
+.mini .list-toggle { min-height: 30px; padding: 0 10px; font-size: 13px; }

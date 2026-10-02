@@ -12,11 +12,16 @@ interface Props {
   onShopTimerOpen(id: ShopTimerId): void;   // 詳細を開く（押しただけでは済にしない）
   canClearAll: boolean;
   onClearAll(): void;   // 確認ダイアログを開く（押しただけでは消さない）
+  listOpen: boolean;    // 全卓一覧を開いているか
+  onToggleList(): void;
   inert?: boolean;
 }
-// フロアの上に浮かぶツールバー（ガラス）：左にトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, inert }: Props) {
+// フロアの上に浮かぶツールバー（ガラス）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
+export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, listOpen, onToggleList, inert }: Props) {
   return <header className="toolbar" inert={inert}>
+    <div className="toolbar-group glass list-toggle-group">
+      <button className="list-toggle" aria-expanded={listOpen} aria-controls="table-list" onClick={onToggleList}><span aria-hidden="true">≡</span> 一覧</button>
+    </div>
     <div className="toolbar-group glass shop-timers">
       {SHOP_TIMERS.map(timer => {
         // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
