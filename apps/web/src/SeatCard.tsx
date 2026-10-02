@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
 import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
-import { dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
+import { dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { Dial } from './Dial';
 
@@ -94,16 +94,17 @@ export function SeatCard({ seat, session, time, editing = false, onSeat, onOpen,
     ? <span className="badge">{REASON_LABEL[alert.reason]}</span>
     : <strong className="status">{STATUS_SHORT[display]}</strong>;
   const number = <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}</span>;
-  const time_ = dial.elapsedMin === null ? '--:--' : formatHourMinute(dial.elapsedMin);
 
   if (mini) {
-    // スマホ：文字盤は出さず、卓番・段階・時:分。警告は淡い地の色だけ
+    // スマホ：上に卓番（人数）、真ん中に文字盤（中に時:分）、下に段階。警告は淡い地の色と文字盤の色。
+    // カウンターのような低いマスは段階を省き、卓番と文字盤だけにする（CSS の @container）。
+    // カウンターは iPad と同じく L.O.の帯を出さない（No.73）
     return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>
       {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
       <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}
         {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
-      <strong className="status">{STATUS_SHORT[display]}</strong>
-      <span className="timer">{time_}</span>
+      <span className="dial-box"><Dial dial={dial} label={meter} band={seat.kind === 'table'} /></span>
+      <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
   if (seat.kind === 'counter') {

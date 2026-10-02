@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
-import { dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
+import { dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { cardTone, COLORS, TABULAR } from './theme';
 import { Dial } from './Dial';
@@ -76,7 +76,7 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
       <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASON_LABEL[alert.reason]}</Text>
     </View>
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
-  const dialView = (size: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter'} />;
+  const dialView = (size: number, textScale?: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter'} textScale={textScale} />;
   const faded = exited && styles.exited;
   // 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札と、点線の枠を重ねる
   const editingTag = editing ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.editingFrame, seat.kind === 'counter' && !mini && styles.editingCounter]}>
@@ -84,18 +84,29 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
   </View> : null;
 
   if (mini) {
-    // スマホ：文字盤は出さず、卓番・段階・時:分。警告は淡い地の色だけ
+    // スマホ（Web と同じ）：上に卓番（人数）、真ん中に文字盤（中に時:分）、下に段階。警告は淡い地の色と文字盤の色。
+    // カウンターのような低いマスは段階を省き、卓番を左上の角に重ねて文字盤をマスいっぱいにする
+    const low = height <= MINI_LOW;
+    const narrowGuests = guests !== undefined && seat.colSpan === 1;
+    const numberText = (
+      <Text style={[styles.number, styles.miniNumber, low && styles.miniCornerNumber]} numberOfLines={1}>
+        {seat.id}{groupMark !== '' && <Text style={[styles.group, { color: tone.text }]}> {groupMark}</Text>}
+        {paid && <Text style={styles.paidInline}> ¥✓</Text>}
+        {guests !== undefined && seat.colSpan > 1 && <Text style={styles.miniGuests}> {guests ?? '?'}名</Text>}
+      </Text>
+    );
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={`${label}（押すと詳細）`} disabled={picking} onPress={open}
         style={({ pressed }) => [frame, styles.card, styles.mini, { backgroundColor: tone.bg }, faded, picking && styles.pickDisabled, pressed && styles.pressed]}>
-        <Text style={[styles.number, styles.miniNumber]} numberOfLines={1}>
-          {seat.id}{groupMark !== '' && <Text style={[styles.group, { color: tone.text }]}> {groupMark}</Text>}
-          {paid && <Text style={styles.paidInline}> ¥✓</Text>}
-          {guests !== undefined && seat.colSpan > 1 && <Text style={styles.miniGuests}> {guests ?? '?'}名</Text>}
-        </Text>
-        {guests !== undefined && seat.colSpan === 1 && <Text style={styles.miniGuests}>{guests ?? '?'}名</Text>}
-        <Text style={[styles.miniStatus, { color: tone.text }]} numberOfLines={1} adjustsFontSizeToFit>{STATUS_SHORT[display]}</Text>
-        <Text style={[styles.miniTimer, TABULAR]} numberOfLines={1} adjustsFontSizeToFit>{dial.elapsedMin === null ? '--:--' : formatHourMinute(dial.elapsedMin)}</Text>
+        {low ? <>
+          {dialView(Math.min(width, height) - 4, 0.34)}
+          {numberText}
+        </> : <>
+          {numberText}
+          {narrowGuests && <Text style={styles.miniGuests}>{guests ?? '?'}名</Text>}
+          {dialView(Math.min(width - 4, height - (narrowGuests ? 44 : 32)), 0.27)}
+          <Text style={[styles.miniStatus, { color: tone.text }]} numberOfLines={1} adjustsFontSizeToFit>{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</Text>
+        </>}
         {editingTag}
       </Pressable>
     );
@@ -155,6 +166,8 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
   );
 }
 
+// スマホでこの高さ以下のマス（カウンターなど）は、段階を省いて文字盤をマスいっぱいにする（Web の @container と同じ）
+const MINI_LOW = 72;
 const styles = StyleSheet.create({
   editingFrame: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.action, borderRadius: 12, alignItems: 'center' },
   // カウンターは卓番が円の上にあるので、札は下（段階の文字の場所）に出す
@@ -206,6 +219,6 @@ const styles = StyleSheet.create({
   miniNumber: { fontSize: 11, lineHeight: 13 },
   miniGuests: { fontSize: 10, lineHeight: 13, color: COLORS.text },
   miniStatus: { fontSize: 12, lineHeight: 13, fontWeight: '700', paddingHorizontal: 1 },
-  miniTimer: { fontSize: 12, lineHeight: 13, color: COLORS.text },
+  miniCornerNumber: { position: 'absolute', top: 1, left: 3, fontSize: 10 },
   paidInline: { fontSize: 10, fontWeight: '700', color: COLORS.text },
 });
