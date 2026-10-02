@@ -16,7 +16,7 @@ interface Props {
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;
   editingIds: Set<string>;   // ほかの端末で詳細を開いているお客さん（No.72）
   timeLimitOff: boolean;   // 店全体で時間制限を切っている
-  layout: ShopLayout;      // 席の配置（No.75。編集は Web の設定から）
+  layout: ShopLayout;      // 席の配置（No.75。編集は設定 → 席の配置）
   toasts: ReactNode;   // 通知。フロア図の空き（横向きはカウンター上辺の右）に置く
 }
 interface Area { col: number; row: number; colSpan: number; rowSpan: number }

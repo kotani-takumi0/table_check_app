@@ -27,6 +27,7 @@ import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
+import { LayoutEditor } from './LayoutEditor';
 import { PanelButton } from './ui';
 import { SeatSheet } from './sheets/SeatSheet';
 import { DetailSheet } from './sheets/DetailSheet';
@@ -64,7 +65,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
   const timeLimitOff = shopSettings.timeLimitOff;
-  // 席の配置（No.75）。編集は Web の設定 → 席の配置 から。iOS は表示だけ
+  // 席の配置（No.75）。設定 → 席の配置 で作り直す（iOS は No.86）
   const [layout, setLayout] = useState<ShopLayout>(DEFAULT_LAYOUT);
   useEffect(() => shopLayoutStore.subscribe(setLayout), [shopLayoutStore]);
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
@@ -154,8 +155,15 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   return (
     <View style={[styles.hall, mini && styles.miniHall]}>
       {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
-      {screen === 'settings'
-        ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+      {screen === 'layout'
+        ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time)).flatMap(s => s.tableIds))}
+          onSave={async next => {
+            const missing = [...new Set(sessions.filter(s => isVisible(s, now())).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
+            if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
+            await shopLayoutStore.save(next);
+          }} onClose={() => selectScreen('settings')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} portrait={portrait} mini={mini} />
+        : screen === 'settings'
+        ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} onOpenLayout={() => selectScreen('layout')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
           <Floor sessions={sessions} time={time} editingIds={editingIds} timeLimitOff={timeLimitOff} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}

@@ -4,9 +4,10 @@ import type { ShopSettings } from '@table-check/core/shopSettings';
 import { COLORS } from './theme';
 import { Glass } from './Glass';
 import { feedback } from './feedback';
+import { PanelButton } from './ui';
 
 // 設定の画面（Web の Settings と同じ）。店全体の設定は全端末に反映する
-export function Settings({ settings, onTimeLimitOff, top }: { settings: ShopSettings; onTimeLimitOff(off: boolean): void; top: number }) {
+export function Settings({ settings, onTimeLimitOff, onOpenLayout, top }: { settings: ShopSettings; onTimeLimitOff(off: boolean): void; onOpenLayout(): void; top: number }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]}>
       <Text style={styles.title} accessibilityRole="header">設定</Text>
@@ -23,6 +24,16 @@ export function Settings({ settings, onTimeLimitOff, top }: { settings: ShopSett
         </View>
         <Text style={styles.note}>ふだんのルール：お通しは案内から{RULES.otoshiWarnMin}分、L.O.は{RULES.lastOrderMin}分、お席の時間は{RULES.seatLimitMin}分（コースはファーストドリンクから数えます）</Text>
       </Glass>
+      <Glass tint={0.84} style={styles.group}>
+        <Text style={styles.groupTitle}>お店</Text>
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={styles.rowLabel}>席の配置</Text>
+            <Text style={styles.help}>卓の場所・大きさ・卓番と、カウンターなどのことばを、マス目にブロックを置いて作り直します。すべての端末に反映されます。</Text>
+          </View>
+          <PanelButton label="変える" onPress={() => { feedback.tap(); onOpenLayout(); }} style={styles.open} />
+        </View>
+      </Glass>
     </ScrollView>
   );
 }
@@ -36,5 +47,6 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, minWidth: 0 },
   rowLabel: { fontSize: 17, fontWeight: '700', color: COLORS.text },
   help: { marginTop: 4, fontSize: 13, lineHeight: 19, color: COLORS.muted },
+  open: { minWidth: 88, minHeight: 44 },
   note: { marginTop: 8, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line, fontSize: 13, lineHeight: 19, color: COLORS.muted },
 });
