@@ -5,6 +5,11 @@ service cloud.firestore {
     function isTime(v) { return v is int && v > 0; }
     function isTimeOrNull(v) { return v == null || isTime(v); }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
+    // 案内できる卓：席の配置（shopLayout/main、No.75）を保存していればその卓番、無ければ今までの卓番
+    function seatIds() {
+      return exists(/databases/$(database)/documents/shopLayout/main)
+        ? get(/databases/$(database)/documents/shopLayout/main).data.seatIds : tableIds();
+    }
     function isGuestsOrNull(v) { return v == null || (v is int && v >= 1 && v <= 99); }
     function isCourseOrNull(v) { return v == null || v in ['no_drinks','drinks','premium_drinks']; }
     // どのコースか（packages/core/src/courseMenus.ts の id）と、料理を何品目まで出したか
@@ -14,8 +19,8 @@ service cloud.firestore {
       // paidAt・guests・course・menu・dishesServed・leaveAt はお会計・人数・コース・料理・退店時刻の追加前のアプリが書かないので必須にしない
       return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','menu','dishesServed','leaveAt','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
-        && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 21
-        && tableIds().hasAll(d.tableIds)
+        && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 60
+        && seatIds().hasAll(d.tableIds)
         && d.status in ['seated','otoshi','lo_done','exited']
         && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
         && isTimeOrNull(d.get('paidAt', null))
@@ -59,7 +64,7 @@ service cloud.firestore {
     }
     match /tables/{tableId} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && tableId in tableIds()
+      allow create, update: if signedIn() && tableId in seatIds()
         && request.resource.data.keys().hasOnly(['sessionId','updatedAt'])
         && (request.resource.data.sessionId == null || request.resource.data.sessionId is string)
         && request.resource.data.updatedAt == request.time;
@@ -95,6 +100,18 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['timeLimitOff','updatedAt'])
         && request.resource.data.keys().hasAll(['timeLimitOff','updatedAt'])
         && request.resource.data.timeLimitOff is bool
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    // 席の配置（packages/core/src/shopLayout.ts）。中身の細かい確かめはアプリが保存前に行う。seatIds は卓番だけの一覧
+    match /shopLayout/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && id == 'main'
+        && request.resource.data.keys().hasOnly(['seats','labels','seatIds','updatedAt'])
+        && request.resource.data.keys().hasAll(['seats','labels','seatIds','updatedAt'])
+        && request.resource.data.seats is list && request.resource.data.seats.size() >= 1 && request.resource.data.seats.size() <= 60
+        && request.resource.data.labels is list && request.resource.data.labels.size() <= 20
+        && request.resource.data.seatIds is list && request.resource.data.seatIds.size() == request.resource.data.seats.size()
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }

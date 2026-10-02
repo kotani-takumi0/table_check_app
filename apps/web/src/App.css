@@ -116,7 +116,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .badge { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 3px 10px; border-radius: 999px; background: var(--now); color: var(--on-now); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .alert-soon .badge { background: var(--soon); color: var(--on-soon); }
 .pressing { outline: 3px solid var(--action); outline-offset: -3px; }
-.counter-label { grid-column: 1 / 5; grid-row: 3 / 7; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+.floor-label { display: grid; place-items: center; color: var(--muted); pointer-events: none; }
 
 /* 文字盤：塗った丸＋縁の12個の点＋90〜120分の淡い琥珀の帯＋経過の弧（120分で一周） */
 .dial-box { position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
@@ -264,7 +264,6 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .portrait .floor { --gy: 6px; }
 /* 縦向きは上の段がカウンター席で、卓番が丸の上にあるので、ツールバーの下にもぐらせない */
 .portrait .floor { padding-top: 56px; }
-.portrait .counter-label { grid-column: 2 / 6; grid-row: 1 / 5; }
 .portrait .toasts { grid-column: 1 / 7; grid-row: 6; }
 .toast-more { margin-left: 8px; font-size: 12px; font-weight: 500; white-space: nowrap; }
 
@@ -407,3 +406,32 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .switch[aria-checked="true"] .switch-knob { transform: translateX(20px); }
 @media (prefers-reduced-motion: reduce) { .switch, .switch-knob { transition: none; } }
 .mini .settings { padding-top: 48px; }
+
+/* 席の配置の編集（No.75）：左にブロックと直す欄、右にマス目。マス目は空いているマスを押して置く・動かす */
+.layout-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 56px 0 8px; display: flex; flex-direction: column; gap: 12px; }
+.layout-head { display: flex; flex-direction: column; gap: 4px; }
+.layout-body { flex: 1; min-height: 360px; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 12px; }
+.layout-side { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 20px; --glass-tint: 84%; overflow-y: auto; }
+.layout-blocks { display: flex; flex-direction: column; gap: 6px; }
+.layout-block { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 2px solid transparent; border-radius: 14px; background: color-mix(in srgb, var(--text) 6%, transparent); text-align: left; font-size: 14px; }
+.layout-block[aria-checked="true"] { border-color: var(--action); background: var(--action-bg); font-weight: 700; }
+.layout-block-shape { flex-shrink: 0; border: 1.5px solid var(--line-strong); border-radius: 4px; background: var(--surface); }
+.layout-block-shape.counter { border-radius: 50%; }
+.layout-block-shape.label { border-style: dashed; }
+.layout-size { display: grid; grid-template-columns: auto 40px 1fr 40px; align-items: center; gap: 6px 8px; }
+.layout-size strong { text-align: center; font-variant-numeric: tabular-nums; }
+.layout-size .panel-button.small { padding: 0; }
+.layout-grid { position: relative; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: 4px; padding: 8px; border-radius: 20px; background: var(--surface); }
+.layout-cell { min-width: 0; min-height: 0; border: 1px dashed var(--line); border-radius: 6px; background: transparent; }
+.layout-cell:hover { background: var(--action-bg); }
+.layout-notice { z-index: 1; display: grid; place-items: center; border-radius: 8px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--text) 6%, transparent) 0 6px, transparent 6px 12px); color: var(--muted); font-size: 12px; pointer-events: none; }
+.layout-item { z-index: 2; min-width: 0; min-height: 0; display: grid; place-items: center; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--dial-face); color: var(--text); font-size: 18px; font-weight: 700; }
+.layout-item.counter { border-radius: 999px; }
+.layout-item.label { border-style: dashed; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; }
+.layout-item.occupied { background: var(--action-bg); }
+.layout-item.selected { outline: 3px solid var(--action); outline-offset: 1px; }
+.layout-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layout-message { flex: 1; min-width: 240px; margin: 0; color: var(--muted); font-size: 14px; }
+.layout-foot .panel-button { min-height: 44px; }
+/* 縦向き・スマホ：ブロックの欄をマス目の上に置く */
+.portrait .layout-body, .mini .layout-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(320px, 1fr); }

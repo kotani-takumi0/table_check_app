@@ -9,6 +9,7 @@ import { isVisible, occupantOf, unpaidTableCount, type Session } from '@table-ch
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings } from '@table-check/core/shopSettings';
+import { DEFAULT_LAYOUT, type ShopLayout } from '@table-check/core/shopLayout';
 import { worstSyncState, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
 import { editingSessionIds, type EditingMark } from '@table-check/core/editing';
@@ -44,7 +45,7 @@ export default function App() {
 }
 
 // Web の App と同じ画面：フロア図・ヘッダー・通知と、案内・詳細・トイレ・全卓消去のシート
-function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, trial } }: { services: Services }) {
+function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
   const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
@@ -63,6 +64,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
   const timeLimitOff = shopSettings.timeLimitOff;
+  // 席の配置（No.75）。編集は Web の設定 → 席の配置 から。iOS は表示だけ
+  const [layout, setLayout] = useState<ShopLayout>(DEFAULT_LAYOUT);
+  useEffect(() => shopLayoutStore.subscribe(setLayout), [shopLayoutStore]);
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
@@ -153,7 +157,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
       {screen === 'settings'
         ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
-          <Floor sessions={sessions} time={time} editingIds={editingIds} timeLimitOff={timeLimitOff} portrait={portrait} mini={mini} picking={Boolean(pick)}
+          <Floor sessions={sessions} time={time} editingIds={editingIds} timeLimitOff={timeLimitOff} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
             toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
         </View>}
