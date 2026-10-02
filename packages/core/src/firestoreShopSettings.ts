@@ -51,9 +51,9 @@ export class FirestoreShopSettingsStore implements ShopSettingsStore {
     cb(this.syncState);
     return () => { this.syncSubscribers.delete(cb); this.stopIfUnused(); };
   }
-  async setTimeLimitOff(off: boolean): Promise<void> {
+  async update(change: Partial<ShopSettings>): Promise<void> {
     if (!await this.ready) return;
-    // オフラインだと commit が終わらないので待たない
-    void setDoc(doc(this.db, 'shopSettings', 'main'), { timeLimitOff: off, updatedAt: serverTimestamp() }).catch(error => console.error(error));
+    // 変えた項目だけを書き、ほかの項目は残す（merge）。オフラインだと commit が終わらないので待たない
+    void setDoc(doc(this.db, 'shopSettings', 'main'), { ...change, updatedAt: serverTimestamp() }, { merge: true }).catch(error => console.error(error));
   }
 }

@@ -95,7 +95,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     return () => clearInterval(interval);
   }, []);
   // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, timeLimitOff).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, shopSettings).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? next(notice.session) : markShopTimerDone(notice.timerId) },
   }));
@@ -106,11 +106,11 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     seatReturnFocus.current = active instanceof HTMLElement && !active.closest('.panel') ? active : returnFocus.current;
     setSeating(tableId);
   };
-  const seatingOccupant = seating === null ? undefined : occupantOf(sessions, seating, time);
+  const seatingOccupant = seating === null ? undefined : occupantOf(sessions, seating, time, shopSettings);
   // 確認中にほかの端末でその卓に案内されたら、確認をやめる（退店済の表示が消えただけなら続ける）
   const seatingTaken = seatingOccupant !== undefined && seatingOccupant.status !== 'exited';
   useEffect(() => { if (seatingTaken) setSeating(null); }, [seatingTaken]);
-  const opened = sessions.find(s => s.id === openId && isVisible(s, time));
+  const opened = sessions.find(s => s.id === openId && isVisible(s, time, shopSettings));
   // 編集中の印（No.72）：詳細を開いているお客さんをほかの端末に知らせ、ほかの端末が開いている卓に「編集中」を出す
   const [editingMarks, setEditingMarks] = useState<EditingMark[]>([]);
   useEffect(() => editingStore.subscribe(setEditingMarks), [editingStore]);
@@ -121,7 +121,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // 詳細は押した卓のそばに出す（No.71）。卓の位置は描くたびに取り直す（画面の回転・一覧の開け閉めで動くため）
   const anchor = opened ? document.querySelector(`.floor [data-seat="${CSS.escape(openFrom)}"]`)?.getBoundingClientRect() ?? null : null;
   const modal = Boolean(opened) || clearing || seating !== null || Boolean(openedShopTimer);
-  const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
+  const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time, shopSettings)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
   const startPick = useCallback((mode: 'move' | 'add') => {
@@ -164,25 +164,25 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
-    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
+    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload} />}
-    {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time)).flatMap(s => s.tableIds))}
+    {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time, shopSettings)).flatMap(s => s.tableIds))}
         onSave={async next => {
-          const missing = [...new Set(sessions.filter(s => isVisible(s, now())).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
+          const missing = [...new Set(sessions.filter(s => isVisible(s, now(), shopSettings)).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
           if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
-          await shopLayoutStore.save(next);
+          await shopLayoutStore.save(next, shopSettings);
         }} onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
-      : screen === 'settings' ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} onOpenLayout={() => selectScreen('layout')} inert={modal || menuOpen} />
+      : screen === 'settings' ? <Settings settings={shopSettings} onChange={change => { void shopSettingsStore.update(change); }} onOpenLayout={() => selectScreen('layout')} inert={modal || menuOpen} />
       : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
         <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} timeLimitOff={timeLimitOff} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} rules={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
       </section>}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} inert={modal} />}
-    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} timeLimitOff={timeLimitOff} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
+    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} rules={shopSettings} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
-    {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
+    {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
 }

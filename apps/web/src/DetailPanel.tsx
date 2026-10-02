@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
 import { GuestPicker } from './GuestPicker';
@@ -12,7 +12,7 @@ interface Props {
   session: Session;
   time: number;
   othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
-  timeLimitOff: boolean;   // 店全体で時間制限を切っている
+  rules: Rules;   // 店の時間のルール（No.14。時間制限なし・お通しの有無を含む）
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
@@ -43,10 +43,10 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
     {error && <span className="time-error" role="alert">{order} の順になる時刻にしてください</span>}
   </div>;
 }
-// 退店の時刻（No.80）：時間によって早めに退店してもらう卓だけ決める。L.O.はその30分前になる。
-// ふつうは数え始めから120分の時刻を出し、「決める」で保存、「ふつうに戻す」で消す
-function LeaveRow({ session, onSave }: { session: Session; onSave(at: number | null): boolean }) {
-  const limits = limitsOf(session);
+// 退店の時刻（No.80）：時間によって早めに退店してもらう卓だけ決める。L.O.はその「お席の時間 − L.O.」（ふつう30分）前になる。
+// ふつうは数え始めからお席の時間（120分）の時刻を出し、「決める」で保存、「ふつうに戻す」で消す
+function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; onSave(at: number | null): boolean }) {
+  const limits = limitsOf(session, rules);
   const value = limits?.seatEndAt ?? null;
   const [draft, setDraft] = useState(value === null ? '' : formatClock(value));
   const [error, setError] = useState(false);
@@ -56,7 +56,7 @@ function LeaveRow({ session, onSave }: { session: Session; onSave(at: number | n
     <label htmlFor="time-leave">退店</label>
     <input id="time-leave" type="time" value={draft} aria-describedby="leave-help" onChange={event => { setDraft(event.target.value); setError(false); }} />
     <button className="panel-button" disabled={!changed} onClick={() => { const at = clockTimeNear(draft, value); setError(at === null || !onSave(at)); }}>決める</button>
-    <span id="leave-help" className="leave-help">{session.leaveAt === null ? 'ふつう（120分）。早めに退店してもらう卓だけ決めます' : `L.O.は ${formatClock(limits!.lastOrderAt)}`}
+    <span id="leave-help" className="leave-help">{session.leaveAt === null ? `ふつう（${rules.seatLimitMin}分）。早めに退店してもらう卓だけ決めます` : `L.O.は ${formatClock(limits!.lastOrderAt)}`}
       {session.leaveAt !== null && <button className="text-button" onClick={() => { setError(false); onSave(null); }}>ふつうに戻す</button>}</span>
     {error && <span className="time-error" role="alert">案内より後の時刻にしてください</span>}
   </div>;
@@ -81,7 +81,7 @@ function placeBeside(anchor: DOMRect | null, height: number): { panel: CSSProper
     arrow: { top: arrowTop - 8, left: side === 'right' ? panelLeft - 8 : panelLeft + POPOVER_WIDTH - 8 },
   };
 }
-export function DetailPanel({ session, time, othersEditing = false, timeLimitOff, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
+export function DetailPanel({ session, time, othersEditing = false, rules, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -100,18 +100,20 @@ export function DetailPanel({ session, time, othersEditing = false, timeLimitOff
   const downInPanel = useRef(false);
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
-  const display = displayOf(session.status, session.course);
+  const display = displayOf(session.status, session.course, rules);
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
-  const otoshiLabel = session.course === null ? 'お通し' : 'ドリンク';
-  const order = `案内 → ${session.course === null ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
+  // お通しを出さない店（No.14）も同じ欄にファーストドリンクの時刻を入れる
+  const otoshi = session.course === null && rules.otoshi;
+  const otoshiLabel = otoshi ? 'お通し' : 'ドリンク';
+  const order = `案内 → ${otoshi ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
   const progress = dishProgress(session);
   const dishes = menuOf(session.menu)?.dishes ?? [];
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
   };
-  const alert = alertOf(session, time, timeLimitOff);
-  const remaining = remainingOf(session, time, timeLimitOff);
+  const alert = alertOf(session, time, rules);
+  const remaining = remainingOf(session, time, rules);
   const paid = session.paidAt !== null;
   // 押した卓のそばに出す。高さは中身で変わる（変更するを開くなど）ので、描いたあとに測って位置を決め直す
   const [height, setHeight] = useState(0);
@@ -141,7 +143,7 @@ export function DetailPanel({ session, time, othersEditing = false, timeLimitOff
         {session.leaveAt !== null && <span className="panel-leave">退店 {formatClock(session.leaveAt)}</span>}
         {alert.reason && <span className="badge">{REASON_LABEL[alert.reason]}</span>}
       </div>
-      {next ? <button className="panel-button primary panel-next" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course)]}</button>
+      {next ? <button className="panel-button primary panel-next" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course, rules)]}</button>
         : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
       <div className="panel-quick">
         <button className="text-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
@@ -196,7 +198,7 @@ export function DetailPanel({ session, time, othersEditing = false, timeLimitOff
           </div>}
           <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
           <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
-          <LeaveRow key={`leave-${limitsOf(session)?.seatEndAt}`} session={session} onSave={at => onLeaveAt(session, at)} />
+          <LeaveRow key={`leave-${limitsOf(session, rules)?.seatEndAt}`} session={session} rules={rules} onSave={at => onLeaveAt(session, at)} />
           <div className="time-row">
             <span id="panel-tables">卓</span>
             <span className="table-chips" role="group" aria-labelledby="panel-tables">

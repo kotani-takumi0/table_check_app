@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { occupantOf, type Session } from '@table-check/core/domain';
+import { occupantOf, type Rules, type Session } from '@table-check/core/domain';
 import { GRID, PORTRAIT_GRID, rotateClockwise } from '@table-check/core/layout';
 import { rotateLabelClockwise, type ShopLayout } from '@table-check/core/shopLayout';
 import { COLORS } from './theme';
@@ -15,7 +15,7 @@ interface Props {
   onSeat(tableId: string): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;
   editingIds: Set<string>;   // ほかの端末で詳細を開いているお客さん（No.72）
-  timeLimitOff: boolean;   // 店全体で時間制限を切っている
+  rules: Rules;   // 店の時間のルール（No.14。時間制限なし・お通しの有無を含む）
   layout: ShopLayout;      // 席の配置（No.75。編集は設定 → 席の配置）
   toasts: ReactNode;   // 通知。フロア図の空き（横向きはカウンター上辺の右）に置く
 }
@@ -26,7 +26,7 @@ const TOASTS = {
   portrait: { col: 1, row: 6, colSpan: 6, rowSpan: 1 },
 } as const;
 // フロア図：Web と同じ 15列×7行（縦向きは 7列×15行）に卓を並べる
-export function Floor({ sessions, time, editingIds, timeLimitOff, layout, portrait, mini, picking, onSeat, onOpen, toasts }: Props) {
+export function Floor({ sessions, time, editingIds, rules, layout, portrait, mini, picking, onSeat, onOpen, toasts }: Props) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const grid = portrait ? PORTRAIT_GRID : GRID;
   const seats = portrait ? layout.seats.map(rotateClockwise) : layout.seats;
@@ -48,9 +48,9 @@ export function Floor({ sessions, time, editingIds, timeLimitOff, layout, portra
       {ready && <ScrollView scrollEnabled={contentHeight > size.height + 1} contentContainerStyle={{ height: contentHeight }} showsVerticalScrollIndicator={false}>
         {labels.map((label, i) => <View key={i} pointerEvents="none" style={[styles.counterLabel, frame(label)]}><Text style={styles.counterText}>{label.text}</Text></View>)}
         {seats.map(seat => (
-          <SeatCard key={seat.id} seat={seat} session={occupantOf(sessions, seat.id, time)} time={time} frame={frame(seat)}
-            editing={(() => { const occupant = occupantOf(sessions, seat.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()}
-            onSeat={onSeat} onOpen={onOpen} timeLimitOff={timeLimitOff} mini={mini} picking={picking} />
+          <SeatCard key={seat.id} seat={seat} session={occupantOf(sessions, seat.id, time, rules)} time={time} frame={frame(seat)}
+            editing={(() => { const occupant = occupantOf(sessions, seat.id, time, rules); return occupant !== undefined && editingIds.has(occupant.id); })()}
+            onSeat={onSeat} onOpen={onOpen} rules={rules} mini={mini} picking={picking} />
         ))}
         <View pointerEvents="box-none" style={[styles.toasts, frame(toastArea)]}>{toasts}</View>
       </ScrollView>}

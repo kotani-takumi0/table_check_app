@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
-import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, STATUS_LABEL, STATUS_SHORT, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { bandOf, dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
 import { cardTone, COLORS, TABULAR } from './theme';
@@ -14,13 +14,13 @@ interface Props {
   onSeat(tableId: string): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;   // at：押した場所（詳細をそのそばに出す）
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
-  timeLimitOff: boolean;   // 店全体で時間制限を切っている（L.O.・お席の時間の警告と帯を出さない）
+  rules: Rules;   // 店の時間のルール（No.14。時間制限なし・お通しの有無を含む）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
 }
 // Web の SeatCard と同じ出し分け。テーブルは文字盤と四隅、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, timeLimitOff, frame, onSeat, onOpen, mini, picking }: Props) {
+export function SeatCard({ seat, session, time, editing = false, rules, frame, onSeat, onOpen, mini, picking }: Props) {
   const { width, height } = frame;
   if (!session) {
     // 空席：点線の枠（テーブルは角丸の四角、カウンターは円）
@@ -39,11 +39,11 @@ export function SeatCard({ seat, session, time, editing = false, timeLimitOff, f
       </Pressable>
     );
   }
-  const alert = alertOf(session, time, timeLimitOff);
-  const dial = dialOf(session, time);
-  const remaining = remainingOf(session, time, timeLimitOff);
+  const alert = alertOf(session, time, rules);
+  const dial = dialOf(session, time, rules);
+  const remaining = remainingOf(session, time, rules);
   // コースの「開始待ち」「ファーストドリンク提供済み」は通常と名前を変える（色は変えない）
-  const display = displayOf(session.status, session.course);
+  const display = displayOf(session.status, session.course, rules);
   const tone = cardTone(alert.level);
   const exited = session.status === 'exited';
   const paid = session.paidAt !== null;
@@ -77,7 +77,7 @@ export function SeatCard({ seat, session, time, editing = false, timeLimitOff, f
       <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASON_LABEL[alert.reason]}</Text>
     </View>
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
-  const dialView = (size: number, textScale?: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter' && !timeLimitOff ? bandOf(session) : null} textScale={textScale} />;
+  const dialView = (size: number, textScale?: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter' && !rules.timeLimitOff ? bandOf(session, rules) : null} textScale={textScale} />;
   const faded = exited && styles.exited;
   // 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札と、点線の枠を重ねる
   const editingTag = editing ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.editingFrame, seat.kind === 'counter' && !mini && styles.editingCounter]}>

@@ -2,6 +2,7 @@ import type { User } from 'firebase/auth';
 import { collection, doc, getDocFromServer, getDocsFromServer, onSnapshot, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { now } from './clock';
 import { fromSessionDoc } from './firestoreMapping';
+import type { Rules } from './domain';
 import { DEFAULT_LAYOUT, occupiedSeatIds, parseShopLayout, seatIdsOf, type ShopLayout, type ShopLayoutStore } from './shopLayout';
 
 // shopLayout/main に席の配置を持ち、全端末で共有する。まだ無い・壊れているときは今までの配置（DEFAULT_LAYOUT）を使う
@@ -21,7 +22,7 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     });
     return () => { cancelled = true; unsubscribe?.(); };
   }
-  async save(layout: ShopLayout): Promise<void> {
+  async save(layout: ShopLayout, rules?: Rules): Promise<void> {
     if (!await this.ready) throw new Error('ログインできていないので保存できません');
     let occupied = new Set<string>();
     try {
@@ -37,7 +38,7 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
         const session = fromSessionDoc(document.id, document.data());
         return session ? [session] : [];
       });
-      occupied = occupiedSeatIds(tables, sessions, now());
+      occupied = occupiedSeatIds(tables, sessions, now(), rules);
     } catch {
       // オフラインなどで読めないときは手元の確認に任せ、今までどおり書き込みを送信待ちにする
     }
