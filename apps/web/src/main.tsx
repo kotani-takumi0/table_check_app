@@ -13,6 +13,9 @@ import { LocalShopTimerStore } from './localShopTimerStore';
 import { FirestoreEditingStore, newDeviceId } from '@table-check/core/firestoreEditing';
 import { NoEditingStore, type EditingStore } from '@table-check/core/editing';
 import { LocalShopSettingsStore } from './localShopSettingsStore';
+import { LocalShopLayoutStore } from './localShopLayoutStore';
+import { FirestoreShopLayoutStore } from '@table-check/core/firestoreShopLayout';
+import type { ShopLayoutStore } from '@table-check/core/shopLayout';
 import { FirestoreShopSettingsStore } from '@table-check/core/firestoreShopSettings';
 import type { ShopSettingsStore } from '@table-check/core/shopSettings';
 import './App.css';
@@ -26,6 +29,7 @@ let store: SessionStore;
 let shopTimerStore: ShopTimerStore;
 let editingStore: EditingStore;
 let shopSettingsStore: ShopSettingsStore;
+let shopLayoutStore: ShopLayoutStore;
 if (config) {
   const { db, auth } = initFirebase(config);
   const userReady = waitForUser(auth);
@@ -33,6 +37,7 @@ if (config) {
   shopTimerStore = new FirestoreShopTimerStore(db, userReady);
   editingStore = new FirestoreEditingStore(db, userReady, newDeviceId());
   shopSettingsStore = new FirestoreShopSettingsStore(db, userReady);
+  shopLayoutStore = new FirestoreShopLayoutStore(db, userReady);
   let stopClock: (() => void) | undefined;
   let disposed = false;
   void userReady.then(user => {
@@ -44,5 +49,6 @@ if (config) {
   shopTimerStore = new LocalShopTimerStore();
   editingStore = new NoEditingStore();
   shopSettingsStore = new LocalShopSettingsStore();
+  shopLayoutStore = new LocalShopLayoutStore();
 }
-createRoot(document.getElementById('root')!).render(<StrictMode><App store={store} shopTimerStore={shopTimerStore} editingStore={editingStore} shopSettingsStore={shopSettingsStore} trial={!config} /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><App store={store} shopTimerStore={shopTimerStore} editingStore={editingStore} shopSettingsStore={shopSettingsStore} shopLayoutStore={shopLayoutStore} trial={!config} /></StrictMode>);

@@ -1,6 +1,6 @@
-export type Screen = 'floor' | 'settings';
+export type Screen = 'floor' | 'settings' | 'layout';
 // 画面の名前（メニューと見出しで同じものを使う）
-export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況', settings: '設定' };
+export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況', settings: '設定', layout: '席の配置' };
 const SCREENS: Screen[] = ['floor', 'settings'];
 // メニュー：ツールバー左の「メニュー」で左から出す。フロアの上に重ねる（フロアは縮めない）。面はツールバーと同じガラス。
 // 選ぶとその画面に切り替えて閉じる（No.77。以前ここにあった全卓一覧はなくした）
@@ -8,7 +8,7 @@ export function SideMenu({ screen, onSelect, inert }: { screen: Screen; onSelect
   return <nav id="side-menu" className="side-menu glass" aria-label="メニュー" inert={inert}>
     <ul className="side-menu-items">
       {SCREENS.map(item => <li key={item}>
-        <button className="side-menu-item" aria-current={item === screen ? 'page' : undefined} onClick={() => onSelect(item)}>
+        <button className="side-menu-item" aria-current={item === screen || (item === 'settings' && screen === 'layout') ? 'page' : undefined} onClick={() => onSelect(item)}>
           <MenuIcon screen={item} />{SCREEN_LABEL[item]}
         </button>
       </li>)}

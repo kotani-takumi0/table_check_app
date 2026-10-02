@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, occupantOf, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
-import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS } from '@table-check/core/layout';
+import { GRID, PORTRAIT_GRID, rotateClockwise } from '@table-check/core/layout';
+import { DEFAULT_LAYOUT, rotateLabelClockwise, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
+import { LayoutEditor } from './LayoutEditor';
 import { useMediaQuery } from './useMediaQuery';
 import { SeatCard } from './SeatCard';
 import { Header } from './Header';
@@ -21,7 +23,7 @@ import { editingSessionIds, type EditingMark, type EditingStore } from '@table-c
 import { now } from '@table-check/core/clock';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
-export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, trial = false }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; trial?: boolean }) {
+export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial = false }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; trial?: boolean }) {
   const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
@@ -35,6 +37,9 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
   const timeLimitOff = shopSettings.timeLimitOff;
+  // 席の配置（No.75）。全端末で共有し、設定 → 席の配置 で作り直す
+  const [layout, setLayout] = useState<ShopLayout>(DEFAULT_LAYOUT);
+  useEffect(() => shopLayoutStore.subscribe(setLayout), [shopLayoutStore]);
   const closePanel = useCallback(() => setOpenId(null), []);
   // 開くと背景が inert になりフォーカスが外れるので、開く前に覚えておく
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -150,16 +155,23 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const portrait = useMediaQuery('(orientation: portrait)');
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
   const grid = portrait ? PORTRAIT_GRID : GRID;
-  const seats = portrait ? SEATS.map(rotateClockwise) : SEATS;
+  const seats = portrait ? layout.seats.map(rotateClockwise) : layout.seats;
+  const labels = portrait ? layout.labels.map(rotateLabelClockwise) : layout.labels;
   return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
     </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
-    {screen === 'settings' ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} inert={modal || menuOpen} />
+    {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time)).flatMap(s => s.tableIds))}
+        onSave={async next => {
+          const missing = [...new Set(sessions.filter(s => isVisible(s, now())).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
+          if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
+          await shopLayoutStore.save(next);
+        }} onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
+      : screen === 'settings' ? <Settings settings={shopSettings} onTimeLimitOff={off => { void shopSettingsStore.setTimeLimitOff(off); }} onOpenLayout={() => selectScreen('layout')} inert={modal || menuOpen} />
       : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
-        <div className="counter-label" aria-hidden="true">カウンター</div>
+        {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
         <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} timeLimitOff={timeLimitOff} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
       </section>}
