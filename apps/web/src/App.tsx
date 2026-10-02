@@ -15,10 +15,9 @@ import { useDismissed } from './useDismissed';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
 import { worstSyncState, type SessionStore, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
-import { editingSessionIds, type EditingMark, type EditingStore } from '@table-check/core/editing';
 import { now } from '@table-check/core/clock';
 
-export default function App({ store, shopTimerStore, editingStore }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore }) {
+export default function App({ store, shopTimerStore }: { store: SessionStore; shopTimerStore: ShopTimerStore }) {
   const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
@@ -91,13 +90,6 @@ export default function App({ store, shopTimerStore, editingStore }: { store: Se
   const seatingTaken = seatingOccupant !== undefined && seatingOccupant.status !== 'exited';
   useEffect(() => { if (seatingTaken) setSeating(null); }, [seatingTaken]);
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
-  // 編集中の印（No.72）：詳細を開いているお客さんをほかの端末に知らせ、ほかの端末が開いている卓に「編集中」を出す
-  const [editingMarks, setEditingMarks] = useState<EditingMark[]>([]);
-  useEffect(() => editingStore.subscribe(setEditingMarks), [editingStore]);
-  const editingIds = editingSessionIds(editingMarks, time);
-  const openedId = opened?.id ?? null;
-  useEffect(() => { editingStore.setEditing(openedId); }, [editingStore, openedId]);
-  useEffect(() => () => editingStore.setEditing(null), [editingStore]);
   const modal = Boolean(opened) || clearing || seating !== null || Boolean(openedShopTimer);
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
@@ -143,11 +135,11 @@ export default function App({ store, shopTimerStore, editingStore }: { store: Se
     <section inert={modal || (listOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
       <div className="counter-label" aria-hidden="true">カウンター</div>
       <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} editing={(() => { const occupant = occupantOf(sessions, position.id, time); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time)} time={time} onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
     </section>
     {listOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setListOpen(false)} />}
     {listOpen && !pick && <TableList sessions={sessions} time={time} onOpen={openPanel} inert={modal} />}
-    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
+    {opened && <DetailPanel session={opened} time={time} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}

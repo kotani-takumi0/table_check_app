@@ -72,16 +72,6 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
-    // 編集中の印（packages/core/src/editing.ts）。端末ごとの文書に、詳細を開いているお客さんを持つ。閉じたら消す
-    match /editing/{deviceId} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && deviceId.size() <= 64
-        && request.resource.data.keys().hasOnly(['sessionId','updatedAt'])
-        && request.resource.data.keys().hasAll(['sessionId','updatedAt'])
-        && request.resource.data.sessionId is string && request.resource.data.sessionId.size() <= 64
-        && request.resource.data.updatedAt == request.time;
-      allow delete: if signedIn();
-    }
     match /clockProbes/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
