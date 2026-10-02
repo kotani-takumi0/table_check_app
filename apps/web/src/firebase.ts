@@ -10,12 +10,14 @@ export function firebaseConfigFromEnv(): FirebaseOptions | null {
   const projectId = env.VITE_FIREBASE_PROJECT_ID;
   const appId = env.VITE_FIREBASE_APP_ID;
   if (!(apiKey && authDomain && projectId && appId)) return null;
-  // 開発中（npm run dev など）は店のデータにつながず、この端末の localStorage だけで動く
-  if (env.DEV && isStoreProject(projectId)) {
-    console.warn(`${STORE_PROJECT_ID} は店が使っているので、開発中はつながずにこの端末の中だけで動きます`);
-    return null;
-  }
   return { apiKey, authDomain, projectId, appId };
+}
+// 開発中（npm run dev など）に店のプロジェクトにつないでいるときは、「ログインせずに使う」を店のデータにつながず、
+// この端末の localStorage だけで動かす。ログインした店（shops/{uid}/）は店のデータと別なので、つないで試せる（No.88）
+export function guestOnDevice(config: FirebaseOptions): boolean {
+  if (!(import.meta.env.DEV && isStoreProject(config.projectId))) return false;
+  console.warn(`${STORE_PROJECT_ID} は店が使っているので、開発中の「ログインせずに使う」はつながずにこの端末の中だけで動きます`);
+  return true;
 }
 export function initFirebase(config: FirebaseOptions): { db: Firestore; auth: Auth } {
   const app = initializeApp(config);

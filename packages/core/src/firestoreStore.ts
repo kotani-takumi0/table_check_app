@@ -4,6 +4,7 @@ import { now } from './clock';
 import type { Session } from './domain';
 import { fromSessionDoc, resolveSessions, tablesToWrite, toSessionDoc } from './firestoreMapping';
 import type { SessionStore, SyncState } from './store';
+import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
 
 export class FirestoreSessionStore implements SessionStore {
   private tables: Record<string, string | null> = {};
@@ -14,7 +15,7 @@ export class FirestoreSessionStore implements SessionStore {
   private stop: (() => void) | null = null;
   private ready: Promise<boolean>;
 
-  constructor(private db: Firestore, userReady: Promise<User>) {
+  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE) {
     this.ready = userReady.then(() => true, error => { console.error(error); return false; });
   }
   private syncState(): SyncState {
@@ -38,12 +39,12 @@ export class FirestoreSessionStore implements SessionStore {
     void this.ready.then(ready => {
       if (!ready || cancelled) return;
       const cutoff = now() - 12 * 60 * 60_000;
-      unsubscribes.push(onSnapshot(collection(this.db, 'tables'), { includeMetadataChanges: true }, snapshot => {
+      unsubscribes.push(onSnapshot(collection(this.db, shopPath(this.base, 'tables')), { includeMetadataChanges: true }, snapshot => {
         this.tables = Object.fromEntries(snapshot.docs.map(item => [item.id, item.data().sessionId as string | null]));
         this.metadata[0] = snapshot.metadata;
         this.notify();
       }, error => { console.error(error); this.metadata[0] = null; this.notify(); }));
-      unsubscribes.push(onSnapshot(query(collection(this.db, 'sessions'), where('seatedAt', '>=', cutoff)), { includeMetadataChanges: true }, snapshot => {
+      unsubscribes.push(onSnapshot(query(collection(this.db, shopPath(this.base, 'sessions')), where('seatedAt', '>=', cutoff)), { includeMetadataChanges: true }, snapshot => {
         this.sessions = snapshot.docs.map(item => fromSessionDoc(item.id, item.data())).filter((s): s is Session => s !== null);
         this.metadata[1] = snapshot.metadata;
         this.notify();
@@ -71,16 +72,16 @@ export class FirestoreSessionStore implements SessionStore {
   async put(session: Session): Promise<void> {
     if (!await this.ready) return;
     const batch = writeBatch(this.db);
-    batch.set(doc(this.db, 'sessions', session.id), { ...toSessionDoc(session), updatedAt: serverTimestamp() });
+    batch.set(doc(this.db, shopPath(this.base, 'sessions'), session.id), { ...toSessionDoc(session), updatedAt: serverTimestamp() });
     for (const tableId of tablesToWrite(session)) {
-      batch.set(doc(this.db, 'tables', tableId), { sessionId: session.id, updatedAt: serverTimestamp() });
+      batch.set(doc(this.db, shopPath(this.base, 'tables'), tableId), { sessionId: session.id, updatedAt: serverTimestamp() });
     }
     void batch.commit().catch(error => console.error(error));
   }
   async remove(id: string): Promise<void> {
     if (!await this.ready) return;
     // 卓の参照は消さない（消えたセッションを指す卓は resolveSessions で空席になる）
-    void deleteDoc(doc(this.db, 'sessions', id)).catch(error => console.error(error));
+    void deleteDoc(doc(this.db, shopPath(this.base, 'sessions'), id)).catch(error => console.error(error));
   }
 
 }

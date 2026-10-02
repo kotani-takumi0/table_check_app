@@ -2,6 +2,7 @@ import type { User } from 'firebase/auth';
 import { doc, onSnapshot, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { DEFAULT_SHOP_SETTINGS, parseShopSettings, type ShopSettings, type ShopSettingsStore } from './shopSettings';
 import type { SyncState } from './store';
+import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
 
 // shopSettings/main に店全体の設定を持ち、全端末で共有する（FirestoreShopTimerStore と同じ購読の仕方）
 export class FirestoreShopSettingsStore implements ShopSettingsStore {
@@ -11,7 +12,7 @@ export class FirestoreShopSettingsStore implements ShopSettingsStore {
   private subscribers = new Set<(settings: ShopSettings) => void>();
   private syncSubscribers = new Set<(state: SyncState) => void>();
   private stop: (() => void) | null = null;
-  constructor(private db: Firestore, userReady: Promise<User>) {
+  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE) {
     this.ready = userReady.then(() => true, () => false);
   }
   private start(): void {
@@ -21,7 +22,7 @@ export class FirestoreShopSettingsStore implements ShopSettingsStore {
     this.stop = () => { cancelled = true; unsubscribe?.(); };
     void this.ready.then(ready => {
       if (!ready || cancelled) return;
-      unsubscribe = onSnapshot(doc(this.db, 'shopSettings', 'main'), { includeMetadataChanges: true }, snapshot => {
+      unsubscribe = onSnapshot(doc(this.db, shopPath(this.base, 'shopSettings'), 'main'), { includeMetadataChanges: true }, snapshot => {
         this.settings = parseShopSettings(snapshot.data());
         this.syncState = snapshot.metadata.fromCache ? 'offline' : snapshot.metadata.hasPendingWrites ? 'pending' : 'synced';
         this.subscribers.forEach(cb => cb(this.settings));
@@ -54,6 +55,6 @@ export class FirestoreShopSettingsStore implements ShopSettingsStore {
   async update(change: Partial<ShopSettings>): Promise<void> {
     if (!await this.ready) return;
     // 変えた項目だけを書き、ほかの項目は残す（merge）。オフラインだと commit が終わらないので待たない
-    void setDoc(doc(this.db, 'shopSettings', 'main'), { ...change, updatedAt: serverTimestamp() }, { merge: true }).catch(error => console.error(error));
+    void setDoc(doc(this.db, shopPath(this.base, 'shopSettings'), 'main'), { ...change, updatedAt: serverTimestamp() }, { merge: true }).catch(error => console.error(error));
   }
 }

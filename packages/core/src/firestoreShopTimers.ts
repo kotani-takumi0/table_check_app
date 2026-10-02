@@ -2,6 +2,7 @@ import type { User } from 'firebase/auth';
 import { collection, doc, onSnapshot, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { isShopTimerId, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
 import type { SyncState } from './store';
+import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
 
 // shopTimers/{タイマーID} に最後に済にした時刻を持ち、全端末で共有する
 export class FirestoreShopTimerStore implements ShopTimerStore {
@@ -11,7 +12,7 @@ export class FirestoreShopTimerStore implements ShopTimerStore {
   private subscribers = new Set<(done: ShopTimerDone) => void>();
   private syncSubscribers = new Set<(state: SyncState) => void>();
   private stop: (() => void) | null = null;
-  constructor(private db: Firestore, userReady: Promise<User>) {
+  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE) {
     this.ready = userReady.then(() => true, () => false);
   }
   private start(): void {
@@ -21,7 +22,7 @@ export class FirestoreShopTimerStore implements ShopTimerStore {
     this.stop = () => { cancelled = true; unsubscribe?.(); };
     void this.ready.then(ready => {
       if (!ready || cancelled) return;
-      unsubscribe = onSnapshot(collection(this.db, 'shopTimers'), { includeMetadataChanges: true }, snapshot => {
+      unsubscribe = onSnapshot(collection(this.db, shopPath(this.base, 'shopTimers')), { includeMetadataChanges: true }, snapshot => {
         const done: ShopTimerDone = {};
         for (const item of snapshot.docs) {
           const doneAt: unknown = item.data().doneAt;
@@ -59,6 +60,6 @@ export class FirestoreShopTimerStore implements ShopTimerStore {
   async markDone(id: ShopTimerId, at: number): Promise<void> {
     if (!await this.ready) return;
     // オフラインだと commit が終わらないので待たない。古い時刻の書き込みはルールで拒否され、画面はサーバの値に戻る
-    void setDoc(doc(this.db, 'shopTimers', id), { doneAt: at, updatedAt: serverTimestamp() }).catch(error => console.error(error));
+    void setDoc(doc(this.db, shopPath(this.base, 'shopTimers'), id), { doneAt: at, updatedAt: serverTimestamp() }).catch(error => console.error(error));
   }
 }

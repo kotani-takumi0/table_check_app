@@ -1,4 +1,4 @@
-import { Animated, Easing, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { COLORS } from './theme';
 import { Glass, useAppear } from './Glass';
@@ -10,7 +10,8 @@ export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況
 const SCREENS: Screen[] = ['floor', 'settings'];
 const EASE_OUT = Easing.out(Easing.ease);
 // メニュー（Web の SideMenu と同じ）：ツールバー左の「メニュー」で左から出す。選ぶとその画面に切り替えて閉じる（No.77。全卓一覧はなくした）
-export function SideMenu({ screen, onSelect, mini }: { screen: Screen; onSelect(screen: Screen): void; mini: boolean }) {
+// account・onLeave：いまの店（ログインした店はメールアドレス）を出し、ログアウト・ログインし直すで最初の画面に戻る（No.88）
+export function SideMenu({ screen, onSelect, mini, account, shopName, onLeave, leaveError }: { screen: Screen; onSelect(screen: Screen): void; mini: boolean; account: string | null; shopName: string; onLeave?(): void; leaveError: string }) {
   // 左から 24px すべり込みながら 0.18 秒で出す（ガラスの面は Glass の appear、中身は opacity）
   const appear = useAppear(180, EASE_OUT);
   return (
@@ -27,6 +28,14 @@ export function SideMenu({ screen, onSelect, mini }: { screen: Screen; onSelect(
               </Pressable>
             );
           })}
+          {onLeave && <View style={styles.account}>
+            <Text style={styles.shop}>{shopName || (account ? 'ログインした店' : '今の店')}</Text>
+            {account && <Text style={styles.email}>{account}</Text>}
+            <Pressable accessibilityRole="menuitem" onPress={() => { feedback.tap(); onLeave(); }} style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
+              <Text style={styles.label}>{account ? 'ログアウト' : 'ログインする'}</Text>
+            </Pressable>
+            {leaveError !== '' && <Text style={styles.error} accessibilityRole="alert">{leaveError}</Text>}
+          </View>}
         </Animated.View>
       </Glass>
     </Animated.View>
@@ -49,6 +58,10 @@ const styles = StyleSheet.create({
   item: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderRadius: 14 },
   current: { backgroundColor: COLORS.actionBg },
   pressed: { opacity: 0.6 },
+  account: { marginTop: 4, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
+  shop: { paddingHorizontal: 14, fontSize: 13, color: COLORS.muted },
+  error: { paddingHorizontal: 14, fontSize: 13, fontWeight: '700', color: COLORS.nowText },
+  email: { paddingHorizontal: 14, fontSize: 12, color: COLORS.muted },
   label: { fontSize: 16, fontWeight: '500', color: COLORS.text },
   currentLabel: { color: COLORS.actionText, fontWeight: '700' },
 });
