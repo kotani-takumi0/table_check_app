@@ -362,7 +362,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .panel-arrow.left { box-shadow: 1px -1px 0 var(--glass-edge); clip-path: polygon(0 0, 100% 0, 100% 100%); }
 .panel-remaining { color: var(--muted); }
 .panel-next { width: 100%; min-height: 60px; font-size: 18px; font-weight: 700; }
-.panel-quick { display: flex; align-items: center; gap: 8px; }
+.panel-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .panel-quick .pay-state { margin-left: auto; font-size: 14px; }
 .panel-button.small { min-height: 40px; padding: 0 14px; font-size: 14px; }
 .text-button { min-height: 40px; padding: 0 4px; border: none; background: none; color: var(--action-text); font-size: 14px; font-weight: 700; text-decoration: underline; }

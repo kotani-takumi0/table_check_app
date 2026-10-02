@@ -27,12 +27,13 @@ export function Popover({ anchor, at, mini, onClose, children }: { anchor: 'star
   return (
     <Modal visible transparent animationType="none" supportedOrientations={ORIENTATIONS} onRequestClose={onClose}>
       <Pressable accessibilityLabel="閉じる" style={StyleSheet.absoluteFill} onPress={onClose} />
-      <Animated.View accessibilityViewIsModal onLayout={event => setContentHeight(event.nativeEvent.layout.height)}
+      <Animated.View accessibilityViewIsModal
         style={[styles.wrap, place, { top, width: popWidth, maxHeight: height - top - insets.bottom - side },
         { transformOrigin: origin, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]}>
         <Glass tint={0.84} appear={0.2} style={styles.card}>
           {/* 文字を大きくしていてもボタンまで届くよう、画面に入らなければ中をスクロールする */}
-          <ScrollView bounces={false}>
+          {/* 位置を決める高さは、画面の高さで切られる前の中身の高さで測る */}
+          <ScrollView bounces={false} onContentSizeChange={(_width, contentH) => setContentHeight(contentH)}>
             <Animated.View style={[styles.content, { opacity: grow }]}>{children}</Animated.View>
           </ScrollView>
         </Glass>

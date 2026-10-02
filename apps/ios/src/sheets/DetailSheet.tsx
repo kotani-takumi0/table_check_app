@@ -163,7 +163,8 @@ export function DetailSheet({ session, time, othersEditing = false, onClose, onN
 }
 const styles = StyleSheet.create({
   next: { minHeight: 60 },
-  quick: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // 文字を大きくしていても、入らなければ次の行に折り返す
+  quick: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   textButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 4 },
   textButtonLabel: { fontSize: 14, fontWeight: '700', color: COLORS.actionText, textDecorationLine: 'underline' },
   payState: { marginLeft: 'auto', fontSize: 14 },
