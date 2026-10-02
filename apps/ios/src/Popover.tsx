@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, type ModalProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glass, useAppear } from './Glass';
 import { TOOLBAR_HEIGHT } from './Header';
@@ -16,7 +16,7 @@ export function Popover({ anchor, mini, onClose, children }: { anchor: 'start' |
   const top = insets.top + 4 + (mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 8;
   const place = anchor === 'end' ? { right: side + insets.right } : { left: side + insets.left + (mini ? 0 : 56) };
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible transparent animationType="none" supportedOrientations={ORIENTATIONS} onRequestClose={onClose}>
       <Pressable accessibilityLabel="閉じる" style={StyleSheet.absoluteFill} onPress={onClose} />
       <Animated.View accessibilityViewIsModal style={[styles.wrap, place, { top, width: Math.min(380, width - side * 2), maxHeight: height - top - insets.bottom - side },
         { transformOrigin: anchor === 'end' ? 'top right' : 'top left', transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]}>
@@ -30,6 +30,8 @@ export function Popover({ anchor, mini, onClose, children }: { anchor: 'start' |
     </Modal>
   );
 }
+// 透明な Modal は既定で縦向きだけになるので、iPad・iPhone の横向きのまま出す
+const ORIENTATIONS: ModalProps['supportedOrientations'] = ['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right'];
 const POP = Easing.bezier(0.2, 0.9, 0.3, 1.2);
 const styles = StyleSheet.create({
   wrap: { position: 'absolute' },

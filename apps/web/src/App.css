@@ -308,7 +308,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .guest-step { min-width: 50px; min-height: 50px; border: none; border-radius: 25px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 22px; }
 .guest-step:disabled { opacity: 0.4; cursor: default; }
 .guest-many { min-width: 3.5em; text-align: center; font-size: 18px; font-weight: 700; }
-.guest-stepper .panel-button { flex: 1; }
+.guest-stepper .panel-button { flex: 1; white-space: normal; }
 
 /* コース：通常＋飲み放題の区分ごとの3つから1つ選ぶ。選んでいるものは操作の緑で囲む */
 .course-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
