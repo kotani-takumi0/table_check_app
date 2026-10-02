@@ -81,7 +81,7 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
   const faded = exited && styles.exited;
   // 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札と、点線の枠を重ねる
   const editingTag = editing ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.editingFrame, seat.kind === 'counter' && !mini && styles.editingCounter]}>
-    <View style={styles.editingTag}><Text style={styles.editingLabel}>編集中</Text></View>
+    <View style={[styles.editingTag, seat.kind === 'counter' && !mini && styles.editingCounterTag]}><Text style={styles.editingLabel}>編集中</Text></View>
   </View> : null;
 
   if (mini) {
@@ -158,7 +158,9 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
 
 const styles = StyleSheet.create({
   editingFrame: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.action, borderRadius: 12, alignItems: 'center' },
-  editingCounter: { borderRadius: 999 },
+  // カウンターは卓番が円の上にあるので、札は下（段階の文字の場所）に出す
+  editingCounter: { borderRadius: 999, justifyContent: 'flex-end' },
+  editingCounterTag: { marginTop: 0, marginBottom: 0 },
   editingTag: { marginTop: 2, paddingHorizontal: 8, paddingVertical: 1, borderRadius: 999, backgroundColor: COLORS.action },
   editingLabel: { fontSize: 11, fontWeight: '700', color: COLORS.onAction },
   fill: { flex: 1, alignSelf: 'stretch' },

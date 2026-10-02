@@ -367,5 +367,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札を重ねる */
 .card.editing { position: relative; outline: 2px dashed var(--action); outline-offset: -2px; }
 .editing-tag { position: absolute; z-index: 1; top: 2px; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: 999px; background: var(--action); color: var(--on-action); font-size: 11px; font-weight: 700; line-height: 1.5; white-space: nowrap; pointer-events: none; }
-.counter .editing-tag { top: -2px; }
+.counter .editing-tag { top: auto; bottom: 0; }
+/* カウンターは卓番が円の上にあるので、札は下の段階の文字の場所に出す（編集中の間だけ） */
+.counter.editing .status { visibility: hidden; }
 .panel-editing { flex-basis: 100%; margin: 0; padding: 6px 12px; border-radius: 10px; background: var(--action-bg); color: var(--action-text); font-size: 14px; font-weight: 700; }

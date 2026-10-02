@@ -3,6 +3,8 @@
 // 端末が落ちて消せなかった印は、FRESH_MS を過ぎたら出さない
 export const EDITING_HEARTBEAT_MS = 20_000;
 export const EDITING_FRESH_MS = 60_000;
+// これより古い印は、見た端末が消す（閉じずにアプリを落とした端末の印が溜まり続けないように）
+export const EDITING_STALE_MS = 10 * 60_000;
 export interface EditingMark { sessionId: string; at: number }
 export interface EditingStore {
   // ほかの端末が開いているお客さんの ID（自分の端末は含めない）

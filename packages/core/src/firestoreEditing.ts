@@ -1,13 +1,15 @@
 import type { User } from 'firebase/auth';
 import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { now } from './clock';
-import { EDITING_HEARTBEAT_MS, type EditingMark, type EditingStore } from './editing';
+import { EDITING_HEARTBEAT_MS, EDITING_STALE_MS, type EditingMark, type EditingStore } from './editing';
 
 // editing/{端末ID} に、その端末が詳細を開いているお客さんを持つ。端末ID はアプリを開くたびに作る（保存しない）
 export class FirestoreEditingStore implements EditingStore {
   private ready: Promise<boolean>;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private current: string | null = null;
+  // 消しに行った古い印（同じ文書を何度も消しに行かない）
+  private removing = new Set<string>();
   constructor(private db: Firestore, userReady: Promise<User>, private deviceId: string) {
     this.ready = userReady.then(() => true, () => false);
   }
@@ -21,7 +23,13 @@ export class FirestoreEditingStore implements EditingStore {
         cb(snapshot.docs.flatMap(item => {
           const data = item.data({ serverTimestamps: 'estimate' });
           const at: unknown = data.updatedAt?.toMillis?.();
-          return item.id !== this.deviceId && typeof data.sessionId === 'string' && typeof at === 'number' ? [{ sessionId: data.sessionId, at }] : [];
+          if (item.id === this.deviceId) return [];
+          // 閉じずに落ちた端末の古い印は消す。消えると次の snapshot から外れる
+          if (typeof at === 'number' && now() - at > EDITING_STALE_MS && !this.removing.has(item.id)) {
+            this.removing.add(item.id);
+            void deleteDoc(item.ref).catch(error => console.error(error));
+          }
+          return typeof data.sessionId === 'string' && typeof at === 'number' ? [{ sessionId: data.sessionId, at }] : [];
         }));
       }, error => console.error(error));
     });
