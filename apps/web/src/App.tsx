@@ -19,7 +19,7 @@ import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
 import { useDismissed } from './useDismissed';
 import { useAppUpdate } from './useAppUpdate';
-import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
+import { type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings, type ShopSettingsStore } from '@table-check/core/shopSettings';
 import { worstSyncState, type SessionStore, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
@@ -93,14 +93,14 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     setShopTimerOpen(id);
   }, []);
   const closeShopTimer = useCallback(() => setShopTimerOpen(null), []);
-  const openedShopTimer = SHOP_TIMERS.find(timer => timer.id === shopTimerOpen);
+  const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
   const { isDismissed, dismiss } = useDismissed();
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
   // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus)).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? next(notice.session) : markShopTimerDone(notice.timerId) },
   }));
@@ -169,7 +169,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
-    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
+    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload} />}
     {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time, shopSettings)).flatMap(s => s.tableIds))}
         onSave={async next => {

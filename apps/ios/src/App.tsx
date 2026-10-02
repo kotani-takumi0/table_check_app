@@ -7,7 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { now } from '@table-check/core/clock';
 import { isVisible, occupantOf, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
-import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
+import { type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings } from '@table-check/core/shopSettings';
 import { DEFAULT_LAYOUT, type ShopLayout } from '@table-check/core/shopLayout';
 import { worstSyncState, type SyncState } from '@table-check/core/store';
@@ -129,11 +129,11 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   useEffect(() => { if (pick && !picked) setPick(null); }, [pick, picked]);
 
   // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus)).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') next(notice.session); else markShopTimerDone(notice.timerId); } },
   }));
-  const openedShopTimer = SHOP_TIMERS.find(timer => timer.id === shopTimerOpen);
+  const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
   const closeSheet = useCallback(() => { setSeating(null); setOpenId(null); setShopTimerOpen(null); setClearing(false); }, []);
   const { portrait, mini } = useScreen();
   let content: ReactNode = null;
@@ -204,7 +204,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             </Text>
             <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
           </View>
-          : <Header trial={trial} time={time} syncState={worstSyncState([sessionSync, shopTimerSync, shopSettingsSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
+          : <Header trial={trial} time={time} syncState={worstSyncState([sessionSync, shopTimerSync, shopSettingsSync])} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
             canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={() => setClearing(true)} mini={mini}
             menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)} timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
       </View>

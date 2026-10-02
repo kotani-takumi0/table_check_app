@@ -89,7 +89,8 @@ service cloud.firestore {
     }
     match /shopTimers/{timerId} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && timerId in ['toilet_check','toilet_clean']
+      // タイマーは店が設定で決める（No.91）。id の形だけ確かめる（shopTimers.ts の isShopTimerId と同じ）
+      allow create, update: if signedIn() && timerId.matches('^[a-z0-9_]{1,24}$')
         && request.resource.data.keys().hasOnly(['doneAt','updatedAt'])
         && request.resource.data.keys().hasAll(['doneAt','updatedAt'])
         && isTime(request.resource.data.doneAt)
@@ -110,13 +111,13 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if signedIn();
     }
-    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）・飲み放題の区分（No.90）・コース（No.89）。
+    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）・飲み放題の区分（No.90）・コース（No.89）・店のタイマー（No.91）。
     // アプリは変えた項目だけを merge で書くので、無い項目は既定値として確かめる（範囲は MINUTE_SETTINGS と同じ）
     // 前の版のアプリは文書ごと置き換える（timeLimitOff だけを書く）。保存済みの項目を消す書き込みは拒否して、店の設定を守る
     match /shopSettings/{id} {
       allow read: if signedIn();
       allow create, update: if signedIn() && id == 'main'
-        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','drinkPlans','courseMenus','updatedAt'])
+        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','drinkPlans','courseMenus','shopTimers','updatedAt'])
         && request.resource.data.get('timeLimitOff', false) is bool
         && request.resource.data.get('otoshi', true) is bool
         && isMinutesIn(request.resource.data.get('otoshiWarnMin', 15), 5, 60)
@@ -127,6 +128,7 @@ service cloud.firestore {
         && request.resource.data.get('shopName', '') is string && request.resource.data.get('shopName', '').size() <= 30
         && request.resource.data.get('drinkPlans', []) is list && request.resource.data.get('drinkPlans', []).size() <= 10
         && request.resource.data.get('courseMenus', []) is list && request.resource.data.get('courseMenus', []).size() <= 20
+        && request.resource.data.get('shopTimers', []) is list && request.resource.data.get('shopTimers', []).size() <= 4
         && request.resource.data.updatedAt == request.time
         && (resource == null || request.resource.data.keys().hasAll(resource.data.keys()));
       allow delete: if false;
