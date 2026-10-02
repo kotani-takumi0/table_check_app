@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatClock } from '@table-check/core/domain';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
@@ -21,6 +22,14 @@ interface Props {
 }
 // フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
 export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, listOpen, onToggleList }: Props) {
+  // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す（薄くして押せなくすると壊れているように見えるため）
+  const [nothingToClear, setNothingToClear] = useState(false);
+  useEffect(() => {
+    if (!nothingToClear) return;
+    AccessibilityInfo.announceForAccessibility('消す卓はありません');
+    const timer = setTimeout(() => setNothingToClear(false), NOTHING_TO_CLEAR_MS);
+    return () => clearTimeout(timer);
+  }, [nothingToClear]);
   return (
     <View style={[styles.toolbar, mini && styles.miniToolbar]} pointerEvents="box-none">
       <Glass style={[styles.group, styles.listGroup, mini && styles.miniGroup]}>
@@ -52,16 +61,24 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
         {!mini && <Text style={styles.version}>v{version}</Text>}
         <CactusClock time={time} size={mini ? 18 : 22} />
         <Text style={[styles.clock, mini && styles.miniClock, TABULAR]}>{formatClock(time)}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="全卓を消去（確認が出ます）" disabled={!canClearAll} onPress={onClearAll}
-          style={({ pressed }) => [styles.clear, mini && styles.miniClear, !canClearAll && styles.disabled, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={canClearAll ? '全卓を消去（確認が出ます）' : '全卓を消去（消す卓はありません）'}
+          onPress={() => { if (canClearAll) onClearAll(); else setNothingToClear(true); }}
+          style={({ pressed }) => [styles.clear, mini && styles.miniClear, pressed && styles.pressed]}>
           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={COLORS.text} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" accessible={false}>
             <Path d="M4 7h16M9.5 7V5h5v2M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" />
           </Svg>
         </Pressable>
       </Glass>
+      {nothingToClear && (
+        <View pointerEvents="none" style={[styles.hint, { top: (mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 8 }]}>
+          <Glass tint={0.84} appear={0.15} style={styles.hintGlass}><Text style={styles.hintLabel}>消す卓はありません</Text></Glass>
+        </View>
+      )}
     </View>
   );
 }
+// 「消す卓はありません」を出しておく長さ
+const NOTHING_TO_CLEAR_MS = 2500;
 // ツールバーの高さ（フロアはこの下に少しもぐらせる。App の FLOOR_TOP）
 export const TOOLBAR_HEIGHT = { regular: 48, mini: 40 } as const;
 const styles = StyleSheet.create({
@@ -89,6 +106,9 @@ const styles = StyleSheet.create({
   miniClock: { fontSize: 14 },
   clear: { flexShrink: 0, minWidth: 36, minHeight: 36, borderRadius: 18, backgroundColor: FILL, alignItems: 'center', justifyContent: 'center' },
   miniClear: { minWidth: 30, minHeight: 30, borderRadius: 15 },
-  disabled: { opacity: 0.4 },
+  // ゴミ箱の下に出す「消す卓はありません」
+  hint: { position: 'absolute', right: 0 },
+  hintGlass: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18 },
+  hintLabel: { fontSize: 14, fontWeight: '700', color: COLORS.text },
   pressed: { opacity: 0.6 },
 });

@@ -2,6 +2,7 @@ import { formatClock } from '@table-check/core/domain';
 import { APP_VERSION } from './version';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
+import { useEffect, useState } from 'react';
 import { CactusClock } from './CactusClock';
 
 interface Props {
@@ -16,8 +17,17 @@ interface Props {
   onToggleList(): void;
   inert?: boolean;
 }
+// 「消す卓はありません」を出しておく長さ
+const NOTHING_TO_CLEAR_MS = 2500;
 // フロアの上に浮かぶツールバー（ガラス）：左に「一覧」とトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
 export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, listOpen, onToggleList, inert }: Props) {
+  // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す
+  const [nothingToClear, setNothingToClear] = useState(false);
+  useEffect(() => {
+    if (!nothingToClear) return;
+    const timer = setTimeout(() => setNothingToClear(false), NOTHING_TO_CLEAR_MS);
+    return () => clearTimeout(timer);
+  }, [nothingToClear]);
   return <header className="toolbar" inert={inert}>
     <div className="toolbar-group glass list-toggle-group">
       <button className="list-toggle" aria-label="全卓一覧" title="全卓一覧" aria-expanded={listOpen} aria-controls="table-list" onClick={onToggleList}>
@@ -40,9 +50,12 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
       <CactusClock time={time} />
       <time>{formatClock(time)}</time>
       {/* よく押すトイレのボタンから離して右端に置く */}
-      <button className="clear-all" aria-label="全卓を消去（確認が出ます）" title="全卓を消去" disabled={!canClearAll} onClick={onClearAll}>
+      {/* 卓が0でも押せるようにし、押したら理由をそばに出す（薄くして押せなくすると壊れているように見えるため） */}
+      <button className="clear-all" aria-label={canClearAll ? '全卓を消去（確認が出ます）' : '全卓を消去（消す卓はありません）'} title="全卓を消去"
+        onClick={() => { if (canClearAll) onClearAll(); else setNothingToClear(true); }}>
         <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M9.5 7V5h5v2M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" /></svg>
       </button>
     </div>
+    <p className={`toolbar-hint glass ${nothingToClear ? 'shown' : ''}`} role="status">{nothingToClear ? '消す卓はありません' : ''}</p>
   </header>;
 }

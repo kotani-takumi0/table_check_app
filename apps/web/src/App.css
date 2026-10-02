@@ -170,8 +170,12 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .sync-state { font-size: 12px; }
 /* 全卓消去 */
 .clear-all { flex-shrink: 0; display: grid; place-items: center; min-width: 36px; min-height: 36px; padding: 0; border: none; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 14px; }
-.clear-all:disabled { opacity: 0.4; cursor: default; }
 .mini .clear-all { min-width: 30px; min-height: 30px; }
+/* 卓が0のときにゴミ箱を押したら、ゴミ箱の下に理由を小さく出す（読み上げにも届くよう、空の status は置いたままにする） */
+.toolbar-hint { position: absolute; top: calc(100% + 8px); right: 0; margin: 0; padding: 10px 16px; border-radius: 18px; color: var(--text); font-size: 14px; font-weight: 700; white-space: nowrap; visibility: hidden; opacity: 0; transform: translateY(-4px); transition: opacity 0.15s, transform 0.15s, visibility 0.15s; pointer-events: none; }
+.toolbar-hint.shown { visibility: visible; opacity: 1; transform: none; }
+.toolbar-hint { --glass-tint: 84%; }
+@media (prefers-reduced-motion: reduce) { .toolbar-hint { transition: none; } }
 .confirm-message { margin: 0; line-height: 1.6; }
 .confirm-warning { margin: 0; color: var(--now-text); font-weight: 700; }
 .sync-state.pending { color: var(--soon-text); }
