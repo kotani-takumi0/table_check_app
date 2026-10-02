@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
+import type { DrinkPlan } from '@table-check/core/domain';
+import { DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 import { COLORS, TABULAR } from './theme';
 import { Glass } from './Glass';
 import { feedback } from './feedback';
@@ -24,6 +25,10 @@ export function Settings({ settings, onChange, onOpenLayout, top }: { settings: 
         {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
         <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
         <Text style={styles.note}>変えると、すべての端末にすぐ反映されます。</Text>
+      </Glass>
+      <Glass tint={0.84} style={styles.group}>
+        <Text style={styles.groupTitle}>コース</Text>
+        <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
       </Glass>
       <Glass tint={0.84} style={styles.group}>
         <Text style={styles.groupTitle}>お店</Text>
@@ -67,21 +72,41 @@ function MinutesRow({ settings, field, label, help, onChange }: { settings: Shop
     </View>
   );
 }
-// 店名（Web の ShopNameRow と同じ）：入力を終えたら保存する。打っている途中では保存しない
 function ShopNameRow({ name, onSave }: { name: string; onSave(name: string): void }) {
-  const [draft, setDraft] = useState(name);
-  const [editing, setEditing] = useState(false);
-  const save = () => { setEditing(false); const trimmed = draft.trim(); if (trimmed !== name) onSave(trimmed); };
   return (
     <View style={styles.row}>
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>店名</Text>
         <Text style={styles.help}>ログインしたときに、どの店か分かるように出します</Text>
       </View>
-      <TextInput accessibilityLabel="店名" style={styles.input} maxLength={SHOP_NAME_MAX} placeholder="店の名前" placeholderTextColor={COLORS.muted} returnKeyType="done"
-        value={editing ? draft : name} onFocus={() => { setDraft(name); setEditing(true); }} onChangeText={setDraft} onEndEditing={save} />
+      <SavedInput label="店名" value={name} maxLength={SHOP_NAME_MAX} placeholder="店の名前" onSave={onSave} style={styles.input} />
     </View>
   );
+}
+// 飲み放題の区分（Web の DrinkPlanRows と同じ。No.90）：名前を直す・足す・消す。消しても、その区分で案内中の卓はそのまま
+function DrinkPlanRows({ plans, onChange }: { plans: DrinkPlan[]; onChange(plans: DrinkPlan[]): void }) {
+  return <>
+    <View style={styles.rowText}>
+      <Text style={styles.rowLabel}>飲み放題の区分</Text>
+      <Text style={styles.help}>ご案内のときに選ぶと、その卓はコースになります（L.O.・お席の時間はファーストドリンクから数えます）。区分が無ければコースは選べません。</Text>
+    </View>
+    {plans.map((plan, i) => (
+      <View key={plan.id} style={styles.row}>
+        <SavedInput label={`区分${i + 1}の名前`} value={plan.name} maxLength={DRINK_PLAN_NAME_MAX} placeholder="区分の名前" style={styles.planInput}
+          onSave={name => { if (name !== '') onChange(plans.map(p => p.id === plan.id ? { ...p, name } : p)); }} />
+        <PanelButton label="消す" tone="danger" onPress={() => { feedback.warn(); onChange(plans.filter(p => p.id !== plan.id)); }} style={styles.remove} />
+      </View>
+    ))}
+    {plans.length < DRINK_PLANS_MAX && <PanelButton label="＋ 区分を足す" onPress={() => { feedback.tap(); onChange([...plans, { id: newDrinkPlanId(plans, Date.now()), name: '新しい区分' }]); }} style={styles.add} />}
+  </>;
+}
+// 文字の設定（Web の SavedInput と同じ）：入力を終えたら保存する。打っている途中では保存しない
+function SavedInput({ label, value, maxLength, placeholder, onSave, style }: { label: string; value: string; maxLength: number; placeholder: string; onSave(value: string): void; style: object }) {
+  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(false);
+  const save = () => { setEditing(false); const trimmed = draft.trim(); if (trimmed !== value) onSave(trimmed); };
+  return <TextInput accessibilityLabel={label} style={style} maxLength={maxLength} placeholder={placeholder} placeholderTextColor={COLORS.muted} returnKeyType="done"
+    value={editing ? draft : value} onFocus={() => { setDraft(value); setEditing(true); }} onChangeText={setDraft} onEndEditing={save} />;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
@@ -98,5 +123,8 @@ const styles = StyleSheet.create({
   stepButton: { width: 44, minHeight: 44, paddingHorizontal: 0 },
   minutes: { width: 64, textAlign: 'center', fontSize: 17, fontWeight: '700', color: COLORS.text },
   input: { width: 200, minHeight: 44, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.bg, fontSize: 16, color: COLORS.text },
+  planInput: { flex: 1, minHeight: 44, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.bg, fontSize: 16, color: COLORS.text },
+  remove: { minWidth: 72, minHeight: 44 },
+  add: { marginTop: 4, minHeight: 44 },
   note: { marginTop: 8, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line, fontSize: 13, lineHeight: 19, color: COLORS.muted },
 });

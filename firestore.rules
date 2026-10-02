@@ -12,7 +12,8 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/shopLayout/main).data.seatIds : tableIds();
     }
     function isGuestsOrNull(v) { return v == null || (v is int && v >= 1 && v <= 99); }
-    function isCourseOrNull(v) { return v == null || v in ['no_drinks','drinks','premium_drinks']; }
+    // 飲み放題の区分の id（No.90 から店が設定で決める。packages/core/src/domain.ts の isCourse と同じ形）
+    function isCourseOrNull(v) { return v == null || (v is string && v.matches('^[a-z0-9_]{1,24}$')); }
     // どのコースか（packages/core/src/courseMenus.ts の id）と、料理を何品目まで出したか
     function isMenuOrNull(v) { return v == null || v in ['casual','meat_share','cheese','premium','nijikai']; }
     function isDishesServed(v) { return v is int && v >= 0 && v <= 30; }
@@ -94,13 +95,13 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if signedIn();
     }
-    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）。
+    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）・飲み放題の区分（No.90）。
     // アプリは変えた項目だけを merge で書くので、無い項目は既定値として確かめる（範囲は MINUTE_SETTINGS と同じ）
     // 前の版のアプリは文書ごと置き換える（timeLimitOff だけを書く）。保存済みの項目を消す書き込みは拒否して、店の設定を守る
     match /shopSettings/{id} {
       allow read: if signedIn();
       allow create, update: if signedIn() && id == 'main'
-        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','updatedAt'])
+        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','drinkPlans','updatedAt'])
         && request.resource.data.get('timeLimitOff', false) is bool
         && request.resource.data.get('otoshi', true) is bool
         && isMinutesIn(request.resource.data.get('otoshiWarnMin', 15), 5, 60)
@@ -109,6 +110,7 @@ service cloud.firestore {
         && request.resource.data.get('lastOrderMin', 90) < request.resource.data.get('seatLimitMin', 120)
         && isMinutesIn(request.resource.data.get('exitedKeepMin', 5), 1, 30)
         && request.resource.data.get('shopName', '') is string && request.resource.data.get('shopName', '').size() <= 30
+        && request.resource.data.get('drinkPlans', []) is list && request.resource.data.get('drinkPlans', []).size() <= 10
         && request.resource.data.updatedAt == request.time
         && (resource == null || request.resource.data.keys().hasAll(resource.data.keys()));
       allow delete: if false;

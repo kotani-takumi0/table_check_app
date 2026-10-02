@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { Course } from '@table-check/core/domain';
+import type { Course, DrinkPlan } from '@table-check/core/domain';
 import { feedback } from '../feedback';
 import { CloseButton, PanelButton } from '../ui';
 import { SelectField } from './SelectField';
-import { COURSE_OPTIONS, guestOptions, MENU_OPTIONS } from './pickers';
+import { courseOptions, guestOptions, MENU_OPTIONS } from './pickers';
 import { sheet } from './common';
 
 interface Props {
@@ -12,11 +12,12 @@ interface Props {
   exited: boolean;           // 退店済の卓への案内
   previousUnpaid: boolean;   // 退店した前のお客さんがお会計前のまま
   onSeat(guests: number | null, course: Course | null, menu: string | null): void;
+  drinkPlans: DrinkPlan[];   // 飲み放題の区分（No.90。店の設定）
   onClose(): void;
 }
 // ご案内（Web の SeatDialog と同じ。No.71）：最初の案内は入力が多いので、詳細のポップオーバーとは別にシートで聞く。
 // 人数・コース・料理はドロップダウンで、最後に大きな「ご案内」を1つだけ押す
-export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, onClose }: Props) {
+export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, drinkPlans, onClose }: Props) {
   const [guests, setGuests] = useState<number | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   // どのコースか。コースを選んだときだけ聞く（任意）
@@ -28,7 +29,7 @@ export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, onClose }: 
     {exited && previousUnpaid && <Text style={sheet.warning}>前のお客さんはお会計済みになっていません</Text>}
     <View style={styles.fields}>
       <SelectField label="人数" value={guests} options={guestOptions('あとで入れる', guests)} onChange={setGuests} />
-      <SelectField label="コース" value={course} options={COURSE_OPTIONS} onChange={setCourse} />
+      <SelectField label="コース" value={course} options={courseOptions(drinkPlans, course)} onChange={setCourse} />
       {course !== null && <SelectField label="料理" value={menu} options={MENU_OPTIONS} onChange={setMenu} />}
     </View>
     <PanelButton label={guests === null ? 'ご案内（人数はあとで）' : `${guests}名でご案内`} tone="primary" onPress={seat} style={styles.go} />

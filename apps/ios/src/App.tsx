@@ -137,9 +137,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   let popoverAt: { x: number; y: number } | undefined;
   if (seating !== null && !seatingTaken) {
     content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
-      onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSheet} />;
+      onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} drinkPlans={shopSettings.drinkPlans} onClose={closeSheet} />;
   } else if (opened) {
-    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} rules={shopSettings} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} rules={shopSettings} drinkPlans={shopSettings.drinkPlans} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }

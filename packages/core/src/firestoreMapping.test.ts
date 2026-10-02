@@ -35,7 +35,8 @@ describe('Firestore document mapping', () => {
   it('course が無い古い文書は通常として読み、不正な course は拒否する', () => {
     expect(fromSessionDoc('session', data)?.course).toBeNull();
     expect(fromSessionDoc('session', { ...data, course: 'premium_drinks' })?.course).toBe('premium_drinks');
-    for (const bad of ['', 'course', 1, true]) expect(fromSessionDoc('session', { ...data, course: bad })).toBeNull();
+    expect(fromSessionDoc('session', { ...data, course: 'plan_abc' })?.course).toBe('plan_abc');
+    for (const bad of ['', 'Course!', 1, true]) expect(fromSessionDoc('session', { ...data, course: bad })).toBeNull();
   });
   it('通常でも course: null を書く（古いアプリの上書きを見分けるため）', () => {
     expect(toSessionDoc(seated)).toHaveProperty('course', null);

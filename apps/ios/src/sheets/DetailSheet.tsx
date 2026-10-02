@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, type DrinkPlan, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
 import { CloseButton, PanelButton } from '../ui';
 import { menuOf } from '@table-check/core/courseMenus';
 import { SelectField } from './SelectField';
-import { COURSE_OPTIONS, guestOptions, MENU_OPTIONS } from './pickers';
+import { courseOptions, guestOptions, MENU_OPTIONS } from './pickers';
 import { remainingLabel, remainingOf } from '@table-check/core/dial';
 import { sheet } from './common';
 
@@ -19,6 +19,7 @@ interface Props {
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
+  drinkPlans: DrinkPlan[];   // 飲み放題の区分（No.90。店の設定）
   onBack(session: Session): void;
   onRetime(session: Session, field: EditableTime, at: number): boolean;
   onPay(session: Session): void;
@@ -81,7 +82,7 @@ function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; 
     </View>
   );
 }
-export function DetailSheet({ session, time, othersEditing = false, rules, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
+export function DetailSheet({ session, time, othersEditing = false, rules, drinkPlans, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const [changing, setChanging] = useState(false);
   const [showDishes, setShowDishes] = useState(false);
   const timer = timerOf(session, time);
@@ -167,7 +168,7 @@ export function DetailSheet({ session, time, othersEditing = false, rules, onClo
       </Pressable>
       {changing && <View style={styles.changeBody}>
         <SelectField label="人数" value={session.guests} options={guestOptions('未入力', session.guests)} onChange={guests => onGuests(session, guests)} />
-        <SelectField label="コース" value={session.course} options={COURSE_OPTIONS} onChange={course => onCourse(session, course)} />
+        <SelectField label="コース" value={session.course} options={courseOptions(drinkPlans, session.course)} onChange={course => onCourse(session, course)} />
         {session.course !== null && progress && <SelectField label="料理" value={session.menu} options={MENU_OPTIONS} onChange={menu => onMenu(session, menu)} />}
         <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
         <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />

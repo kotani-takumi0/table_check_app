@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
+import type { DrinkPlan } from '@table-check/core/domain';
+import { DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
 export function Settings({ settings, onChange, onOpenLayout, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; inert?: boolean }) {
@@ -17,6 +18,10 @@ export function Settings({ settings, onChange, onOpenLayout, inert }: { settings
       {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
       <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
       <p className="settings-note">変えると、すべての端末にすぐ反映されます。</p>
+    </div>
+    <div className="settings-group glass">
+      <h2 className="settings-group-title">コース</h2>
+      <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
     </div>
     <div className="settings-group glass">
       <h2 className="settings-group-title">お店</h2>
@@ -56,19 +61,38 @@ function MinutesRow({ settings, field, label, help, onChange }: { settings: Shop
     </div>
   </div>;
 }
-// 店名：入力を終えたら（ほかを押す・Enter）保存する。打っている途中・かな漢字変換を確定する Enter では保存しない
 function ShopNameRow({ name, onSave }: { name: string; onSave(name: string): void }) {
-  const [draft, setDraft] = useState(name);
-  const [editing, setEditing] = useState(false);
-  const value = editing ? draft : name;
-  const save = () => { setEditing(false); const trimmed = draft.trim(); if (trimmed !== name) onSave(trimmed); };
   return <div className="settings-row">
     <div className="settings-row-text">
       <label htmlFor="shop-name"><strong>店名</strong></label>
       <p className="settings-help">ログインしたときに、どの店か分かるように出します</p>
     </div>
-    <input id="shop-name" className="field-select shop-name" maxLength={SHOP_NAME_MAX} placeholder="店の名前" value={value}
-      onFocus={() => { setDraft(name); setEditing(true); }} onChange={event => setDraft(event.target.value)} onBlur={save}
-      onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) event.currentTarget.blur(); }} />
+    <SavedInput id="shop-name" value={name} maxLength={SHOP_NAME_MAX} placeholder="店の名前" onSave={onSave} />
   </div>;
+}
+// 飲み放題の区分（No.90）：名前を直す・足す・消す。消しても、その区分で案内中の卓はそのまま（名前は「消した区分」と出す）
+function DrinkPlanRows({ plans, onChange }: { plans: DrinkPlan[]; onChange(plans: DrinkPlan[]): void }) {
+  return <>
+    <div className="settings-row">
+      <div className="settings-row-text">
+        <strong>飲み放題の区分</strong>
+        <p className="settings-help">ご案内のときに選ぶと、その卓はコースになります（L.O.・お席の時間はファーストドリンクから数えます）。区分が無ければコースは選べません。</p>
+      </div>
+    </div>
+    {plans.map((plan, i) => <div key={plan.id} className="settings-row drink-plan-row">
+      <SavedInput id={`drink-plan-${plan.id}`} label={`区分${i + 1}の名前`} value={plan.name} maxLength={DRINK_PLAN_NAME_MAX} placeholder="区分の名前"
+        onSave={name => { if (name !== '') onChange(plans.map(p => p.id === plan.id ? { ...p, name } : p)); }} />
+      <button className="panel-button small danger" aria-label={`「${plan.name}」を消す`} onClick={() => onChange(plans.filter(p => p.id !== plan.id))}>消す</button>
+    </div>)}
+    {plans.length < DRINK_PLANS_MAX && <button className="panel-button add-plan" onClick={() => onChange([...plans, { id: newDrinkPlanId(plans, Date.now()), name: '新しい区分' }])}>＋ 区分を足す</button>}
+  </>;
+}
+// 文字の設定：入力を終えたら（ほかを押す・Enter）保存する。打っている途中・かな漢字変換を確定する Enter では保存しない
+function SavedInput({ id, label, value, maxLength, placeholder, onSave }: { id: string; label?: string; value: string; maxLength: number; placeholder: string; onSave(value: string): void }) {
+  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(false);
+  const save = () => { setEditing(false); const trimmed = draft.trim(); if (trimmed !== value) onSave(trimmed); };
+  return <input id={id} aria-label={label} className="field-select setting-input" maxLength={maxLength} placeholder={placeholder} value={editing ? draft : value}
+    onFocus={() => { setDraft(value); setEditing(true); }} onChange={event => setDraft(event.target.value)} onBlur={save}
+    onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) event.currentTarget.blur(); }} />;
 }
