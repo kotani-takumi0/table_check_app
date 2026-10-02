@@ -62,7 +62,7 @@ export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, onClose }: 
 const styles = StyleSheet.create({
   group: { gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  guest: { flexBasis: '22%', flexGrow: 1, minHeight: 56, borderWidth: 1, borderColor: COLORS.line, borderRadius: 8, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  guest: { flexBasis: '22%', flexGrow: 1, minHeight: 56, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   guestLabel: { fontSize: 22, fontWeight: '700', color: COLORS.text },
   grow: { flex: 1 },
   pressed: { opacity: 0.6 },

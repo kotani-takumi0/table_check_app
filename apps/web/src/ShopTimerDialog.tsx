@@ -23,7 +23,7 @@ export function ShopTimerDialog({ label, icon, doneAt, onReset, onClose, returnF
   }, [onClose]);
   return <div className="panel-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel" role="dialog" aria-modal="true" aria-labelledby="shop-timer-title">
-      <strong id="shop-timer-title" className="panel-status"><span aria-hidden="true">{icon}</span> {label}</strong>
+      <h2 id="shop-timer-title" className="panel-title"><span aria-hidden="true">{icon}</span> {label}</h2>
       <div className="time-row">
         <span>前回</span>
         <span className={doneAt === undefined ? 'muted' : ''}>{doneAt === undefined ? 'まだ済にしていません' : `${formatClock(doneAt)} に済`}</span>
