@@ -11,7 +11,7 @@ import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId } from '@table-check/
 import { worstSyncState, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
 import { services, type Services } from './services';
-import { COLORS, fade, mix, useScreen } from './theme';
+import { COLORS, useScreen } from './theme';
 import { feedback } from './feedback';
 import { useDismissed } from './useDismissed';
 import { Header } from './Header';
@@ -141,11 +141,11 @@ const styles = StyleSheet.create({
   message: { margin: 16, fontSize: 16 },
   hall: { flex: 1, paddingHorizontal: 16, paddingBottom: 12, gap: 4 },
   miniHall: { paddingHorizontal: 8, paddingBottom: 8 },
-  pickBar: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 4, borderWidth: 1.5, borderColor: COLORS.seated, borderRadius: 8, backgroundColor: mix(COLORS.seated, 14) },
+  pickBar: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 4, borderWidth: 1.5, borderColor: COLORS.action, borderRadius: 8, backgroundColor: COLORS.actionBg },
   miniPickBar: { height: 36 },
-  pickText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.text },
+  pickText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.actionText },
   miniPickText: { fontSize: 12 },
-  pickCancel: { minHeight: 34, backgroundColor: COLORS.surface, borderColor: fade(COLORS.seated, 40) },
+  pickCancel: { minHeight: 34, backgroundColor: COLORS.surface, borderColor: COLORS.line },
   sheet: { flex: 1, backgroundColor: COLORS.surface },
   sheetContent: { padding: 20, gap: 16 },
 });

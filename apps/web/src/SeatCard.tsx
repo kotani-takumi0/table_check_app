@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, dishProgress, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Alert, type Display, type Session } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Session } from '@table-check/core/domain';
 import type { Seat } from '@table-check/core/layout';
 
-function stateColor(display: Display, alert: Alert): string {
-  return `var(--${alert === 'none' ? display : alert === 'soon' ? 'warning' : 'danger'})`;
-}
 const REASONS = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
 interface CardProps {
   seat: Seat;
@@ -50,19 +47,20 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, onPay, m
   const alert = session ? alertOf(session, time) : null;
   const timer = session ? timerOf(session, time) : null;
   const next = session ? nextStatus(session.status) : null;
-  // コースの「開始待ち」「ファーストドリンク提供済み」は通常と色・名前を変える
+  // コースの「開始待ち」「ファーストドリンク提供済み」は通常と名前を変える（色は変えない）
   const display = session ? displayOf(session.status, session.course) : null;
   // コースの開始待ちはタイマーを進めない
   const timerText = timer ? timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs) : '';
   const timerLabel = timer ? timer.elapsedMs === null ? 'タイマー停止中' : `${timer.label} ${timerText}` : '';
+  // 卓の色は警告の段階だけで決める（もうすぐ＝琥珀、いま対応＝朱）。ふだんは無彩色で、退店済は薄くする
+  const tone = !session || !alert ? '' : alert.level !== 'none' ? `alert-${alert.level}` : session.status === 'exited' ? 'exited' : '';
   const style = {
     gridColumn: `${seat.col} / span ${seat.colSpan}`,
     gridRow: `${seat.row} / span ${seat.rowSpan}`,
-    ...(display && alert ? { '--st': stateColor(display, alert.level) } : {}),
   } as CSSProperties;
   const common = {
     style,
-    className: `card ${seat.kind} ${session ? 'occupied' : 'empty'} ${mini ? 'mini' : seat.rowSpan === 1 ? 'compact' : seat.colSpan === 1 ? 'narrow' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''}`,
+    className: `card ${seat.kind} ${session ? 'occupied' : 'empty'} ${mini ? 'mini' : seat.rowSpan === 1 ? 'compact' : seat.colSpan === 1 ? 'narrow' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${tone} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''}`,
     onPointerDown: start,
     onPointerUp: cancel,
     onPointerLeave: cancel,

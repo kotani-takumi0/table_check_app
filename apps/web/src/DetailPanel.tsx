@@ -73,7 +73,7 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
       role="dialog" aria-modal="true" aria-label={`${session.tableIds.join('・')}番の詳細`}>
       <div className="panel-head">
         <span className="panel-seat">{session.tableIds.join('・')}番</span>
-        <strong className="panel-status" style={{ color: `var(--${display})` }}>{STATUS_LABEL[display]}</strong>
+        <strong className="panel-status">{STATUS_LABEL[display]}</strong>
         <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</span>
       </div>
       <div className="time-row">

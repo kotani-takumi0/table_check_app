@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS, fade, mix } from './theme';
+import { COLORS, TONES } from './theme';
 
 export interface Toast {
   key: string;
@@ -12,17 +12,17 @@ export function Toasts({ toasts, onDismiss, rows, mini }: { toasts: Toast[]; onD
   if (toasts.length === 0) return null;
   const shown = toasts.length > rows ? toasts.slice(0, 1) : toasts;
   const rest = toasts.slice(shown.length);
-  const restTone = rest.some(t => t.tone === 'danger') ? COLORS.danger : COLORS.warning;
+  const restTone = TONES[rest.some(t => t.tone === 'danger') ? 'danger' : 'warning'];
   return <>
     {shown.map(toast => {
-      const tone = COLORS[toast.tone];
+      const tone = TONES[toast.tone];
       return (
-        <View key={toast.key} accessibilityRole="alert" style={[styles.toast, { flex: 1 / rows, borderColor: fade(tone, 45), backgroundColor: mix(tone, 12) }, mini && styles.miniToast]}>
-          <Text style={[styles.message, { color: tone }, mini && styles.miniMessage]} numberOfLines={mini ? 1 : 2}>
+        <View key={toast.key} accessibilityRole="alert" style={[styles.toast, { flex: 1 / rows, borderColor: tone.line, backgroundColor: tone.bg }, mini && styles.miniToast]}>
+          <Text style={[styles.message, { color: tone.text }, mini && styles.miniMessage]} numberOfLines={mini ? 1 : 2}>
             {toast.message}{rows === 1 && rest.length > 0 && <Text style={styles.more}>  ほか {rest.length}件</Text>}
           </Text>
-          <Pressable accessibilityRole="button" onPress={toast.action.onPress} style={({ pressed }) => [styles.button, { borderColor: tone }, mini && styles.miniButton, pressed && styles.pressed]}>
-            <Text style={[styles.buttonLabel, mini && styles.miniLabel]}>{toast.action.label}</Text>
+          <Pressable accessibilityRole="button" onPress={toast.action.onPress} style={({ pressed }) => [styles.button, styles.primary, mini && styles.miniButton, pressed && styles.pressed]}>
+            <Text style={[styles.buttonLabel, styles.primaryLabel, mini && styles.miniLabel]}>{toast.action.label}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={() => onDismiss(toast.key)} style={({ pressed }) => [styles.button, mini && styles.miniButton, pressed && styles.pressed]}>
             <Text style={[styles.buttonLabel, mini && styles.miniLabel]}>閉じる</Text>
@@ -31,8 +31,8 @@ export function Toasts({ toasts, onDismiss, rows, mini }: { toasts: Toast[]; onD
       );
     })}
     {rows === 2 && rest.length > 0 && (
-      <View style={[styles.toast, { flex: 1 / rows, borderColor: fade(restTone, 45), backgroundColor: mix(restTone, 12) }]}>
-        <Text style={[styles.message, { color: restTone }]} numberOfLines={1}>ほか {rest.length}件：{rest.map(t => t.message).join('／')}</Text>
+      <View style={[styles.toast, { flex: 1 / rows, borderColor: restTone.line, backgroundColor: restTone.bg }]}>
+        <Text style={[styles.message, { color: restTone.text }]} numberOfLines={1}>ほか {rest.length}件：{rest.map(t => t.message).join('／')}</Text>
       </View>
     )}
   </>;
@@ -45,7 +45,9 @@ const styles = StyleSheet.create({
   more: { fontSize: 12, fontWeight: '500' },
   button: { minHeight: 36, paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.line, borderRadius: 6, backgroundColor: COLORS.surface, justifyContent: 'center' },
   miniButton: { minHeight: 30, paddingHorizontal: 8 },
+  primary: { borderColor: COLORS.action, backgroundColor: COLORS.action },
   buttonLabel: { fontSize: 14, color: COLORS.text },
+  primaryLabel: { color: COLORS.onAction },
   miniLabel: { fontSize: 12 },
   pressed: { opacity: 0.6 },
 });

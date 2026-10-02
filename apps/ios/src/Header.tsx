@@ -3,7 +3,7 @@ import { formatClock } from '@table-check/core/domain';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
 import { version } from '../../../package.json';
-import { COLORS, mix, TABULAR } from './theme';
+import { COLORS, TABULAR } from './theme';
 
 interface Props {
   time: number;
@@ -31,7 +31,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
           );
         })}
       </View>
-      {syncState !== 'synced' && <Text style={[styles.sync, { color: syncState === 'pending' ? COLORS.warning : COLORS.danger }]} numberOfLines={1}>
+      {syncState !== 'synced' && <Text style={[styles.sync, { color: syncState === 'pending' ? COLORS.soonText : COLORS.nowText }]} numberOfLines={1}>
         {syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}
       </Text>}
       {!mini && <Text style={[styles.version, syncState === 'synced' && styles.pushRight]}>v{version}</Text>}
@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
   miniChip: { minHeight: 28, paddingHorizontal: 8 },
   chipLabel: { fontSize: 13, color: COLORS.muted },
   miniChipLabel: { fontSize: 12 },
-  due: { borderColor: COLORS.danger, backgroundColor: mix(COLORS.danger, 12) },
-  dueLabel: { color: COLORS.danger, fontWeight: '700' },
+  due: { borderColor: COLORS.now, backgroundColor: COLORS.nowBg },
+  dueLabel: { color: COLORS.nowText, fontWeight: '700' },
   sync: { marginLeft: 'auto', fontSize: 12, flexShrink: 1 },
   version: { fontSize: 11, color: COLORS.muted, opacity: 0.8 },
   pushRight: { marginLeft: 'auto' },

@@ -11,6 +11,6 @@ export const sheet = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   action: { flexGrow: 1, flexBasis: 0, minWidth: 120 },
   message: { fontSize: 15, lineHeight: 24, color: COLORS.text },
-  warning: { fontSize: 15, fontWeight: '700', color: COLORS.danger },
+  warning: { fontSize: 15, fontWeight: '700', color: COLORS.nowText },
   question: { fontSize: 16, fontWeight: '700', color: COLORS.text },
 });

@@ -40,7 +40,7 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
     <View style={styles.timeRow}>
       <View style={sheet.row}>
         <Text style={sheet.rowLabel}>{label}</Text>
-        <DateTimePicker value={draft} mode="time" display="compact" locale="ja-JP" themeVariant="light" accentColor={COLORS.seated}
+        <DateTimePicker value={draft} mode="time" display="compact" locale="ja-JP" themeVariant="light" accentColor={COLORS.action}
           onValueChange={(_event, date) => { setDraft(date); setError(false); }} />
         <PanelButton label="修正" disabled={!changed} onPress={() => { const ok = onSave(hhmm); setError(!ok); if (ok) feedback.done(); else feedback.warn(); }} style={styles.fix} />
       </View>
@@ -65,7 +65,7 @@ export function DetailSheet({ session, time, onClose, onNext, onSeat, onBack, on
   return <>
     <View style={styles.head}>
       <Text style={styles.seat}>{session.tableIds.join('・')}番</Text>
-      <Text style={[sheet.title, { color: COLORS[display] }]}>{STATUS_LABEL[display]}</Text>
+      <Text style={sheet.title}>{STATUS_LABEL[display]}</Text>
       <Text style={[styles.timer, TABULAR]}>{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</Text>
     </View>
     <View style={sheet.row}>
@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
   timer: { marginLeft: 'auto', fontSize: 16, color: COLORS.muted },
   timeRow: { gap: 6 },
   fix: { marginLeft: 'auto', minWidth: 72 },
-  error: { fontSize: 14, color: COLORS.danger },
+  error: { fontSize: 14, color: COLORS.nowText },
   grow: { flex: 1 },
   dishes: { gap: 8 },
   dish: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 2, borderColor: 'transparent' },
-  nextDish: { borderColor: COLORS.first_drink },
+  nextDish: { borderColor: COLORS.action },
   dishMark: { minWidth: 20, fontSize: 14, color: COLORS.text, textAlign: 'center' },
   dishName: { flex: 1, fontSize: 14, lineHeight: 19, color: COLORS.text },
   nextDishName: { fontWeight: '700' },

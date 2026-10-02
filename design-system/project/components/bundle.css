@@ -1,5 +1,5 @@
 /* Minopal デザインシステム — アプリの src/App.css をそのまま持ち込んだスタイルシート。
-   色トークンは tokens.css が :root に出すので、ここでは宣言しない。 */
+   色トークン（ウチワサボテンの4色の役割）は tokens.css が :root に出すので、ここでは宣言しない。 */
 :root { font-family: var(--font-sans, 'Zen Kaku Gothic New', sans-serif); font-size: 14px; color: var(--text); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -13,7 +13,11 @@ header time { flex-shrink: 0; }
 header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
 .floor { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); --gy: 12px; --gx: 6px; gap: var(--gy) var(--gx); isolation: isolate; }
 .card { position: relative; min-width: 0; min-height: 0; border-radius: 8px; padding: 8px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
-.occupied { background: color-mix(in srgb, var(--st) 12%, var(--surface)); border: 1.5px solid color-mix(in srgb, var(--st) 45%, transparent); }
+/* 卓の色：ふだんは無彩色（退店済は薄い文字）。もうすぐ（L.O.）は琥珀、いま対応（お通し未提供・お席の時間）は朱 */
+.occupied { --st: var(--text); background: var(--surface); border: 1.5px solid var(--line); }
+.occupied.exited { --st: var(--muted); }
+.occupied.alert-soon { --st: var(--soon-text); background: var(--soon-bg); border-color: var(--soon-line); }
+.occupied.alert-now { --st: var(--now-text); background: var(--now-bg); border-color: var(--now-line); }
 .empty { background: transparent; border: 1.5px solid var(--line); color: var(--muted); }
 .seat-number { font-size: 14px; font-weight: 500; }
 .empty .seat-number { font-size: 20px; }
@@ -25,7 +29,7 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .table .status { text-align: center; }
 .table .timer, .table .alert-reason, .table .next-button { grid-column: 1 / -1; text-align: center; }
 .alert-reason { color: var(--st); font-weight: 700; font-size: 14px; }
-.next-button { min-height: 50px; padding: 4px; border: 1px solid color-mix(in srgb, var(--st) 40%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--st) 8%, var(--surface)); color: var(--text); font-size: 14px; }
+.next-button { min-height: 50px; padding: 4px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); color: var(--text); font-size: 14px; }
 .table.compact { padding: 4px 6px; column-gap: 4px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .table.compact .seat-number { position: absolute; left: 6px; top: 5px; }
 .table.compact .status { grid-column: 1 / -1; font-size: 18px; padding: 0 38px 0 22px; }
@@ -54,23 +58,23 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .clear-all:disabled { opacity: 0.4; cursor: default; }
 .mini .clear-all { min-width: 36px; min-height: 28px; padding: 0 6px; font-size: 13px; }
 .confirm-message { margin: 0; line-height: 1.6; }
-.confirm-warning { margin: 0; color: var(--danger); font-weight: 700; }
+.confirm-warning { margin: 0; color: var(--now-text); font-weight: 700; }
 .sync-state + .app-version { margin-left: 0; }
-.sync-state.pending { color: var(--warning); }
-.sync-state.offline { color: var(--danger); }
+.sync-state.pending { color: var(--soon-text); }
+.sync-state.offline { color: var(--now-text); }
 
 .shop-timers { min-width: 0; display: flex; gap: 8px; }
 .shop-timer { min-width: 0; overflow: hidden; text-overflow: ellipsis; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 17px; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; }
 .shop-timer-rest { font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
-.shop-timer.due { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); color: var(--danger); font-weight: 700; }
+.shop-timer.due { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
 .toasts { grid-column: 6 / 16; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
-.toast { --tone: var(--danger); flex-shrink: 0; min-height: 0; display: flex; align-items: center; gap: 8px; padding: 1px 3px 1px 12px; border: 1.5px solid color-mix(in srgb, var(--tone) 45%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--tone) 12%, var(--surface)); color: var(--text); }
-.toast.warning { --tone: var(--warning); }
+.toast { --tone-bg: var(--now-bg); --tone-line: var(--now-line); --tone-text: var(--now-text); flex-shrink: 0; min-height: 0; display: flex; align-items: center; gap: 8px; padding: 1px 3px 1px 12px; border: 1.5px solid var(--tone-line); border-radius: 8px; background: var(--tone-bg); color: var(--text); }
+.toast.warning { --tone-bg: var(--soon-bg); --tone-line: var(--soon-line); --tone-text: var(--soon-text); }
 .toast-rest { min-height: 40px; }
 .toast-rest .toast-message { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
-.toast-message { flex: 1; color: var(--tone); font-size: 15px; }
+.toast-message { flex: 1; color: var(--tone-text); font-size: 15px; }
 .toast-button { min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 14px; }
-.toast-button.primary { border-color: var(--tone); }
+.toast-button.primary { border-color: var(--action); background: var(--action); color: var(--on-action); }
 
 .panel-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #000 40%, transparent); }
 .panel:focus { outline: none; }
@@ -81,14 +85,14 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .panel-head .timer { margin-left: auto; font-size: 16px; color: var(--muted); }
 .time-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 6px 10px; }
 .time-row input { min-height: 50px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: 18px 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
-.time-error { grid-column: 1 / -1; color: var(--danger); font-size: 14px; }
+.time-error { grid-column: 1 / -1; color: var(--now-text); font-size: 14px; }
 .muted { color: var(--muted); }
 .panel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .panel-actions .panel-button { flex: 1; }
 .panel-button { min-height: 50px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-size: 14px; }
 .panel-button:disabled { opacity: 0.4; cursor: default; }
-.panel-button.primary { border-color: var(--seated); background: color-mix(in srgb, var(--seated) 12%, var(--surface)); }
-.panel-button.danger { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); color: var(--danger); font-weight: 700; }
+.panel-button.primary { border-color: var(--action); background: var(--action); color: var(--on-action); }
+.panel-button.danger { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
 
 /* 縦向き：配置を時計回りに90°回した 7列×15行。飾りも同じく回した位置に置く */
 .portrait .floor { --gy: 6px; }
@@ -131,20 +135,35 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .table-chip { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px 0 12px; border: 1px solid var(--line); border-radius: 18px; font-weight: 500; }
 .chip-remove { min-width: 32px; min-height: 32px; border: 0; border-radius: 16px; background: transparent; color: var(--muted); font-size: 16px; }
 .table-chip:not(:has(.chip-remove)) { padding-right: 12px; }
-.pick-bar { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 14px; border: 1.5px solid var(--seated); border-radius: 8px; background: color-mix(in srgb, var(--seated) 14%, var(--surface)); color: var(--text); }
+.pick-bar { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 14px; border: 1.5px solid var(--action); border-radius: 8px; background: var(--action-bg); color: var(--action-text); }
 .pick-bar strong { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; }
 .mini .pick-bar { height: 34px; }
 .mini .pick-bar strong { font-size: 12px; }
-.pick-target { border: 2px dashed var(--seated); color: var(--seated); background: color-mix(in srgb, var(--seated) 6%, transparent); }
+.pick-target { border: 2px dashed var(--action); color: var(--action-text); background: var(--action-bg); }
 .pick-disabled { opacity: 0.35; }
 /* 幅の狭いスマホでは時刻とトイレのチップを優先し、バージョンは出さない */
 @media (max-width: 419px) { .app-version { display: none; } .shop-timers + .app-version + time { margin-left: auto; } }
 
-/* 人数：卓番の横に出す。大きいテーブルは会計ボタンと同じ上端の左に置く */
-.guest-count { margin-left: 4px; font-size: 0.9em; font-weight: 700; white-space: nowrap; }
-.guest-count.unknown { color: var(--muted); font-weight: 400; }
-.table.occupied:not(.compact):not(.mini):not(.narrow) .guest-count { position: absolute; left: 10px; top: 10px; margin: 0; font-size: 16px; }
+/* 人数：卓番の横に出す。大きいテーブルは会計ボタンと同じ上端の左に置く。
+   ひと目で読めるよう、数字だけを大きく太くし「名」は小さく添える */
+.guest-count { margin-left: 4px; font-size: 0.9em; font-weight: 500; white-space: nowrap; }
+.guest-num { font-size: 1.5em; font-weight: 900; line-height: 1; margin-right: 1px; font-variant-numeric: tabular-nums; }
+.guest-count.unknown { color: var(--muted); }
+.guest-count.unknown .guest-num { font-weight: 500; }
+/* 大きいテーブルは人数とコースの料理の進みを、会計ボタンと同じ上端の左に並べる */
+.table.occupied:not(.compact):not(.mini):not(.narrow) .card-meta { position: absolute; left: 10px; top: 4px; display: flex; align-items: baseline; gap: 12px; }
+.table.occupied:not(.compact):not(.mini):not(.narrow) .guest-count { margin: 0; font-size: 18px; }
+.table.occupied:not(.compact):not(.mini) .guest-num { font-size: 1.75em; }
 .table.compact .guest-count, .table.narrow .guest-count { display: block; margin: 2px 0 0; }
+/* コースの料理の進み（3/8）。スマホの小さいカードには出さない */
+.dish-progress { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.table.compact .dish-progress, .table.narrow .dish-progress { display: block; margin-top: 2px; font-size: 13px; }
+.dish-label { margin-right: 2px; font-size: 0.8em; font-weight: 500; }
+/* 上段の低いカード・縦向きの細いカードは幅が無いので「料理」を付けず 3/8 だけにする */
+.table.compact .dish-label, .table.narrow .dish-label { display: none; }
+.table.narrow .guest-count { font-size: 15px; }
+/* 上段の低いカードは人数が卓番の下に入るので、タイマーを右に寄せて重ならないようにする */
+.table.compact .timer { padding-left: 30px; }
 /* スマホの細いカードは卓番の横に並ばないので、卓番の下の行にする（横長のカードは低いので横に並べたまま） */
 .card.mini.slim .guest-count { display: block; margin: 0; text-align: center; }
 .guest-picker { display: flex; flex-direction: column; gap: 8px; }
@@ -157,9 +176,19 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .guest-many { min-width: 3.5em; text-align: center; font-size: 18px; font-weight: 700; }
 .guest-stepper .panel-button { flex: 1; }
 
-/* コース：通常＋飲み放題の区分ごとの3つから1つ選ぶ。選んでいるものは、案内したときの状態の色で囲む */
+/* コース：通常＋飲み放題の区分ごとの3つから1つ選ぶ。選んでいるものは操作の緑で囲む */
 .course-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
-.course-option { --opt: var(--seated); min-width: 0; min-height: 50px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 14px; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.course-option.course { --opt: var(--course_wait); }
-.course-option[aria-pressed="true"] { border: 2px solid var(--opt); background: color-mix(in srgb, var(--opt) 12%, var(--surface)); font-weight: 700; }
+.course-option { min-width: 0; min-height: 50px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 14px; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.course-option[aria-pressed="true"] { border: 2px solid var(--action); background: var(--action-bg); font-weight: 700; }
 .course-sub { font-size: 12px; white-space: nowrap; }
+/* どのコースか：未定＋5コース。コースの欄の下（詳細パネルは「料理」の行）に出す */
+.menu-question { font-size: 14px; color: var(--muted); }
+.menu-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; grid-column: 2 / -1; }
+.menu-picker .course-option { font-size: 15px; word-break: keep-all; }
+/* 料理の進み：出した料理に ✓、次に出す料理を太字で囲む */
+.dish-section { display: flex; flex-direction: column; gap: 8px; }
+.dish-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.dish-list li { display: flex; align-items: baseline; gap: 8px; padding: 4px 8px; border-radius: 6px; font-size: 14px; line-height: 1.35; }
+.dish-list li.served { color: var(--muted); }
+.dish-list li.next { border: 2px solid var(--action); font-weight: 700; }
+.dish-mark { flex-shrink: 0; min-width: 1.4em; text-align: center; font-variant-numeric: tabular-nums; }

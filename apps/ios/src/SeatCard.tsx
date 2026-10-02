@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { alertOf, dishProgress, displayOf, formatElapsed, nextStatus, STATUS_CARD, STATUS_LABEL, STATUS_SHORT, timerOf, type Session } from '@table-check/core/domain';
 import type { Seat } from '@table-check/core/layout';
-import { COLORS, fade, mix, stateColor, TABULAR } from './theme';
+import { cardTone, COLORS, TABULAR } from './theme';
 import { feedback } from './feedback';
 
 const REASONS = { otoshi_missing: 'お通し未提供', last_order: 'L.O.の時間', seat_limit: 'お席の時間' };
@@ -24,16 +24,17 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
       <Pressable accessibilityRole="button" accessibilityLabel={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`}
         onPress={() => { feedback.tap(); onSeat(seat.id); }}
         style={({ pressed }) => [frame, styles.card, styles.empty, picking && styles.pickTarget, pressed && styles.emptyPressed]}>
-        <Text style={[styles.emptyNumber, mini && styles.miniEmptyNumber, picking && { color: COLORS.seated }]}>{seat.id}</Text>
+        <Text style={[styles.emptyNumber, mini && styles.miniEmptyNumber, picking && { color: COLORS.actionText }]}>{seat.id}</Text>
       </Pressable>
     );
   }
   const alert = alertOf(session, time);
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
-  // コースの「開始待ち」「ファーストドリンク提供済み」は通常と色・名前を変える
+  // コースの「開始待ち」「ファーストドリンク提供済み」は通常と名前を変える（色は変えない）
   const display = displayOf(session.status, session.course);
-  const st = stateColor(display, alert.level);
+  const tone = cardTone(session.status === 'exited', alert.level);
+  const st = tone.text;
   // コースの開始待ちはタイマーを進めない
   const timerText = timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs);
   const exited = session.status === 'exited';
@@ -45,7 +46,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
   const guests = seat.kind === 'table' ? session.guests : undefined;
   const compact = seat.kind === 'table' && seat.rowSpan === 1;   // 上段の低いテーブル
   const narrow = seat.kind === 'table' && seat.colSpan === 1;    // 縦向きの細いテーブル
-  const cardStyle = [frame, styles.card, { backgroundColor: mix(st, 12), borderColor: fade(st, 45) }, picking && styles.pickDisabled];
+  const cardStyle = [frame, styles.card, { backgroundColor: tone.bg, borderColor: tone.line }, picking && styles.pickDisabled];
   const label = `${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''} ${STATUS_LABEL[display]} ${timer.label} ${timerText}${alert.reason ? ` ${REASONS[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const open = () => { feedback.open(); onOpen(session, seat.id); };
   // ひと目で読めるよう、数字だけを大きく太くし「名」は小さく添える
@@ -96,11 +97,11 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
   const payLabel = compact || narrow ? (paid ? '¥✓' : '¥') : paid ? '会計済み' : '未払い';
   const nextButton = next
     ? <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onNext(session); }} onLongPress={open} delayLongPress={600} disabled={picking}
-      style={({ pressed }) => [styles.next, { borderColor: fade(st, 40), backgroundColor: mix(st, 8) }, compact && styles.compactNext, pressed && styles.nextPressed]}>
+      style={({ pressed }) => [styles.next, compact && styles.compactNext, pressed && styles.nextPressed]}>
       <Text style={styles.nextLabel} numberOfLines={2} adjustsFontSizeToFit>{STATUS_CARD[displayOf(next, session.course)]}</Text>
     </Pressable>
     : exited && <Pressable accessibilityRole="button" accessibilityLabel={`${seat.id}番 ご案内`} onPress={() => { feedback.tap(); onSeat(seat.id); }} onLongPress={open} delayLongPress={600} disabled={picking}
-      style={({ pressed }) => [styles.next, { borderColor: fade(st, 40), backgroundColor: mix(st, 8) }, compact && styles.compactNext, pressed && styles.nextPressed]}>
+      style={({ pressed }) => [styles.next, compact && styles.compactNext, pressed && styles.nextPressed]}>
       <Text style={styles.nextLabel}>ご案内</Text>
     </Pressable>;
   const reason = alert.reason && <Text style={[styles.reason, { color: st }]} numberOfLines={1} adjustsFontSizeToFit>{REASONS[alert.reason]}</Text>;
@@ -138,10 +139,10 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, o
 const styles = StyleSheet.create({
   card: { position: 'absolute', borderRadius: 8, borderWidth: 1.5, overflow: 'hidden' },
   empty: { borderColor: COLORS.line, backgroundColor: 'transparent', alignItems: 'flex-start', padding: 8 },
-  emptyPressed: { backgroundColor: mix(COLORS.seated, 8, COLORS.bg), borderColor: COLORS.seated },
+  emptyPressed: { backgroundColor: COLORS.actionBg, borderColor: COLORS.action },
   emptyNumber: { fontSize: 20, fontWeight: '500', color: COLORS.muted },
   miniEmptyNumber: { fontSize: 14, alignSelf: 'center', marginTop: 'auto', marginBottom: 'auto' },
-  pickTarget: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.seated, backgroundColor: fade(COLORS.seated, 6) },
+  pickTarget: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
   pickDisabled: { opacity: 0.35 },
   number: { fontSize: 14, fontWeight: '500', color: COLORS.text },
   miniNumber: { fontSize: 11, lineHeight: 13 },
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   miniGuestNum: { fontSize: 13 },
   unknown: { color: COLORS.muted },
   unknownNum: { fontWeight: '500' },
-  dishes: { fontSize: 14, fontWeight: '700', color: COLORS.first_drink },
+  dishes: { fontSize: 14, fontWeight: '700', color: COLORS.text },
   dishLabel: { fontSize: 11, fontWeight: '500' },
   timer: { fontSize: 21, color: COLORS.text, textAlign: 'center' },
   counterTimer: { fontSize: 14 },
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
   paid: { borderStyle: 'solid', borderColor: COLORS.text, backgroundColor: COLORS.text },
   payLabel: { fontSize: 13, color: COLORS.muted },
   paidLabel: { color: COLORS.surface, fontWeight: '700' },
-  next: { minHeight: 50, paddingHorizontal: 4, borderWidth: 1, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
+  next: { minHeight: 50, paddingHorizontal: 4, borderWidth: 1, borderColor: COLORS.lineStrong, backgroundColor: COLORS.surface, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
   compactNext: { flex: 1, minHeight: 0, alignSelf: 'stretch' },
   nextPressed: { opacity: 0.6 },
   nextLabel: { fontSize: 14, color: COLORS.text, textAlign: 'center' },
