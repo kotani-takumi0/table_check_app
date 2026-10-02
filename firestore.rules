@@ -6,10 +6,14 @@ service cloud.firestore {
     function isTimeOrNull(v) { return v == null || isTime(v); }
     function isMinutesIn(v, lo, hi) { return v is int && v >= lo && v <= hi; }
     function tableIds() { return ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','21','22','31','33','34','36','38']; }
+    // 店（No.88）：shop が null は今の店（ログインなし。いちばん上の sessions など）、
+    // ログインした店は shops/{アカウントの uid}/ の下に同じ形で持ち、その店のアカウントだけが読み書きできる
+    function ownsShop(shop) { return signedIn() && request.auth.uid == shop; }
     // 案内できる卓：席の配置（shopLayout/main、No.75）を保存していればその卓番、無ければ今までの卓番
-    function seatIds() {
-      return exists(/databases/$(database)/documents/shopLayout/main)
-        ? get(/databases/$(database)/documents/shopLayout/main).data.seatIds : tableIds();
+    function seatIds(shop) {
+      let layout = shop == null ? /databases/$(database)/documents/shopLayout/main
+        : /databases/$(database)/documents/shops/$(shop)/shopLayout/main;
+      return exists(layout) ? get(layout).data.seatIds : tableIds();
     }
     function isGuestsOrNull(v) { return v == null || (v is int && v >= 1 && v <= 99); }
     // course は前の版のアプリも読める3区分のまま。店が設定で決めた区分（No.90）の id は drinkPlan に入れる（domain.ts の isCourse と同じ形）
@@ -20,12 +24,12 @@ service cloud.firestore {
     // 店が設定で作ったコース（No.89）の id は courseMenu に入れる（courseMenus.ts の isMenuId と同じ形）
     function isCourseMenuOrNull(v) { return v == null || (v is string && v.matches('^[a-z0-9_]{1,24}$')); }
     function isDishesServed(v) { return v is int && v >= 0 && v <= 30; }
-    function validSession(d) {
+    function validSession(d, shop) {
       // paidAt・guests・course・menu・dishesServed・leaveAt はお会計・人数・コース・料理・退店時刻の追加前のアプリが書かないので必須にしない
       return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','courseMenu','dishesServed','leaveAt','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 60
-        && seatIds().hasAll(d.tableIds)
+        && seatIds(shop).hasAll(d.tableIds)
         && d.status in ['seated','otoshi','lo_done','exited']
         && isTime(d.seatedAt) && isTimeOrNull(d.otoshiAt) && isTimeOrNull(d.loDoneAt) && isTimeOrNull(d.exitedAt)
         && isTimeOrNull(d.get('paidAt', null))
@@ -74,23 +78,19 @@ service cloud.firestore {
       return resource == null || resource.data.get('leaveAt', null) == null
         || request.resource.data.keys().hasAny(['leaveAt']);
     }
-    match /sessions/{id} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && validSession(request.resource.data) && keepsPaid() && keepsGuests() && keepsCourse() && keepsDrinkPlan() && keepsCourseMenu() && keepsMenu() && keepsLeaveAt();
-      allow delete: if signedIn();
+    // 書き込みの確かめ（今の店とログインした店で同じものを使う）
+    function canWriteSession(shop) {
+      return validSession(request.resource.data, shop) && keepsPaid() && keepsGuests() && keepsCourse() && keepsDrinkPlan() && keepsCourseMenu() && keepsMenu() && keepsLeaveAt();
     }
-    match /tables/{tableId} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && tableId in seatIds()
+    function canWriteTable(shop, tableId) {
+      return tableId in seatIds(shop)
         && request.resource.data.keys().hasOnly(['sessionId','updatedAt'])
         && (request.resource.data.sessionId == null || request.resource.data.sessionId is string)
         && request.resource.data.updatedAt == request.time;
-      allow delete: if false;
     }
-    match /shopTimers/{timerId} {
-      allow read: if signedIn();
-      // タイマーは店が設定で決める（No.91）。id の形だけ確かめる（shopTimers.ts の isShopTimerId と同じ）
-      allow create, update: if signedIn() && timerId.matches('^[a-z0-9_]{1,24}$')
+    // タイマーは店が設定で決める（No.91）。id の形だけ確かめる（shopTimers.ts の isShopTimerId と同じ）
+    function canWriteShopTimer(timerId) {
+      return timerId.matches('^[a-z0-9_]{1,24}$')
         && request.resource.data.keys().hasOnly(['doneAt','updatedAt'])
         && request.resource.data.keys().hasAll(['doneAt','updatedAt'])
         && isTime(request.resource.data.doneAt)
@@ -99,24 +99,20 @@ service cloud.firestore {
         // オフラインで溜まった古い「済」が、あとから来て新しい「済」を上書きしないようにする
         && (resource == null || request.resource.data.doneAt >= resource.data.doneAt)
         && request.resource.data.updatedAt == request.time;
-      allow delete: if false;
     }
     // 編集中の印（packages/core/src/editing.ts）。端末ごとの文書に、詳細を開いているお客さんを持つ。閉じたら消す
-    match /editing/{deviceId} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && deviceId.size() <= 64
+    function canWriteEditing(deviceId) {
+      return deviceId.size() <= 64
         && request.resource.data.keys().hasOnly(['sessionId','updatedAt'])
         && request.resource.data.keys().hasAll(['sessionId','updatedAt'])
         && request.resource.data.sessionId is string && request.resource.data.sessionId.size() <= 64
         && request.resource.data.updatedAt == request.time;
-      allow delete: if signedIn();
     }
     // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）・飲み放題の区分（No.90）・コース（No.89）・店のタイマー（No.91）。
     // アプリは変えた項目だけを merge で書くので、無い項目は既定値として確かめる（範囲は MINUTE_SETTINGS と同じ）
     // 前の版のアプリは文書ごと置き換える（timeLimitOff だけを書く）。保存済みの項目を消す書き込みは拒否して、店の設定を守る
-    match /shopSettings/{id} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && id == 'main'
+    function canWriteSettings(id) {
+      return id == 'main'
         && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','drinkPlans','courseMenus','shopTimers','updatedAt'])
         && request.resource.data.get('timeLimitOff', false) is bool
         && request.resource.data.get('otoshi', true) is bool
@@ -131,19 +127,76 @@ service cloud.firestore {
         && request.resource.data.get('shopTimers', []) is list && request.resource.data.get('shopTimers', []).size() <= 4
         && request.resource.data.updatedAt == request.time
         && (resource == null || request.resource.data.keys().hasAll(resource.data.keys()));
-      allow delete: if false;
     }
     // 席の配置（packages/core/src/shopLayout.ts）。中身の細かい確かめはアプリが保存前に行う。seatIds は卓番だけの一覧
-    match /shopLayout/{id} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && id == 'main'
+    function canWriteLayout(id) {
+      return id == 'main'
         && request.resource.data.keys().hasOnly(['seats','labels','seatIds','updatedAt'])
         && request.resource.data.keys().hasAll(['seats','labels','seatIds','updatedAt'])
         && request.resource.data.seats is list && request.resource.data.seats.size() >= 1 && request.resource.data.seats.size() <= 60
         && request.resource.data.labels is list && request.resource.data.labels.size() <= 20
         && request.resource.data.seatIds is list && request.resource.data.seatIds.size() == request.resource.data.seats.size()
         && request.resource.data.updatedAt == request.time;
+    }
+    // 今の店（ログインなし）
+    match /sessions/{id} {
+      allow read, delete: if signedIn();
+      allow create, update: if signedIn() && canWriteSession(null);
+    }
+    match /tables/{tableId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && canWriteTable(null, tableId);
       allow delete: if false;
+    }
+    match /shopTimers/{timerId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && canWriteShopTimer(timerId);
+      allow delete: if false;
+    }
+    match /editing/{deviceId} {
+      allow read, delete: if signedIn();
+      allow create, update: if signedIn() && canWriteEditing(deviceId);
+    }
+    match /shopSettings/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && canWriteSettings(id);
+      allow delete: if false;
+    }
+    match /shopLayout/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && canWriteLayout(id);
+      allow delete: if false;
+    }
+    // ログインした店（No.88）。shops/{uid}/ の下に今の店と同じ形で持ち、その店のアカウントだけが読み書きできる
+    match /shops/{shop} {
+      match /sessions/{id} {
+        allow read, delete: if ownsShop(shop);
+        allow create, update: if ownsShop(shop) && canWriteSession(shop);
+      }
+      match /tables/{tableId} {
+        allow read: if ownsShop(shop);
+        allow create, update: if ownsShop(shop) && canWriteTable(shop, tableId);
+        allow delete: if false;
+      }
+      match /shopTimers/{timerId} {
+        allow read: if ownsShop(shop);
+        allow create, update: if ownsShop(shop) && canWriteShopTimer(timerId);
+        allow delete: if false;
+      }
+      match /editing/{deviceId} {
+        allow read, delete: if ownsShop(shop);
+        allow create, update: if ownsShop(shop) && canWriteEditing(deviceId);
+      }
+      match /shopSettings/{id} {
+        allow read: if ownsShop(shop);
+        allow create, update: if ownsShop(shop) && canWriteSettings(id);
+        allow delete: if false;
+      }
+      match /shopLayout/{id} {
+        allow read: if ownsShop(shop);
+        allow create, update: if ownsShop(shop) && canWriteLayout(id);
+        allow delete: if false;
+      }
     }
     match /clockProbes/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;

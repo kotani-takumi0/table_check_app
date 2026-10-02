@@ -2,6 +2,7 @@ import type { User } from 'firebase/auth';
 import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import { now } from './clock';
 import { EDITING_HEARTBEAT_MS, EDITING_STALE_MS, type EditingMark, type EditingStore } from './editing';
+import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
 
 // editing/{端末ID} に、その端末が詳細を開いているお客さんを持つ。端末ID はアプリを開くたびに作る（保存しない）
 export class FirestoreEditingStore implements EditingStore {
@@ -10,7 +11,7 @@ export class FirestoreEditingStore implements EditingStore {
   private current: string | null = null;
   // 消しに行った古い印（同じ文書を何度も消しに行かない）
   private removing = new Set<string>();
-  constructor(private db: Firestore, userReady: Promise<User>, private deviceId: string) {
+  constructor(private db: Firestore, userReady: Promise<User>, private deviceId: string, private base: ShopBase = GUEST_BASE) {
     this.ready = userReady.then(() => true, () => false);
   }
   subscribe(cb: (marks: EditingMark[]) => void): () => void {
@@ -19,7 +20,7 @@ export class FirestoreEditingStore implements EditingStore {
     cb([]);
     void this.ready.then(ready => {
       if (!ready || cancelled) return;
-      unsubscribe = onSnapshot(collection(this.db, 'editing'), snapshot => {
+      unsubscribe = onSnapshot(collection(this.db, shopPath(this.base, 'editing')), snapshot => {
         cb(snapshot.docs.flatMap(item => {
           const data = item.data({ serverTimestamps: 'estimate' });
           const at: unknown = data.updatedAt?.toMillis?.();
@@ -40,7 +41,7 @@ export class FirestoreEditingStore implements EditingStore {
     this.current = sessionId;
     if (this.heartbeat !== null) clearInterval(this.heartbeat);
     this.heartbeat = null;
-    const ref = doc(this.db, 'editing', this.deviceId);
+    const ref = doc(this.db, shopPath(this.base, 'editing'), this.deviceId);
     void this.ready.then(ready => {
       if (!ready || this.current !== sessionId) return;
       // オフラインだと commit が終わらないので待たない

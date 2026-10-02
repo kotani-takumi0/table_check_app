@@ -1,40 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { waitForUser } from '@table-check/core/auth';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
+import { LOGIN_MODE_KEY, parseLoginMode, type LoginMode } from '@table-check/core/auth';
 import { isStoreProject, STORE_PROJECT_ID } from '@table-check/core/firebaseProjects';
-import { FirestoreSessionStore } from '@table-check/core/firestoreStore';
-import { FirestoreShopTimerStore } from '@table-check/core/firestoreShopTimers';
-import { FirestoreEditingStore, newDeviceId } from '@table-check/core/firestoreEditing';
-import { NoEditingStore, type EditingStore } from '@table-check/core/editing';
+import type { ShopStores } from '@table-check/core/firestoreServices';
+import { NoEditingStore } from '@table-check/core/editing';
 import { MemorySessionStore, MemoryShopTimerStore } from '@table-check/core/memoryStores';
-import { FirestoreShopSettingsStore } from '@table-check/core/firestoreShopSettings';
-import { MemoryShopSettingsStore, type ShopSettingsStore } from '@table-check/core/shopSettings';
-import { FirestoreShopLayoutStore } from '@table-check/core/firestoreShopLayout';
-import { MemoryShopLayoutStore, type ShopLayoutStore } from '@table-check/core/shopLayout';
-import { startServerClock } from '@table-check/core/serverClock';
-import type { ShopTimerStore } from '@table-check/core/shopTimers';
-import type { SessionStore } from '@table-check/core/store';
+import { MemoryShopSettingsStore } from '@table-check/core/shopSettings';
+import { MemoryShopLayoutStore } from '@table-check/core/shopLayout';
 import { firebaseConfigFromEnv, initFirebase } from './firebase';
 
 // trial：Firebase につながず、アプリを開いている間だけ端末の中で動いている（開発中の試し）
-export interface Services { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; projectId: string; trial: boolean }
-// 設定が無いとき・店が使っているプロジェクトの設定のときは、Firebase につながずに端末の中だけで動く
-function createServices(): Services {
-  const config = firebaseConfigFromEnv();
-  if (!config || isStoreProject(config.projectId)) {
-    if (config) console.warn(`${STORE_PROJECT_ID} は店が使っているので、つながずにこの端末の中だけで動きます`);
-    return { store: new MemorySessionStore(), shopTimerStore: new MemoryShopTimerStore(), editingStore: new NoEditingStore(), shopSettingsStore: new MemoryShopSettingsStore(), shopLayoutStore: new MemoryShopLayoutStore(), projectId: '', trial: true };
-  }
-  const { db, auth } = initFirebase(config);
-  const userReady = waitForUser(auth);
-  void userReady.then(user => { startServerClock(db, user.uid, AsyncStorage); }, () => { /* The store reports authentication errors. */ });
-  return {
-    store: new FirestoreSessionStore(db, userReady),
-    shopTimerStore: new FirestoreShopTimerStore(db, userReady),
-    editingStore: new FirestoreEditingStore(db, userReady, newDeviceId()),
-    shopSettingsStore: new FirestoreShopSettingsStore(db, userReady),
-    shopLayoutStore: new FirestoreShopLayoutStore(db, userReady),
-    projectId: config.projectId ?? '',
-    trial: false,
-  };
+// account：ログインしている店のメールアドレス（今の店は null）。onLeave：ログアウト・ログインし直す（No.88）
+export interface Services extends ShopStores { trial: boolean; account: string | null; onLeave?(): void }
+export function memoryStores(): ShopStores {
+  return { store: new MemorySessionStore(), shopTimerStore: new MemoryShopTimerStore(), editingStore: new NoEditingStore(), shopSettingsStore: new MemoryShopSettingsStore(), shopLayoutStore: new MemoryShopLayoutStore() };
 }
-export const services = createServices();
+// Firebase の設定があればつなぐ（どの店のデータを使うかは最初の画面で選ぶ）。
+// 店が使っているプロジェクトのときは、「ログインせずに使う」を端末の中だけで動かす（ログインした店 shops/{uid}/ は店のデータと別なので、つないで試せる）
+function connect(): { db: Firestore; auth: Auth; guestOnDevice: boolean } | null {
+  const config = firebaseConfigFromEnv();
+  if (!config) return null;
+  const guestOnDevice = isStoreProject(config.projectId);
+  if (guestOnDevice) console.warn(`${STORE_PROJECT_ID} は店が使っているので、「ログインせずに使う」はつながずにこの端末の中だけで動きます`);
+  return { ...initFirebase(config), guestOnDevice };
+}
+export const firebase = connect();
+export async function readMode(): Promise<LoginMode | null> {
+  try { return parseLoginMode(await AsyncStorage.getItem(LOGIN_MODE_KEY)); } catch { return null; }
+}
+export function writeMode(mode: LoginMode | null): void {
+  void (mode ? AsyncStorage.setItem(LOGIN_MODE_KEY, mode) : AsyncStorage.removeItem(LOGIN_MODE_KEY)).catch(() => undefined);
+}

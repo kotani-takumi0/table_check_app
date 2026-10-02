@@ -27,7 +27,8 @@ import { editingSessionIds, type EditingMark, type EditingStore } from '@table-c
 import { now } from '@table-check/core/clock';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
-export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial = false }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; trial?: boolean }) {
+// account：ログインしている店のメールアドレス（今の店は null）。onLeave：ログアウト・ログインし直す（最初の画面に戻る。No.88）
+export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial = false, account = null, onLeave }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; trial?: boolean; account?: string | null; onLeave?(): void }) {
   // 店全体の設定（時間のルール・飲み放題の区分・コースなど）。全端末で共有する
   const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
@@ -198,7 +199,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} settings={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} />)}
       </section>}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
-    {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} inert={modal} />}
+    {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} inert={modal} />}
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
