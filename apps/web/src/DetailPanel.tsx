@@ -9,6 +9,7 @@ import { menuOf } from '@table-check/core/courseMenus';
 interface Props {
   session: Session;
   time: number;
+  othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
@@ -37,7 +38,7 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
     {error && <span className="time-error" role="alert">{order} の順になる時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus }: Props) {
+export function DetailPanel({ session, time, othersEditing = false, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -79,6 +80,7 @@ export function DetailPanel({ session, time, onClose, onNext, onSeat, onBack, on
       <div className={`panel-head ${alert.level !== 'none' ? `alert-${alert.level}` : ''}`}>
         <h2 id="panel-title" className="panel-title"><span className="panel-seat">{session.tableIds.join('・')}番</span> <span className="panel-status">{STATUS_LABEL[display]}</span></h2>
         <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</span>
+        {othersEditing && <p className="panel-editing" role="status">ほかの端末でもこの卓を開いています。操作がぶつからないよう声をかけてください</p>}
         {alert.reason && <span className="badge">{REASON_LABEL[alert.reason]}</span>}
       </div>
       <div className="panel-actions">

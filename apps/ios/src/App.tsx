@@ -10,6 +10,7 @@ import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { SHOP_TIMERS, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import { worstSyncState, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
+import { editingSessionIds, type EditingMark } from '@table-check/core/editing';
 import { services, type Services } from './services';
 import { COLORS, useScreen } from './theme';
 import { feedback } from './feedback';
@@ -41,7 +42,7 @@ export default function App() {
 }
 
 // Web の App と同じ画面：フロア図・ヘッダー・通知と、案内・詳細・トイレ・全卓消去のシート
-function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
+function Hall({ services: { store, shopTimerStore, editingStore } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
   const { sessions, seat, next, back, retime, pay, changeGuests, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID);
@@ -78,6 +79,13 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   const seatingTaken = seatingOccupant !== undefined && seatingOccupant.status !== 'exited';
   useEffect(() => { if (seatingTaken) setSeating(null); }, [seatingTaken]);
   const opened = sessions.find(s => s.id === openId && isVisible(s, time));
+  // 編集中の印（No.72）：詳細を開いているお客さんをほかの端末に知らせ、ほかの端末が開いている卓に「編集中」を出す
+  const [editingMarks, setEditingMarks] = useState<EditingMark[]>([]);
+  useEffect(() => editingStore.subscribe(setEditingMarks), [editingStore]);
+  const editingIds = editingSessionIds(editingMarks, time);
+  const openedId = opened?.id ?? null;
+  useEffect(() => { editingStore.setEditing(openedId); }, [editingStore, openedId]);
+  useEffect(() => () => editingStore.setEditing(null), [editingStore]);
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
@@ -110,7 +118,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
     content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} onClose={closeSheet} />;
   } else if (opened) {
-    content = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
+    content = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
   }
   // トイレ・全卓消去は iOS 26 のアラートのように、押したボタンのそばからポップオーバーで出す
@@ -129,7 +137,7 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
     <View style={[styles.hall, mini && styles.miniHall]}>
       {/* フロアを画面いっぱいに広げ、上の段の卓の上端をツールバーのガラスの下に少しもぐらせる（卓番は隠れない） */}
       <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
-        <Floor sessions={sessions} time={time} portrait={portrait} mini={mini} picking={Boolean(pick)}
+        <Floor sessions={sessions} time={time} editingIds={editingIds} portrait={portrait} mini={mini} picking={Boolean(pick)}
           onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
           toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
       </View>
