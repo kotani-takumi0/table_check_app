@@ -26,10 +26,13 @@ describe('コースを作る・直す（No.89）', () => {
     expect(moveDish(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c']);
   });
   it('保存は同じ id を置き換え、無ければ最後に足す（前後の空白は落とす）', () => {
-    expect(putCourse(DEFAULT_COURSE_MENUS, { ...casual, name: ' 新カジュアル ' })[1].name).toBe('新カジュアル');
+    expect(putCourse(DEFAULT_COURSE_MENUS, { ...casual, name: ' 新カジュアル ' })?.[1].name).toBe('新カジュアル');
     const added = putCourse(DEFAULT_COURSE_MENUS, { ...casual, id: 'menu_x', dishes: [' 前菜 '] });
     expect(added).toHaveLength(DEFAULT_COURSE_MENUS.length + 1);
-    expect(added.at(-1)?.dishes).toEqual(['前菜']);
+    expect(added?.at(-1)?.dishes).toEqual(['前菜']);
+    const full = Array.from({ length: 20 }, (_, i) => ({ ...casual, id: `menu_${i}` }));
+    expect(putCourse(full, { ...casual, id: 'menu_new' })).toBeNull();
+    expect(putCourse(full, { ...casual, id: 'menu_3', name: '直した' })?.[3].name).toBe('直した');
   });
   it('案内中の卓が使っているコースと卓番を返す（通常の卓・未選択は数えない）', () => {
     const use = coursesInUse([advance(newSession('a', '12', 0, 4, 'drinks', 'casual'), 0), newSession('b', '14', 0, 2, 'drinks'), newSession('c', '21', 0)], 0, settings);

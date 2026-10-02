@@ -4,11 +4,13 @@ import { courseMinutes, moveDish, setOwnMinutes, stepCourseMinutes } from '@tabl
 import { COURSE_LIMITS, courseProblems, type ShopSettings } from '@table-check/core/shopSettings';
 
 // コースを作る・直す画面（No.89。設定 → コース から開く）。下書きを直して「保存して使う」で全端末に反映する。
-// 案内中の卓が使っているコース（usedBy）は消せない（ユーザー決定）
+// 案内中の卓が使っているコース（usedBy）は消せず、料理の順番を変えたり料理を消したりもできない（出した品数がずれるので。名前を直す・最後に足すのはできる）（ユーザー決定）
 export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete, onClose, inert }: {
-  course: CourseMenu; isNew: boolean; settings: ShopSettings; usedBy: string[]; onSave(course: CourseMenu): void; onDelete(): void; onClose(): void; inert?: boolean;
+  course: CourseMenu; isNew: boolean; settings: ShopSettings; usedBy: string[]; onSave(course: CourseMenu): boolean; onDelete(): void; onClose(): void; inert?: boolean;
 }) {
   const [draft, setDraft] = useState(course);
+  const [saveError, setSaveError] = useState('');
+  const inUse = usedBy.length > 0 && !isNew;
   const problems = courseProblems(draft);
   const changed = isNew || JSON.stringify(draft) !== JSON.stringify(course);
   const own = draft.lastOrderMin !== null || draft.seatLimitMin !== null;
@@ -57,18 +59,18 @@ export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete
         {draft.dishes.map((dish, i) => <li key={i} className="course-dish">
           <span className="course-dish-number" aria-hidden="true">{i + 1}</span>
           <input className="field-select" aria-label={`${i + 1}品目`} maxLength={COURSE_LIMITS.dish} placeholder="料理の名前" value={dish} onChange={event => setDish(i, event.target.value)} />
-          <button className="panel-button small" aria-label={`${i + 1}品目を上へ`} disabled={i === 0} onClick={() => setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, -1) }))}>↑</button>
-          <button className="panel-button small" aria-label={`${i + 1}品目を下へ`} disabled={i === draft.dishes.length - 1} onClick={() => setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, 1) }))}>↓</button>
-          <button className="panel-button small danger" aria-label={`${i + 1}品目を消す`} onClick={() => setDraft(d => ({ ...d, dishes: d.dishes.filter((_, j) => j !== i) }))}>消す</button>
+          <button className="panel-button small" aria-label={`${i + 1}品目を上へ`} disabled={inUse || i === 0} onClick={() => setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, -1) }))}>↑</button>
+          <button className="panel-button small" aria-label={`${i + 1}品目を下へ`} disabled={inUse || i === draft.dishes.length - 1} onClick={() => setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, 1) }))}>↓</button>
+          <button className="panel-button small danger" aria-label={`${i + 1}品目を消す`} disabled={inUse} onClick={() => setDraft(d => ({ ...d, dishes: d.dishes.filter((_, j) => j !== i) }))}>消す</button>
         </li>)}
       </ol>
       {draft.dishes.length < COURSE_LIMITS.dishes && <button className="panel-button add-plan" onClick={() => setDraft(d => ({ ...d, dishes: [...d.dishes, ''] }))}>＋ 料理を足す</button>}
     </div>
     <div className="layout-foot">
-      <p className="layout-message" role="status">{problems.length ? `直すところ：${problems.join('／')}` : usedBy.length && !isNew ? `${usedBy.join('・')}番が使っているので、消せません（直すのはできます）` : changed ? '保存すると、すべての端末のコースが変わります' : ''}</p>
-      {!isNew && <button className="panel-button danger" disabled={usedBy.length > 0} onClick={() => { onDelete(); onClose(); }}>このコースを消す</button>}
+      <p className="layout-message" role="status">{saveError || (problems.length ? `直すところ：${problems.join('／')}` : inUse ? `${usedBy.join('・')}番が使っているので、コースを消したり料理の順番を変えたりはできません（名前を直す・最後に足すのはできます）` : changed ? '保存すると、すべての端末のコースが変わります' : '')}</p>
+      {!isNew && <button className="panel-button danger" disabled={inUse} onClick={() => { onDelete(); onClose(); }}>このコースを消す</button>}
       <button className="panel-button" onClick={onClose}>{changed ? '保存せずにもどる' : 'もどる'}</button>
-      <button className="panel-button primary" disabled={!changed || problems.length > 0} onClick={() => { onSave(draft); onClose(); }}>保存して使う</button>
+      <button className="panel-button primary" disabled={!changed || problems.length > 0} onClick={() => { if (onSave(draft)) onClose(); else setSaveError(`コースは${COURSE_LIMITS.menus}個までです。ほかのコースを消してから保存してください`); }}>保存して使う</button>
     </div>
   </section>;
 }

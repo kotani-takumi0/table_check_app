@@ -9,17 +9,19 @@ import { feedback } from './feedback';
 import { PanelButton } from './ui';
 
 // コースを作る・直す画面（Web の CourseEditor と同じ。No.89）。下書きを直して「保存して使う」で全端末に反映する。
-// 案内中の卓が使っているコース（usedBy）は消せない
+// 案内中の卓が使っているコース（usedBy）は消せず、料理の順番を変えたり料理を消したりもできない（出した品数がずれるので。名前を直す・最後に足すのはできる）
 export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete, onClose, top }: {
-  course: CourseMenu; isNew: boolean; settings: ShopSettings; usedBy: string[]; onSave(course: CourseMenu): void; onDelete(): void; onClose(): void; top: number;
+  course: CourseMenu; isNew: boolean; settings: ShopSettings; usedBy: string[]; onSave(course: CourseMenu): boolean; onDelete(): void; onClose(): void; top: number;
 }) {
   const [draft, setDraft] = useState(course);
+  const [saveError, setSaveError] = useState('');
+  const inUse = usedBy.length > 0 && !isNew;
   const problems = courseProblems(draft);
   const changed = isNew || JSON.stringify(draft) !== JSON.stringify(course);
   const own = draft.lastOrderMin !== null || draft.seatLimitMin !== null;
   const minutes = courseMinutes(draft, settings);
   const setDish = (index: number, dish: string) => setDraft(d => ({ ...d, dishes: d.dishes.map((x, i) => i === index ? dish : x) }));
-  const status = problems.length ? `直すところ：${problems.join('／')}` : usedBy.length && !isNew ? `${usedBy.join('・')}番が使っているので、消せません（直すのはできます）` : changed ? '保存すると、すべての端末のコースが変わります' : '';
+  const status = saveError || (problems.length ? `直すところ：${problems.join('／')}` : inUse ? `${usedBy.join('・')}番が使っているので、コースを消したり料理の順番を変えたりはできません（名前を直す・最後に足すのはできます）` : changed ? '保存すると、すべての端末のコースが変わります' : '');
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title} accessibilityRole="header">{isNew ? 'コースを足す' : `${priceLabel(course)} ${course.short}を直す`}</Text>
@@ -65,18 +67,18 @@ export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete
             <Text style={[styles.dishNumber, TABULAR]}>{i + 1}</Text>
             <TextInput accessibilityLabel={`${i + 1}品目`} style={[styles.input, styles.dishInput]} maxLength={COURSE_LIMITS.dish} placeholder="料理の名前" placeholderTextColor={COLORS.muted}
               value={dish} onChangeText={text => setDish(i, text)} />
-            <PanelButton label="↑" disabled={i === 0} onPress={() => { feedback.tap(); setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, -1) })); }} style={styles.small} />
-            <PanelButton label="↓" disabled={i === draft.dishes.length - 1} onPress={() => { feedback.tap(); setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, 1) })); }} style={styles.small} />
-            <PanelButton label="消す" tone="danger" onPress={() => { feedback.warn(); setDraft(d => ({ ...d, dishes: d.dishes.filter((_, j) => j !== i) })); }} style={styles.remove} />
+            <PanelButton label="↑" disabled={inUse || i === 0} onPress={() => { feedback.tap(); setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, -1) })); }} style={styles.small} />
+            <PanelButton label="↓" disabled={inUse || i === draft.dishes.length - 1} onPress={() => { feedback.tap(); setDraft(d => ({ ...d, dishes: moveDish(d.dishes, i, 1) })); }} style={styles.small} />
+            <PanelButton label="消す" tone="danger" disabled={inUse} onPress={() => { feedback.warn(); setDraft(d => ({ ...d, dishes: d.dishes.filter((_, j) => j !== i) })); }} style={styles.remove} />
           </View>
         ))}
         {draft.dishes.length < COURSE_LIMITS.dishes && <PanelButton label="＋ 料理を足す" onPress={() => { feedback.tap(); setDraft(d => ({ ...d, dishes: [...d.dishes, ''] })); }} style={styles.add} />}
       </Glass>
       <Text style={styles.status} accessibilityLiveRegion="polite">{status}</Text>
       <View style={styles.foot}>
-        {!isNew && <PanelButton label="このコースを消す" tone="danger" disabled={usedBy.length > 0} onPress={() => { feedback.warn(); onDelete(); onClose(); }} style={styles.footButton} />}
+        {!isNew && <PanelButton label="このコースを消す" tone="danger" disabled={inUse} onPress={() => { feedback.warn(); onDelete(); onClose(); }} style={styles.footButton} />}
         <PanelButton label={changed ? '保存せずにもどる' : 'もどる'} onPress={() => { feedback.tap(); onClose(); }} style={styles.footButton} />
-        <PanelButton label="保存して使う" tone="primary" disabled={!changed || problems.length > 0} onPress={() => { feedback.done(); onSave(draft); onClose(); }} style={styles.footButton} />
+        <PanelButton label="保存して使う" tone="primary" disabled={!changed || problems.length > 0} onPress={() => { if (onSave(draft)) { feedback.done(); onClose(); } else { feedback.warn(); setSaveError(`コースは${COURSE_LIMITS.menus}個までです。ほかのコースを消してから保存してください`); } }} style={styles.footButton} />
       </View>
     </ScrollView>
   );

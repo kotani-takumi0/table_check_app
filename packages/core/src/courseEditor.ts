@@ -1,6 +1,6 @@
 import type { CourseMenu } from './courseMenus';
 import { isVisible, type Session } from './domain';
-import { newCourseMenuId, stepMinutes, type ShopSettings } from './shopSettings';
+import { COURSE_LIMITS, newCourseMenuId, stepMinutes, type ShopSettings } from './shopSettings';
 
 // コースを作る・直す画面（No.89）の中身。Web と iOS で同じものを使い、見た目だけそれぞれで作る
 export function newCourse(menus: CourseMenu[], now: number): CourseMenu {
@@ -27,10 +27,12 @@ export function moveDish(dishes: string[], index: number, direction: 1 | -1): st
   [next[index], next[to]] = [next[to], next[index]];
   return next;
 }
-// 保存する形に整える（前後の空白を落とす）。同じ id があれば置き換え、無ければ最後に足す
-export function putCourse(menus: CourseMenu[], menu: CourseMenu): CourseMenu[] {
+// 保存する形に整える（前後の空白を落とす）。同じ id があれば置き換え、無ければ最後に足す。
+// 足すときにほかの端末で上限まで増えていたら null（下書きを残して知らせる）
+export function putCourse(menus: CourseMenu[], menu: CourseMenu): CourseMenu[] | null {
   const tidy = { ...menu, name: menu.name.trim(), short: menu.short.trim(), dishes: menu.dishes.map(dish => dish.trim()) };
-  return menus.some(m => m.id === menu.id) ? menus.map(m => m.id === menu.id ? tidy : m) : [...menus, tidy];
+  if (menus.some(m => m.id === menu.id)) return menus.map(m => m.id === menu.id ? tidy : m);
+  return menus.length < COURSE_LIMITS.menus ? [...menus, tidy] : null;
 }
 // 案内中の卓が使っているコース（コースの id → 卓番）。使っている間は消せない（No.89 ユーザー決定）
 export function coursesInUse(sessions: Session[], now: number, settings: ShopSettings): Map<string, string[]> {

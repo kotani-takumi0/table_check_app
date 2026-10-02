@@ -179,7 +179,11 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
         }} onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
       : screen === 'course' && editingCourse ? <CourseEditor key={editingCourse.course.id} course={editingCourse.course} isNew={editingCourse.isNew} settings={shopSettings}
           usedBy={coursesInUse(sessions, time, shopSettings).get(editingCourse.course.id) ?? []}
-          onSave={course => { void shopSettingsStore.update({ courseMenus: putCourse(shopSettings.courseMenus, course) }); }}
+          onSave={course => {
+            const courseMenus = putCourse(shopSettings.courseMenus, course);
+            if (courseMenus) void shopSettingsStore.update({ courseMenus });
+            return courseMenus !== null;
+          }}
           onDelete={() => { void shopSettingsStore.update({ courseMenus: shopSettings.courseMenus.filter(menu => menu.id !== editingCourse.course.id) }); }}
           onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
       : screen === 'settings' || screen === 'course' ? <Settings settings={shopSettings} onChange={change => { void shopSettingsStore.update(change); }} onOpenLayout={() => selectScreen('layout')}
