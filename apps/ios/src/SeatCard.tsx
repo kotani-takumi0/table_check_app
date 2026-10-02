@@ -14,12 +14,13 @@ interface Props {
   onSeat(tableId: string): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;   // at：押した場所（詳細をそのそばに出す）
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている（L.O.・お席の時間の警告と帯を出さない）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
 }
 // Web の SeatCard と同じ出し分け。テーブルは文字盤と四隅、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, frame, onSeat, onOpen, mini, picking }: Props) {
+export function SeatCard({ seat, session, time, editing = false, timeLimitOff, frame, onSeat, onOpen, mini, picking }: Props) {
   const { width, height } = frame;
   if (!session) {
     // 空席：点線の枠（テーブルは角丸の四角、カウンターは円）
@@ -38,9 +39,9 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
       </Pressable>
     );
   }
-  const alert = alertOf(session, time);
+  const alert = alertOf(session, time, timeLimitOff);
   const dial = dialOf(session, time);
-  const remaining = remainingOf(session, time);
+  const remaining = remainingOf(session, time, timeLimitOff);
   // コースの「開始待ち」「ファーストドリンク提供済み」は通常と名前を変える（色は変えない）
   const display = displayOf(session.status, session.course);
   const tone = cardTone(alert.level);
@@ -76,7 +77,7 @@ export function SeatCard({ seat, session, time, editing = false, frame, onSeat, 
       <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]} numberOfLines={1}>{REASON_LABEL[alert.reason]}</Text>
     </View>
     : <Text style={[styles.status, { color: tone.text }]} numberOfLines={1}>{STATUS_SHORT[display]}</Text>;
-  const dialView = (size: number, textScale?: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter'} textScale={textScale} />;
+  const dialView = (size: number, textScale?: number) => <Dial dial={dial} label={meter} size={Math.max(0, size)} face={seat.kind === 'counter' && alert.level === 'none' ? COLORS.surface : tone.face} arc={tone.arc} band={seat.kind !== 'counter' && !timeLimitOff} textScale={textScale} />;
   const faded = exited && styles.exited;
   // 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札と、点線の枠を重ねる
   const editingTag = editing ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.editingFrame, seat.kind === 'counter' && !mini && styles.editingCounter]}>

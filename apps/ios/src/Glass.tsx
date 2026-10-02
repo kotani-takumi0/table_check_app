@@ -39,9 +39,9 @@ export function useAppear(durationMs: number, easing: (t: number) => number = Ea
 const EASE_OUT = Easing.out(Easing.ease);
 // Liquid Glass は iOS 26 以降（ベータの一部は API が無く落ちるので、実行時にも確かめる）
 export const LIQUID_GLASS = isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
-// 内容の上に浮かぶ操作の層（ツールバー・一覧・ポップオーバー・通知）だけに使うガラスの面。卓カードには使わない。
+// 内容の上に浮かぶ操作の層（ツールバー・メニュー・ポップオーバー・通知・設定）だけに使うガラスの面。卓カードには使わない。
 // iOS 26 は本物の Liquid Glass（regular）。文字の少ないツールバーは色付けせずガラスに任せる。
-// 文字の多い面（ポップオーバー・通知・一覧）は、読みやすいよう tint（地の白の濃さ 0〜1）を付けて濃くする（Web と同じ濃さ）。
+// 文字の多い面（ポップオーバー・通知・メニュー・設定）は、読みやすいよう tint（地の白の濃さ 0〜1）を付けて濃くする（Web と同じ濃さ）。
 // interactive にすると、触ったときにガラスが反応する。ガラス全体が1つの押せるものとして触れた判定を受け、中の別のボタンに届かなくなるので、
 // 中に複数のボタンがあるまとまり（ツールバーなど）には付けない。
 // appear（秒）を付けると、ガラスの面を 'none' からその長さで出す。ガラスは自分や親の opacity を 0 にすると描かれないので、

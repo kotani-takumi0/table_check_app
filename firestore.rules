@@ -82,6 +82,16 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow delete: if signedIn();
     }
+    // 店全体の設定（packages/core/src/shopSettings.ts）。今は「時間制限なし」だけ
+    match /shopSettings/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && id == 'main'
+        && request.resource.data.keys().hasOnly(['timeLimitOff','updatedAt'])
+        && request.resource.data.keys().hasAll(['timeLimitOff','updatedAt'])
+        && request.resource.data.timeLimitOff is bool
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /clockProbes/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }

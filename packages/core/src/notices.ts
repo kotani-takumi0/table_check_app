@@ -9,8 +9,9 @@ export type Notice =
 export const NOTICE_ACTION: Record<Notice['kind'], string> = { last_order: 'L.O.確認済みにする', shop_timer: '済にする' };
 // L.O. の通知（数え始めが古い順）のあとに、トイレの通知を並べる
 // 数え始めの時刻（案内・ファーストドリンク）を直したら、閉じた通知も別の通知として出し直す
-export function noticesOf(sessions: Session[], shopTimers: ShopTimerDone, now: number): Notice[] {
-  const lastOrder = lastOrderDue(sessions, now).map((session): Notice => ({
+// 店全体で時間制限を切っているときは L.O. の通知を出さない
+export function noticesOf(sessions: Session[], shopTimers: ShopTimerDone, now: number, timeLimitOff = false): Notice[] {
+  const lastOrder = lastOrderDue(sessions, now, timeLimitOff).map((session): Notice => ({
     key: `lo:${session.id}:${startOf(session)}`, tone: 'warning', message: `${session.tableIds.join('・')}卓 ラストオーダーの時間です`, kind: 'last_order', session,
   }));
   const shop = SHOP_TIMERS.flatMap((timer): Notice[] => {

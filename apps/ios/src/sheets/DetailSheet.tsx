@@ -15,6 +15,7 @@ interface Props {
   session: Session;
   time: number;
   othersEditing?: boolean;   // ほかの端末でもこの卓の詳細を開いている（No.72）
+  timeLimitOff: boolean;   // 店全体で時間制限を切っている
   onClose(): void;
   onNext(session: Session): void;
   onSeat(tableId: string): void;  // 退店済の卓に次のお客さんを案内する
@@ -50,7 +51,7 @@ function TimeRow({ label, value, order, onSave }: { label: string; value: number
   );
 }
 // Web の DetailPanel と同じ中身
-export function DetailSheet({ session, time, othersEditing = false, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
+export function DetailSheet({ session, time, othersEditing = false, timeLimitOff, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const [changing, setChanging] = useState(false);
   const [showDishes, setShowDishes] = useState(false);
   const timer = timerOf(session, time);
@@ -65,8 +66,8 @@ export function DetailSheet({ session, time, othersEditing = false, onClose, onN
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
   };
-  const alert = alertOf(session, time);
-  const remaining = remainingOf(session, time);
+  const alert = alertOf(session, time, timeLimitOff);
+  const remaining = remainingOf(session, time, timeLimitOff);
   const paid = session.paidAt !== null;
   return <>
     {/* No.71：いちばん見てほしいのは「次にやること」1つ。大きいボタンはそれだけにし、戻す・お会計は小さく、ほかは「変更する」にしまう */}
