@@ -170,7 +170,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
         onSave={async next => {
           const missing = [...new Set(sessions.filter(s => isVisible(s, now(), shopSettings)).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
           if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
-          await shopLayoutStore.save(next);
+          await shopLayoutStore.save(next, shopSettings);
         }} onClose={() => selectScreen('settings')} inert={modal || menuOpen} />
       : screen === 'settings' ? <Settings settings={shopSettings} onChange={change => { void shopSettingsStore.update(change); }} onOpenLayout={() => selectScreen('layout')} inert={modal || menuOpen} />
       : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>

@@ -96,6 +96,7 @@ service cloud.firestore {
     }
     // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）。
     // アプリは変えた項目だけを merge で書くので、無い項目は既定値として確かめる（範囲は MINUTE_SETTINGS と同じ）
+    // 前の版のアプリは文書ごと置き換える（timeLimitOff だけを書く）。保存済みの項目を消す書き込みは拒否して、店の設定を守る
     match /shopSettings/{id} {
       allow read: if signedIn();
       allow create, update: if signedIn() && id == 'main'
@@ -108,7 +109,8 @@ service cloud.firestore {
         && request.resource.data.get('lastOrderMin', 90) < request.resource.data.get('seatLimitMin', 120)
         && isMinutesIn(request.resource.data.get('exitedKeepMin', 5), 1, 30)
         && request.resource.data.get('shopName', '') is string && request.resource.data.get('shopName', '').size() <= 30
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time
+        && (resource == null || request.resource.data.keys().hasAll(resource.data.keys()));
       allow delete: if false;
     }
     // 席の配置（packages/core/src/shopLayout.ts）。中身の細かい確かめはアプリが保存前に行う。seatIds は卓番だけの一覧

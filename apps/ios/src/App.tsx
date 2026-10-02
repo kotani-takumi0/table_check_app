@@ -160,7 +160,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
           onSave={async next => {
             const missing = [...new Set(sessions.filter(s => isVisible(s, now(), shopSettings)).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
             if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
-            await shopLayoutStore.save(next);
+            await shopLayoutStore.save(next, shopSettings);
           }} onClose={() => selectScreen('settings')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} portrait={portrait} mini={mini} />
         : screen === 'settings'
         ? <Settings settings={shopSettings} onChange={change => { void shopSettingsStore.update(change); }} onOpenLayout={() => selectScreen('layout')} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />

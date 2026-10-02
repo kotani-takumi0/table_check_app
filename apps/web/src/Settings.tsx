@@ -56,7 +56,7 @@ function MinutesRow({ settings, field, label, help, onChange }: { settings: Shop
     </div>
   </div>;
 }
-// 店名：入力を終えたら（ほかを押す・Enter）保存する。打っている途中では保存しない
+// 店名：入力を終えたら（ほかを押す・Enter）保存する。打っている途中・かな漢字変換を確定する Enter では保存しない
 function ShopNameRow({ name, onSave }: { name: string; onSave(name: string): void }) {
   const [draft, setDraft] = useState(name);
   const [editing, setEditing] = useState(false);
@@ -69,6 +69,6 @@ function ShopNameRow({ name, onSave }: { name: string; onSave(name: string): voi
     </div>
     <input id="shop-name" className="field-select shop-name" maxLength={SHOP_NAME_MAX} placeholder="店の名前" value={value}
       onFocus={() => { setDraft(name); setEditing(true); }} onChange={event => setDraft(event.target.value)} onBlur={save}
-      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
+      onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) event.currentTarget.blur(); }} />
   </div>;
 }

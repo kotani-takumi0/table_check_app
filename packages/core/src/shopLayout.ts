@@ -1,11 +1,12 @@
 import { GRID, SEATS, type Seat, type SeatKind } from './layout';
-import { isVisible, type Session } from './domain';
+import { isVisible, RULES, type Rules, type Session } from './domain';
 import { resolveSessions } from './firestoreMapping';
 import type { SyncState } from './store';
 
 // 卓とセッションの参照が一致し、退店後の表示時間も含めてお客さんが見えている卓
-export function occupiedSeatIds(tables: Record<string, string | null>, sessions: Session[], now: number): Set<string> {
-  return new Set(resolveSessions(tables, sessions).filter(session => isVisible(session, now)).flatMap(session => session.tableIds));
+// rules：退店済みを残す時間（No.14）を店の設定に合わせる
+export function occupiedSeatIds(tables: Record<string, string | null>, sessions: Session[], now: number, rules: Rules = RULES): Set<string> {
+  return new Set(resolveSessions(tables, sessions).filter(session => isVisible(session, now, rules)).flatMap(session => session.tableIds));
 }
 
 // 席の配置（No.75）。お店の人が「設定 → 席の配置」でマス目にブロックを置いて作り、全端末で共有する（Firestore の shopLayout/main）。
@@ -84,7 +85,8 @@ export function rotateLabelClockwise(label: LayoutLabel): LayoutLabel {
 }
 export interface ShopLayoutStore {
   subscribe(cb: (layout: ShopLayout) => void): () => void;
-  save(layout: ShopLayout): Promise<void>;
+  // rules：お客さんがいる卓を確かめるときの店の時間のルール（退店済みを残す時間）
+  save(layout: ShopLayout, rules?: Rules): Promise<void>;
 }
 // Firebase につながずに試すときの保存先。アプリを開いている間だけ覚える
 export class MemoryShopLayoutStore implements ShopLayoutStore {
