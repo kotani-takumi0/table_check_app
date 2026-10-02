@@ -1,4 +1,4 @@
-import { mergeShopTimerDone, parseDoneAt, SHOP_TIMERS, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
+import { DEFAULT_SHOP_TIMERS, mergeShopTimerDone, parseDoneAt, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
 
 // タイマーごとに別のキーへ保存し、別タブが別のタイマーを済にしても上書きし合わない
 const PREFIX = 'table-check:shopTimer:';
@@ -8,10 +8,18 @@ export class LocalShopTimerStore implements ShopTimerStore {
   private current: ShopTimerDone = {};
   private read(): ShopTimerDone {
     const done: ShopTimerDone = {};
-    for (const timer of SHOP_TIMERS) {
+    // 店が設定で足したタイマー（No.91）も読むよう、保存されているキーを探す（最初の2つは必ず見る）
+    const ids = new Set(DEFAULT_SHOP_TIMERS.map(timer => timer.id));
+    try {
+      for (let i = 0; i < (window.localStorage.length ?? 0); i++) {
+        const key = window.localStorage.key(i);
+        if (key?.startsWith(PREFIX)) ids.add(key.slice(PREFIX.length));
+      }
+    } catch { /* 探せないときは最初の2つだけ読む */ }
+    for (const id of ids) {
       try {
-        const at = parseDoneAt(window.localStorage.getItem(PREFIX + timer.id));
-        if (at !== undefined) done[timer.id] = at;
+        const at = parseDoneAt(window.localStorage.getItem(PREFIX + id));
+        if (at !== undefined) done[id] = at;
       } catch { /* 読めないタイマーは未実施として扱う */ }
     }
     return done;

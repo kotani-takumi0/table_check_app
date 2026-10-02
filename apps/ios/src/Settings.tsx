@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { DrinkPlan } from '@table-check/core/domain';
 import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
+import { newShopTimerId, SHOP_TIMER_LIMITS, stepInterval, type ShopTimer } from '@table-check/core/shopTimers';
 import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 import { COLORS, TABULAR } from './theme';
 import { Glass } from './Glass';
@@ -32,6 +33,10 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, top }
         <Text style={styles.groupTitle}>コース</Text>
         <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
         <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
+      </Glass>
+      <Glass tint={0.84} style={styles.group}>
+        <Text style={styles.groupTitle}>店のタイマー</Text>
+        <ShopTimerRows timers={settings.shopTimers} onChange={shopTimers => onChange({ shopTimers })} />
       </Glass>
       <Glass tint={0.84} style={styles.group}>
         <Text style={styles.groupTitle}>お店</Text>
@@ -122,6 +127,36 @@ function CourseRows({ menus, onEdit }: { menus: CourseMenu[]; onEdit(id: string 
     {menus.length < COURSE_LIMITS.menus && <PanelButton label="＋ コースを足す" onPress={() => { feedback.tap(); onEdit(null); }} style={styles.add} />}
   </>;
 }
+// 店のタイマー（Web の ShopTimerRows と同じ。No.91）：決まった間隔でやる作業。ツールバーに並べ、時間になったら知らせる
+function ShopTimerRows({ timers, onChange }: { timers: ShopTimer[]; onChange(timers: ShopTimer[]): void }) {
+  const put = (timer: ShopTimer) => onChange(timers.map(t => t.id === timer.id ? timer : t));
+  return <>
+    <Text style={styles.help}>ツールバーにアイコンと残り時間を出し、時間になったら知らせます。{SHOP_TIMER_LIMITS.timers}つまで。</Text>
+    {timers.map((timer, i) => {
+      const less = stepInterval(timer, -1), more = stepInterval(timer, 1);
+      return (
+        <View key={timer.id} style={styles.timer}>
+          <View style={styles.row}>
+            <SavedInput label={`タイマー${i + 1}のアイコン`} value={timer.icon} maxLength={SHOP_TIMER_LIMITS.icon} placeholder="🧹" style={styles.iconInput}
+              onSave={icon => { if (icon !== '') put({ ...timer, icon }); }} />
+            <SavedInput label={`タイマー${i + 1}の名前`} value={timer.label} maxLength={SHOP_TIMER_LIMITS.label} placeholder="作業の名前" style={styles.planInput}
+              onSave={label => { if (label !== '') put({ ...timer, label }); }} />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.stepper} accessibilityLabel={`${timer.label}の間隔`}>
+              <PanelButton label="−" disabled={!less} onPress={() => { if (less) { feedback.tap(); put(less); } }} style={styles.stepButton} />
+              <Text style={[styles.interval, TABULAR]}>{timer.intervalMin}分ごと</Text>
+              <PanelButton label="＋" disabled={!more} onPress={() => { if (more) { feedback.tap(); put(more); } }} style={styles.stepButton} />
+            </View>
+            <View style={styles.rowText} />
+            <PanelButton label="消す" tone="danger" onPress={() => { feedback.warn(); onChange(timers.filter(t => t.id !== timer.id)); }} style={styles.remove} />
+          </View>
+        </View>
+      );
+    })}
+    {timers.length < SHOP_TIMER_LIMITS.timers && <PanelButton label="＋ タイマーを足す" onPress={() => { feedback.tap(); onChange([...timers, { id: newShopTimerId(timers, Date.now()), label: '新しいタイマー', icon: '⏰', intervalMin: 60 }]); }} style={styles.add} />}
+  </>;
+}
 // 文字の設定（Web の SavedInput と同じ）：入力を終えたら保存する。打っている途中では保存しない
 function SavedInput({ label, value, maxLength, placeholder, onSave, style }: { label: string; value: string; maxLength: number; placeholder: string; onSave(value: string): void; style: object }) {
   const [draft, setDraft] = useState(value);
@@ -148,6 +183,9 @@ const styles = StyleSheet.create({
   planInput: { flex: 1, minHeight: 44, paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.bg, fontSize: 16, color: COLORS.text },
   remove: { minWidth: 72, minHeight: 44 },
   add: { marginTop: 4, minHeight: 44 },
+  timer: { paddingVertical: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.line },
+  iconInput: { width: 56, minHeight: 44, textAlign: 'center', borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.bg, fontSize: 20, color: COLORS.text },
+  interval: { width: 96, textAlign: 'center', fontSize: 16, fontWeight: '700', color: COLORS.text },
   courseHead: { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   note: { marginTop: 8, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line, fontSize: 13, lineHeight: 19, color: COLORS.muted },
 });

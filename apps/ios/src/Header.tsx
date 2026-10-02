@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatClock } from '@table-check/core/domain';
-import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
+import { shopTimerState, type ShopTimer, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
 import { version } from '../../../package.json';
 import { COLORS, FILL, TABULAR } from './theme';
@@ -12,6 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 interface Props {
   time: number;
   syncState: SyncState;
+  timers: ShopTimer[];        // 店のタイマー（No.91。店の設定）
   shopTimers: ShopTimerDone;
   onShopTimerOpen(id: ShopTimerId): void;
   canClearAll: boolean;
@@ -24,7 +25,7 @@ interface Props {
   trial: boolean;      // Firebase につながず端末の中だけで動いている（開発中の試し）
 }
 // フロアの上に浮かぶツールバー（Web の Header と同じ並び）：左に「メニュー」とトイレのタイマー（時間制限なしの目印）、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, trial }: Props) {
+export function Header({ time, syncState, timers, shopTimers, onShopTimerOpen, canClearAll, onClearAll, mini, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, trial }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す（薄くして押せなくすると壊れているように見えるため）
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -45,7 +46,7 @@ export function Header({ time, syncState, shopTimers, onShopTimerOpen, canClearA
         </Pressable>
       </Glass>
       <Glass style={[styles.group, styles.shopTimers, mini && styles.miniGroup]}>
-        {SHOP_TIMERS.map(timer => {
+        {timers.map(timer => {
           // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
           const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
           const rest = state.due ? '時間です' : `あと${Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000))}分`;

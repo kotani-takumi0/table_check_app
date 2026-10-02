@@ -1,4 +1,5 @@
 import { DEFAULT_COURSE_MENUS, isMenuId, type CourseMenu } from './courseMenus';
+import { DEFAULT_SHOP_TIMERS, parseShopTimers, type ShopTimer } from './shopTimers';
 import { DEFAULT_DRINK_PLANS, isCourse, RULES, type DrinkPlan, type Rules } from './domain';
 import type { SyncState } from './store';
 
@@ -9,8 +10,9 @@ export interface ShopSettings extends Rules {
   shopName: string;         // 店名（ログインした店を見分ける。No.88 で使う）
   drinkPlans: DrinkPlan[];  // 飲み放題の区分（No.90）。選ぶとコースになる。並べる順
   courseMenus: CourseMenu[];  // コースのメニュー（No.89）。選ぶボタンに並べる順
+  shopTimers: ShopTimer[];    // 店のタイマー（No.91。トイレチェックなど）。ヘッダーに並べる順
 }
-export const DEFAULT_SHOP_SETTINGS: ShopSettings = { ...RULES, shopName: '', drinkPlans: DEFAULT_DRINK_PLANS, courseMenus: DEFAULT_COURSE_MENUS };
+export const DEFAULT_SHOP_SETTINGS: ShopSettings = { ...RULES, shopName: '', drinkPlans: DEFAULT_DRINK_PLANS, courseMenus: DEFAULT_COURSE_MENUS, shopTimers: DEFAULT_SHOP_TIMERS };
 export const SHOP_NAME_MAX = 30;
 export const DRINK_PLANS_MAX = 10;
 export const DRINK_PLAN_NAME_MAX = 20;
@@ -88,6 +90,7 @@ export function parseShopSettings(data: unknown): ShopSettings {
     shopName: typeof d.shopName === 'string' && d.shopName.length <= SHOP_NAME_MAX ? d.shopName : '',
     drinkPlans: parseDrinkPlans(d.drinkPlans),
     courseMenus: parseCourseMenus(d.courseMenus),
+    shopTimers: parseShopTimers(d.shopTimers),
   };
 }
 // 分の項目を step だけ増やす・減らす。範囲の外や、L.O. がお席の時間に届く変更は null（ボタンを押せなくする）

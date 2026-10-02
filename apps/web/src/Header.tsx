@@ -1,6 +1,6 @@
 import { formatClock } from '@table-check/core/domain';
 import { APP_VERSION } from './version';
-import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
+import { shopTimerState, type ShopTimer, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
 import { useEffect, useState } from 'react';
 import { CactusClock } from './CactusClock';
@@ -9,6 +9,7 @@ interface Props {
   time: number;
   syncState: SyncState;
   showSync: boolean;
+  timers: ShopTimer[];        // 店のタイマー（No.91。店の設定）
   shopTimers: ShopTimerDone;
   onShopTimerOpen(id: ShopTimerId): void;   // 詳細を開く（押しただけでは済にしない）
   canClearAll: boolean;
@@ -25,7 +26,7 @@ interface Props {
 // 「消す卓はありません」を出しておく長さ
 const NOTHING_TO_CLEAR_MS = 2500;
 // フロアの上に浮かぶツールバー（ガラス）：左に「メニュー」とトイレのタイマー（時間制限なしの目印）、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
-export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, updateReady, onUpdate, inert, trial }: Props) {
+export function Header({ time, syncState, showSync, timers, shopTimers, onShopTimerOpen, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, updateReady, onUpdate, inert, trial }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -40,7 +41,7 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
       </button>
     </div>
     <div className="toolbar-group glass shop-timers">
-      {SHOP_TIMERS.map(timer => {
+      {timers.map(timer => {
         // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
         const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
         const rest = state.due ? '時間です' : `あと${Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000))}分`;

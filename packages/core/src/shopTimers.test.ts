@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mergeShopTimerDone, parseDoneAt, shopTimerState } from './shopTimers';
+import { DEFAULT_SHOP_TIMERS, isShopTimerId, mergeShopTimerDone, newShopTimerId, parseDoneAt, parseShopTimers, shopTimerState, stepInterval } from './shopTimers';
+import { noticesOf } from './notices';
 
 const minute = 60_000;
 describe('店全体のタイマー', () => {
@@ -25,4 +26,26 @@ it('別タブの済を消さずに、タイマーごとに新しい時刻を残�
   expect(mergeShopTimerDone({ toilet_check: 5 }, { toilet_clean: 3 })).toEqual({ toilet_check: 5, toilet_clean: 3 });
   expect(mergeShopTimerDone({ toilet_check: 5 }, { toilet_check: 2 })).toEqual({ toilet_check: 5 });
   expect(mergeShopTimerDone({ toilet_check: 2 }, { toilet_check: 5 })).toEqual({ toilet_check: 5 });
+});
+describe('店が決めるタイマー（No.91）', () => {
+  const timer = { id: 'timer_a', label: 'ゴミ出し', icon: '🗑️', intervalMin: 60 };
+  it('無い・壊れた一覧は最初の一覧、壊れたタイマーと同じ id は落とし、空の一覧はそのまま読む', () => {
+    expect(parseShopTimers(undefined)).toEqual(DEFAULT_SHOP_TIMERS);
+    expect(parseShopTimers([])).toEqual([]);
+    expect(parseShopTimers([timer, { ...timer, label: '重複' }, { ...timer, id: 'Bad' }, { ...timer, id: 'b', intervalMin: 3 }, { ...timer, id: 'c', icon: '' }])).toEqual([timer]);
+    expect(parseShopTimers(Array.from({ length: 6 }, (_, i) => ({ ...timer, id: `t${i}` })))).toHaveLength(4);
+  });
+  it('間隔は5分ずつ、5〜480分の中で変える', () => {
+    expect(stepInterval(timer, 1)?.intervalMin).toBe(65);
+    expect(stepInterval({ ...timer, intervalMin: 5 }, -1)).toBeNull();
+    expect(stepInterval({ ...timer, intervalMin: 480 }, 1)).toBeNull();
+  });
+  it('新しいタイマーの id は形が正しく、既存と重ならない', () => {
+    const id = newShopTimerId([], 1000);
+    expect(isShopTimerId(id)).toBe(true);
+    expect(newShopTimerId([{ ...timer, id }], 1000)).not.toBe(id);
+  });
+  it('通知は店のタイマーで出す', () => {
+    expect(noticesOf([], {}, 0, undefined, [timer]).map(notice => notice.message)).toEqual(['ゴミ出しの時間です']);
+  });
 });
