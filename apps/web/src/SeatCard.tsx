@@ -112,14 +112,16 @@ export function SeatCard({ seat, session, time, onSeat, onNext, onOpen, mini, pi
       <strong className="status">{alert.reason ? REASONS[alert.reason] : STATUS_SHORT[display]}</strong>
     </button>;
   }
+  // 右上：人数・コース（料理の進み）・会計済。低い卓・細い卓は1行に収まるよう「3/8」「¥✓」と短くする
+  const full = shape === 'table full';
   const meta = <span className="meta">
     {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}
-    {session.course !== null && <span className="course-meta">コース{progress && <span className="dish-progress"> {progress.served}/{progress.total}</span>}</span>}
-    {paid && <span className="paid-meta">会計済</span>}
+    {session.course !== null && <span className="course-meta">{full || !progress ? 'コース' : ''}{progress && <span className="dish-progress">{full ? ' ' : ''}{progress.served}/{progress.total}</span>}</span>}
+    {paid && <span className="paid-meta">{full ? '会計済' : '¥✓'}</span>}
   </span>;
   return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`}
     onClick={() => exited ? onSeat(seat.id) : onOpen(session, seat.id)}>
-    {shape === 'table full' ? <>
+    {full ? <>
       <span className="corner tl">{number}</span>
       <span className="corner tr">{meta}</span>
       <span className="dial-box"><Dial dial={dial} label={meter} /></span>

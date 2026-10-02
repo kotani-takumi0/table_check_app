@@ -66,8 +66,11 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
   );
   const guestText = guests === undefined ? null
     : <Text style={[styles.guests, guests === null && styles.unknown]}><Text style={[styles.guestNum, guests === null && styles.unknownNum, TABULAR]}>{guests ?? '?'}</Text>名</Text>;
-  const courseText = session.course === null ? null : <Text style={[styles.meta, TABULAR]}>コース{progress ? ` ${progress.served}/${progress.total}` : ''}</Text>;
-  const paidText = paid ? <Text style={styles.paidMeta}>会計済</Text> : null;
+  // 右上：人数・コース（料理の進み）・会計済。低い卓・細い卓は1行に収まるよう「3/8」「¥✓」と短くする
+  const isFull = seat.kind === 'table' && seat.rowSpan > 1 && seat.colSpan > 1;
+  const courseText = session.course === null ? null
+    : <Text style={[styles.meta, TABULAR]}>{isFull || !progress ? 'コース' : ''}{progress ? `${isFull ? ' ' : ''}${progress.served}/${progress.total}` : ''}</Text>;
+  const paidText = paid ? <Text style={styles.paidMeta}>{isFull ? '会計済' : '¥✓'}</Text> : null;
   // 段階：警告のときは理由の札（塗り）、ふだんは段階名
   const stage = alert.reason
     ? <View style={[styles.badge, { backgroundColor: alert.level === 'soon' ? COLORS.soon : COLORS.now }]}>
@@ -107,7 +110,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
       </Pressable>
     );
   }
-  const full = seat.rowSpan > 1 && seat.colSpan > 1;
+  const full = isFull;
   const narrow = seat.colSpan === 1;
   const card = ({ pressed }: { pressed: boolean }) => [frame, styles.card, { backgroundColor: tone.bg }, faded, picking && styles.pickDisabled, pressed && styles.pressed];
   const press = () => { if (exited) { feedback.tap(); onSeat(seat.id); } else open(); };
@@ -131,7 +134,7 @@ export function SeatCard({ seat, session, time, frame, onSeat, onNext, onOpen, m
   // 低い卓：左に卓番・段階・残り時間、右に小さめの文字盤。細い卓（縦向き）は上下に並べる
   const info = (
     <View style={[styles.info, narrow && styles.narrowInfo]}>
-      <View style={styles.infoHead}>{number(narrow ? 17 : 18)}{guestText}{courseText}{paidText}</View>
+      <View style={[styles.infoHead, narrow && styles.infoHeadWrap]}>{number(narrow ? 17 : 18)}{guestText}{courseText}{paidText}</View>
       {stage}
       <Text style={styles.remaining} numberOfLines={1}>{corner}</Text>
     </View>
@@ -180,7 +183,8 @@ const styles = StyleSheet.create({
   narrow: { alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 8 },
   info: { flex: 1, minWidth: 0, gap: 4, alignItems: 'flex-start' },
   narrowInfo: { flex: 0, alignSelf: 'stretch' },
-  infoHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 8 },
+  infoHead: { flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'baseline', columnGap: 8, overflow: 'hidden', maxWidth: '100%' },
+  infoHeadWrap: { flexWrap: 'wrap' },
   counter: { position: 'absolute', alignItems: 'center', justifyContent: 'center', gap: 1 },
   counterRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   counterStatus: { fontSize: 12, fontWeight: '700', paddingHorizontal: 2 },
