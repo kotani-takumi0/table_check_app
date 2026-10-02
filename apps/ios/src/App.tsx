@@ -14,7 +14,7 @@ import { services, type Services } from './services';
 import { COLORS, useScreen } from './theme';
 import { feedback } from './feedback';
 import { useDismissed } from './useDismissed';
-import { Header } from './Header';
+import { Header, TOOLBAR_HEIGHT } from './Header';
 import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { PanelButton } from './ui';
@@ -115,18 +115,23 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
   const { portrait, mini } = useScreen();
   return (
     <View style={[styles.hall, mini && styles.miniHall]}>
-      {pick && picked
-        ? <View style={[styles.pickBar, mini && styles.miniPickBar]} accessibilityRole="alert">
-          <Text style={[styles.pickText, mini && styles.miniPickText]} numberOfLines={1}>
-            {pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}
-          </Text>
-          <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
-        </View>
-        : <Header time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
-          canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini} />}
-      <Floor sessions={sessions} time={time} portrait={portrait} mini={mini} picking={Boolean(pick)}
-        onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
-        toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
+      {/* フロアを画面いっぱいに広げ、上に浮かぶツールバーの分だけ余白を取る（卓に重ならないように） */}
+      <View style={[styles.floorArea, { paddingTop: mini ? TOOLBAR_HEIGHT.mini + 6 : TOOLBAR_HEIGHT.regular + 12 }]}>
+        <Floor sessions={sessions} time={time} portrait={portrait} mini={mini} picking={Boolean(pick)}
+          onSeat={pick ? applyPick : requestSeat} onNext={next} onOpen={openPanel}
+          toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
+      </View>
+      <View style={[styles.overlay, mini && styles.miniOverlay]} pointerEvents="box-none">
+        {pick && picked
+          ? <View style={styles.pickBar} accessibilityRole="alert">
+            <Text style={[styles.pickText, mini && styles.miniPickText]} numberOfLines={1}>
+              {pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}
+            </Text>
+            <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
+          </View>
+          : <Header time={time} syncState={worstSyncState([sessionSync, shopTimerSync])} shopTimers={shopTimers} onShopTimerOpen={setShopTimerOpen}
+            canClearAll={sessions.some(s => isVisible(s, time))} onClearAll={() => setClearing(true)} mini={mini} />}
+      </View>
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
         <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
           {content ?? lastContent.current}
@@ -139,10 +144,13 @@ function Hall({ services: { store, shopTimerStore } }: { services: Services }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   message: { margin: 16, fontSize: 16 },
-  hall: { flex: 1, paddingHorizontal: 16, paddingBottom: 12, gap: 4 },
+  hall: { flex: 1, paddingHorizontal: 16, paddingBottom: 12 },
   miniHall: { paddingHorizontal: 8, paddingBottom: 8 },
-  pickBar: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 4, borderWidth: 1.5, borderColor: COLORS.action, borderRadius: 8, backgroundColor: COLORS.actionBg },
-  miniPickBar: { height: 36 },
+  floorArea: { flex: 1 },
+  // ツールバー・移動先を選ぶ帯を浮かべる層（hall の左右の余白に合わせる）
+  overlay: { position: 'absolute', top: 4, left: 16, right: 16, height: TOOLBAR_HEIGHT.regular },
+  miniOverlay: { left: 8, right: 8, height: TOOLBAR_HEIGHT.mini },
+  pickBar: { height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 4, borderWidth: 1.5, borderColor: COLORS.action, borderRadius: 24, backgroundColor: COLORS.actionBg },
   pickText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.actionText },
   miniPickText: { fontSize: 12 },
   pickCancel: { minHeight: 34, backgroundColor: COLORS.surface, borderColor: COLORS.line },

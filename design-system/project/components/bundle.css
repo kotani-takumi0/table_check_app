@@ -5,13 +5,25 @@
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* 100vh はiPhoneのSafariでツールバーの裏まで伸びて下が切れるので、見えている高さ（dvh）に合わせる。dvh非対応の端末は100vhのまま */
-.app { height: 100vh; height: 100dvh; padding: 8px 16px 16px; display: flex; flex-direction: column; }
-header { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.app { position: relative; height: 100vh; height: 100dvh; padding: 8px 16px 16px; display: flex; flex-direction: column; }
+/* ツールバー：フロアの上に浮かぶガラスの層（内容の上に重なる操作だけをガラスにする。卓カードはガラスにしない）。
+   フロアは画面いっぱいに広げ、上にツールバーの分の余白を取って卓に重ならないようにする */
+.toolbar { position: absolute; z-index: 5; top: 8px; left: 16px; right: 16px; height: 48px; display: flex; align-items: center; gap: 8px; color: var(--muted); pointer-events: none; }
+.toolbar > * { pointer-events: auto; }
+.toolbar-group { height: 100%; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 0 6px; border-radius: 24px; }
+/* 狭い画面でオフラインの長い文言が出ても、右のまとまりは60%までに縮め、文言を省略してトイレのボタンの場所を残す */
+.toolbar-right { flex-shrink: 1; min-width: 0; max-width: 60%; margin-left: auto; gap: 10px; padding-left: 14px; }
+.toolbar-right > :not(.sync-state) { flex-shrink: 0; }
+.toolbar .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* ガラス：80% 前後の面＋ぼかし。端末の「透明度を下げる」がオンなら、ぼかしをやめて不透明な面にする */
+.glass { background: color-mix(in srgb, var(--surface) 80%, transparent); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); border: 1px solid color-mix(in srgb, var(--surface) 60%, transparent); box-shadow: 0 4px 16px rgb(0 0 0 / 0.1); }
+@media (prefers-reduced-transparency: reduce) { .glass { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--line); } }
+.cactus-clock { flex-shrink: 0; width: 22px; height: 22px; }
 /* ヘッダー右端：（同期状態）バージョン 時刻 */
-.app-version { margin-left: auto; font-size: 11px; color: var(--muted); opacity: 0.8; white-space: nowrap; }
-header time { flex-shrink: 0; }
-header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
-.floor { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); --gy: 12px; --gx: 6px; gap: var(--gy) var(--gx); isolation: isolate; }
+.app-version { font-size: 11px; color: var(--muted); opacity: 0.8; white-space: nowrap; }
+.toolbar time { flex-shrink: 0; color: var(--text); font-size: 17px; font-weight: 500; }
+.toolbar time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
+.floor { flex: 1; min-height: 0; padding-top: 64px; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); --gy: 12px; --gx: 6px; gap: var(--gy) var(--gx); isolation: isolate; }
 /* 卓カード：テーブルは文字盤（大きい卓は真ん中、低い卓・細い卓は横）と四隅の情報、カウンターは円の文字盤。
    大きさはカードに合わせる（container-type: size の cqw・cqh） */
 .card { position: relative; min-width: 0; min-height: 0; border-radius: 12px; padding: 8px 10px; border: 1.5px solid transparent; background: transparent; color: var(--text); text-align: left; line-height: 1.2; user-select: none; -webkit-user-select: none; touch-action: manipulation; container-type: size; }
@@ -83,19 +95,18 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .portrait .counter:not(.mini):not(.empty) .status { grid-area: st; }
 .portrait .counter:not(.mini) .dial { width: min(70cqw, 100cqh - 18px); }
 
-.sync-state { font-size: 12px; margin-left: auto; }
+.sync-state { font-size: 12px; }
 /* 全卓消去 */
-.clear-all { flex-shrink: 0; min-width: 40px; min-height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 17px; background: transparent; font-size: 15px; }
+.clear-all { flex-shrink: 0; min-width: 52px; min-height: 36px; padding: 0 12px; border: none; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 14px; }
 .clear-all:disabled { opacity: 0.4; cursor: default; }
-.mini .clear-all { min-width: 36px; min-height: 28px; padding: 0 6px; font-size: 13px; }
+.mini .clear-all { min-width: 44px; min-height: 30px; padding: 0 8px; font-size: 13px; }
 .confirm-message { margin: 0; line-height: 1.6; }
 .confirm-warning { margin: 0; color: var(--now-text); font-weight: 700; }
-.sync-state + .app-version { margin-left: 0; }
 .sync-state.pending { color: var(--soon-text); }
 .sync-state.offline { color: var(--now-text); }
 
 .shop-timers { min-width: 0; display: flex; gap: 8px; }
-.shop-timer { min-width: 0; overflow: hidden; text-overflow: ellipsis; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 17px; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.shop-timer { min-width: 0; overflow: hidden; text-overflow: ellipsis; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
 .shop-timer-rest { font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
 .shop-timer.due { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
 .toasts { grid-column: 6 / 16; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
@@ -133,7 +144,11 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 
 /* スマホ：小さいカードに卓番・状態・タイマーだけ。操作はタップで開く詳細パネルで行う */
 .mini { padding: 4px 8px 8px; }
-.mini header { height: 34px; gap: 6px; }
+.mini .toolbar { top: 4px; left: 8px; right: 8px; height: 40px; gap: 6px; }
+.mini .toolbar-group { padding: 0 4px; gap: 4px; }
+.mini .toolbar-right { gap: 6px; padding-left: 8px; }
+.mini .toolbar time { font-size: 14px; }
+.mini .floor { padding-top: 50px; }
 .mini .shop-timer { min-height: 28px; padding: 0 8px; font-size: 12px; }
 .mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini .floor { --gy: 4px; --gx: 4px; }
@@ -157,14 +172,14 @@ header time, .timer { font-family: 'Roboto Mono', monospace; font-variant-numeri
 .table-chip { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px 0 12px; border: 1px solid var(--line); border-radius: 18px; font-weight: 500; }
 .chip-remove { min-width: 32px; min-height: 32px; border: 0; border-radius: 16px; background: transparent; color: var(--muted); font-size: 16px; }
 .table-chip:not(:has(.chip-remove)) { padding-right: 12px; }
-.pick-bar { height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 14px; border: 1.5px solid var(--action); border-radius: 8px; background: var(--action-bg); color: var(--action-text); }
+.pick-bar { position: absolute; z-index: 5; top: 8px; left: 16px; right: 16px; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 14px; border: 1.5px solid var(--action); border-radius: 24px; background: var(--action-bg); color: var(--action-text); }
 .pick-bar strong { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; }
-.mini .pick-bar { height: 34px; }
+.mini .pick-bar { top: 4px; left: 8px; right: 8px; height: 40px; }
 .mini .pick-bar strong { font-size: 12px; }
 .pick-target { border: 2px dashed var(--action); color: var(--action-text); background: var(--action-bg); }
 .pick-disabled { opacity: 0.35; }
 /* 幅の狭いスマホでは時刻とトイレのチップを優先し、バージョンは出さない */
-@media (max-width: 419px) { .app-version { display: none; } .shop-timers + .app-version + time { margin-left: auto; } }
+@media (max-width: 419px) { .app-version { display: none; } }
 
 .guest-count { margin-left: 4px; font-size: 0.9em; font-weight: 500; white-space: nowrap; }
 .guest-num { font-size: 1.5em; font-weight: 900; line-height: 1; margin-right: 1px; font-variant-numeric: tabular-nums; }

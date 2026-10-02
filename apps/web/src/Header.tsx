@@ -2,6 +2,7 @@ import { formatClock } from '@table-check/core/domain';
 import { APP_VERSION } from './version';
 import { SHOP_TIMERS, shopTimerState, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
+import { CactusClock } from './CactusClock';
 
 interface Props {
   time: number;
@@ -13,9 +14,10 @@ interface Props {
   onClearAll(): void;   // 確認ダイアログを開く（押しただけでは消さない）
   inert?: boolean;
 }
+// フロアの上に浮かぶツールバー（ガラス）：左にトイレのタイマー、右に（同期状態）バージョン・サボテンの時計の印・時刻・全卓消去
 export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen, canClearAll, onClearAll, inert }: Props) {
-  return <header inert={inert}>
-    <div className="shop-timers">
+  return <header className="toolbar" inert={inert}>
+    <div className="toolbar-group glass shop-timers">
       {SHOP_TIMERS.map(timer => {
         // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
         const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
@@ -25,10 +27,13 @@ export function Header({ time, syncState, showSync, shopTimers, onShopTimerOpen,
         </button>;
       })}
     </div>
-    {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
-    <span className="app-version" title="このアプリのバージョン">{APP_VERSION}</span>
-    <time>{formatClock(time)}</time>
-    {/* よく押すトイレのボタンから離して右端に置く（アイコンは仮。あとで差し替える） */}
-    <button className="clear-all" aria-label="全卓を消去（確認が出ます）" title="全卓を消去" disabled={!canClearAll} onClick={onClearAll}><span aria-hidden="true">🗑️</span></button>
+    <div className="toolbar-group glass toolbar-right">
+      {showSync && syncState !== 'synced' && <span className={`sync-state ${syncState}`} role="status">{syncState === 'pending' ? '送信待ち' : 'オフライン（声かけに戻ってください）'}</span>}
+      <span className="app-version" title="このアプリのバージョン">{APP_VERSION}</span>
+      <CactusClock time={time} />
+      <time>{formatClock(time)}</time>
+      {/* よく押すトイレのボタンから離して右端に置く */}
+      <button className="clear-all" aria-label="全卓を消去（確認が出ます）" title="全卓を消去" disabled={!canClearAll} onClick={onClearAll}>消去</button>
+    </div>
   </header>;
 }
