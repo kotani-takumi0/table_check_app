@@ -1,5 +1,12 @@
 import { GRID, SEATS, type Seat, type SeatKind } from './layout';
+import { isVisible, type Session } from './domain';
+import { resolveSessions } from './firestoreMapping';
 import type { SyncState } from './store';
+
+// 卓とセッションの参照が一致し、退店後の表示時間も含めてお客さんが見えている卓
+export function occupiedSeatIds(tables: Record<string, string | null>, sessions: Session[], now: number): Set<string> {
+  return new Set(resolveSessions(tables, sessions).filter(session => isVisible(session, now)).flatMap(session => session.tableIds));
+}
 
 // 席の配置（No.75）。お店の人が「設定 → 席の配置」でマス目にブロックを置いて作り、全端末で共有する（Firestore の shopLayout/main）。
 // 位置は横向き（15列×7行）のマス目で持ち、縦向き・スマホは今までどおり時計回りに回して並べる

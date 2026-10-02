@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { GRID, type Seat, type SeatKind } from '@table-check/core/layout';
 import { DEFAULT_LAYOUT, LABEL_MAX_LENGTH, layoutProblems, nextSeatId, NOTICE_AREAS, overlaps, type LayoutLabel, type ShopLayout } from '@table-check/core/shopLayout';
 
@@ -21,22 +21,53 @@ const fits = (box: Box) => box.col >= 1 && box.row >= 1 && box.col + box.colSpan
 // onSave は保存に失敗したら拒否する（そのときは下書きを残して、理由を出す）
 export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { layout: ShopLayout; occupied: Set<string>; onSave(layout: ShopLayout): Promise<void>; onClose(): void; inert?: boolean }) {
   const [draft, setDraft] = useState<ShopLayout>(layout);
+  // 読み込んだ配置と卓番を残し、入力途中の番号に編集制限を引きずらせない
+  const [baseline, setBaseline] = useState<ShopLayout>(layout);
+  const [origIds, setOrigIds] = useState<(string | null)[]>(() => layout.seats.map(seat => seat.id));
+  const [dirty, setDirty] = useState(false);
   const [block, setBlock] = useState<BlockKey | null>('big');
   const [selected, setSelected] = useState<Selected>(null);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
-  // 使っている卓が配置から無くなると、案内中のお客さんが画面から消えるので保存させない
+  const layoutChanged = JSON.stringify(layout) !== JSON.stringify(baseline);
+  const conflict = dirty && layoutChanged;
+  // 初回の遅れた読み込みも、まだ直していなければそのまま取り込む
+  useEffect(() => {
+    if (dirty || !layoutChanged) return;
+    setDraft(layout);
+    setBaseline(layout);
+    setOrigIds(layout.seats.map(seat => seat.id));
+    setSelected(null);
+    setMessage('');
+  }, [layout, dirty, layoutChanged]);
+  const reload = () => {
+    setDraft(layout);
+    setBaseline(layout);
+    setOrigIds(layout.seats.map(seat => seat.id));
+    setDirty(false);
+    setSelected(null);
+    setMessage('');
+  };
+  // 読み込み後にお客さんが入った場合も、もとの卓を消したり改番していれば保存させない
   const problems = useMemo(() => [...layoutProblems(draft),
-    ...[...occupied].filter(id => !draft.seats.some(s => s.id === id)).map(id => `${id}番はお客さんがいるので残してください`)], [draft, occupied]);
-  const changed = JSON.stringify(draft) !== JSON.stringify(layout);
+    ...[...occupied].filter(id => !draft.seats.some(s => s.id === id)
+      || (baseline.seats.some(s => s.id === id) && !draft.seats.some((s, i) => origIds[i] === id && s.id === id)))
+      .map(id => `${id}番はお客さんがいるので残してください`)], [draft, occupied, baseline, origIds]);
+  const changed = JSON.stringify(draft) !== JSON.stringify(baseline);
   const seat = selected?.type === 'seat' ? draft.seats[selected.index] : undefined;
   const label = selected?.type === 'label' ? draft.labels[selected.index] : undefined;
   // ほかの卓・ことば・通知の場所と重ならず、マス目に収まるか（動かす・大きさを変えるものは自分を除いて調べる）
   const free = (box: Box, except?: Selected) => fits(box) && !NOTICE_AREAS.some(notice => overlaps(box, notice))
     && draft.seats.every((s, i) => (except?.type === 'seat' && except.index === i) || !overlaps(box, s))
     && draft.labels.every((l, i) => (except?.type === 'label' && except.index === i) || !overlaps(box, l));
-  const updateSeat = (index: number, change: Partial<Seat>) => setDraft(d => ({ ...d, seats: d.seats.map((s, i) => i === index ? { ...s, ...change } : s) }));
-  const updateLabel = (index: number, change: Partial<LayoutLabel>) => setDraft(d => ({ ...d, labels: d.labels.map((l, i) => i === index ? { ...l, ...change } : l) }));
+  const updateSeat = (index: number, change: Partial<Seat>) => {
+    setDirty(true);
+    setDraft(d => ({ ...d, seats: d.seats.map((s, i) => i === index ? { ...s, ...change } : s) }));
+  };
+  const updateLabel = (index: number, change: Partial<LayoutLabel>) => {
+    setDirty(true);
+    setDraft(d => ({ ...d, labels: d.labels.map((l, i) => i === index ? { ...l, ...change } : l) }));
+  };
   // 空いているマスを押した：選んでいる卓・ことばがあればそこへ動かし、無ければ選んでいるブロックを置く
   const pressCell = (col: number, row: number) => {
     setMessage('');
@@ -51,6 +82,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
     if (!chosen) return;
     const box = { col, row, colSpan: chosen.colSpan, rowSpan: chosen.rowSpan };
     if (!free(box)) { setMessage('そこには入りません。空いているところを押すか、小さいブロックを選んでください'); return; }
+    setDirty(true);
     if (chosen.kind === 'label') {
       setDraft(d => ({ ...d, labels: [...d.labels, { text: 'ことば', ...box }] }));
       setSelected({ type: 'label', index: draft.labels.length });
@@ -58,6 +90,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
     }
     const id = nextSeatId(draft, chosen.kind as SeatKind);
     setDraft(d => ({ ...d, seats: [...d.seats, { id, kind: chosen.kind as SeatKind, ...box }] }));
+    setOrigIds(ids => [...ids, null]);
     setSelected({ type: 'seat', index: draft.seats.length });
   };
   // 大きさを変える（幅・高さをマス1つずつ）。入らなければ変えない
@@ -71,7 +104,12 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
     if (selected?.type === 'seat') updateSeat(selected.index, { colSpan: box.colSpan, rowSpan: box.rowSpan }); else updateLabel((selected as { index: number }).index, { colSpan: box.colSpan, rowSpan: box.rowSpan });
   };
   const remove = () => {
-    if (selected?.type === 'seat') { const index = selected.index; setDraft(d => ({ ...d, seats: d.seats.filter((_, i) => i !== index) })); }
+    setDirty(true);
+    if (selected?.type === 'seat') {
+      const index = selected.index;
+      setDraft(d => ({ ...d, seats: d.seats.filter((_, i) => i !== index) }));
+      setOrigIds(ids => ids.filter((_, i) => i !== index));
+    }
     else if (selected?.type === 'label') { const index = selected.index; setDraft(d => ({ ...d, labels: d.labels.filter((_, i) => i !== index) })); }
     setSelected(null);
   };
@@ -80,8 +118,9 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
     cells.push(<button key={`${col}-${row}`} className="layout-cell" style={area({ col, row, colSpan: 1, rowSpan: 1 })}
       aria-label={`${row}行${col}列（${seat || label ? 'ここへ動かす' : 'ここに置く'}）`} onClick={() => pressCell(col, row)} />);
   }
-  // お客さんがいる卓は卓番の欄を押せないので、今の卓番で判断できる
-  const locked = seat !== undefined && occupied.has(seat.id);
+  // 打ち換え途中にほかの使用中の番号になっても、もとの卓が空席なら直し続けられる
+  const originalId = selected?.type === 'seat' ? origIds[selected.index] : null;
+  const locked = originalId != null && occupied.has(originalId);
   return <section className="layout-editor" aria-labelledby="layout-title" inert={inert}>
     <div className="layout-head">
       <h1 id="layout-title" className="settings-title">席の配置</h1>
@@ -129,15 +168,22 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
         {NOTICE_AREAS.map((notice, i) => <div key={i} className="layout-notice" style={area(notice)} aria-hidden="true">{i === 0 ? '通知の場所' : '縦向きの通知'}</div>)}
         {draft.labels.map((l, i) => <button key={`label-${i}`} className={`layout-item label ${selected?.type === 'label' && selected.index === i ? 'selected' : ''}`} style={area(l)}
           aria-label={`ことば「${l.text}」（押すと直す）`} onClick={() => { setMessage(''); setSelected({ type: 'label', index: i }); }}>{l.text}</button>)}
-        {draft.seats.map((s, i) => <button key={`seat-${i}`} className={`layout-item ${s.kind} ${selected?.type === 'seat' && selected.index === i ? 'selected' : ''} ${occupied.has(s.id) ? 'occupied' : ''}`} style={area(s)}
+        {draft.seats.map((s, i) => <button key={`seat-${i}`} className={`layout-item ${s.kind} ${selected?.type === 'seat' && selected.index === i ? 'selected' : ''} ${origIds[i] != null && occupied.has(origIds[i]) ? 'occupied' : ''}`} style={area(s)}
           aria-label={`${s.id}番 ${s.kind === 'table' ? 'テーブル' : 'カウンター席'}（押すと直す）`} onClick={() => { setMessage(''); setSelected({ type: 'seat', index: i }); }}>{s.id}</button>)}
       </div>
     </div>
     <div className="layout-foot">
-      <p className="layout-message" role="status">{message || (problems.length ? `直すところ：${problems.join('／')}` : changed ? '保存すると、すべての端末の配置が変わります' : '')}</p>
-      <button className="panel-button" onClick={() => { setDraft(DEFAULT_LAYOUT); setSelected(null); }}>最初の配置に戻す</button>
+      <p className="layout-message" role="status">{conflict ? 'ほかの端末で配置が変わりました。「最新を読み込む」を押してから直してください' : message || (problems.length ? `直すところ：${problems.join('／')}` : changed ? '保存すると、すべての端末の配置が変わります' : '')}</p>
+      {conflict && <button className="panel-button" disabled={saving} onClick={reload}>最新を読み込む</button>}
+      <button className="panel-button" onClick={() => {
+        setDraft(DEFAULT_LAYOUT);
+        // 最初の配置に戻す操作も編集。読み込み時に存在した卓だけ、もとの卓番を引き継ぐ
+        setOrigIds(DEFAULT_LAYOUT.seats.map(seat => baseline.seats.some(s => s.id === seat.id) ? seat.id : null));
+        setDirty(true);
+        setSelected(null);
+      }}>最初の配置に戻す</button>
       <button className="panel-button" onClick={onClose}>{changed ? '保存せずにもどる' : 'もどる'}</button>
-      <button className="panel-button primary" disabled={!changed || problems.length > 0 || saving} onClick={() => {
+      <button className="panel-button primary" disabled={!changed || problems.length > 0 || saving || layoutChanged} onClick={() => {
         setSaving(true);
         onSave(draft).then(onClose, (error: unknown) => setMessage(`保存できませんでした。もう一度押してください（${error instanceof Error ? error.message : '理由が分かりません'}）`)).finally(() => setSaving(false));
       }}>{saving ? '保存しています…' : '保存して使う'}</button>

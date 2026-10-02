@@ -1,8 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LAYOUT, layoutProblems, MemoryShopLayoutStore, nextSeatId, parseShopLayout, rotateLabelClockwise, seatIdsOf, type ShopLayout } from './shopLayout';
+import { DEFAULT_LAYOUT, layoutProblems, MemoryShopLayoutStore, nextSeatId, occupiedSeatIds, parseShopLayout, rotateLabelClockwise, seatIdsOf, type ShopLayout } from './shopLayout';
 import { rotateClockwise } from './layout';
+import { newSession } from './domain';
 
 const table = (id: string, col: number, row: number, colSpan = 3, rowSpan = 2) => ({ id, kind: 'table' as const, col, row, colSpan, rowSpan });
+describe('お客さんがいる卓', () => {
+  it('表示中のお客さんの卓を団体の卓も含めて返す', () => {
+    const group = { ...newSession('団体', '11', 0), tableIds: ['11', '12'] };
+    expect(occupiedSeatIds({ '11': '団体', '12': '団体', '13': '別の客' }, [group, newSession('別の客', '13', 0)], 600_000))
+      .toEqual(new Set(['11', '12', '13']));
+  });
+  it('退店から5分未満は含み、5分ちょうどと過ぎた卓は含まない', () => {
+    const exited = { ...newSession('退店した客', '11', 0), status: 'exited' as const, otoshiAt: 1, loDoneAt: 2, exitedAt: 60_000 };
+    expect(occupiedSeatIds({ '11': exited.id }, [exited], 359_999)).toEqual(new Set(['11']));
+    expect(occupiedSeatIds({ '11': exited.id }, [exited], 360_000)).toEqual(new Set());
+    expect(occupiedSeatIds({ '11': exited.id }, [exited], 360_001)).toEqual(new Set());
+  });
+  it('別のセッションを指す卓・参照のない卓・空席は含まない', () => {
+    const group = { ...newSession('前の客', '11', 0), tableIds: ['11', '12', '13', '14'] };
+    expect(occupiedSeatIds({ '11': '前の客', '12': '次の客', '13': null }, [group], 100))
+      .toEqual(new Set(['11']));
+  });
+  it('セッション側に卓番がない参照や、セッションが見つからない参照は含まない', () => {
+    expect(occupiedSeatIds({ '11': '客', '12': '客', '13': '不明' }, [newSession('客', '11', 0)], 100))
+      .toEqual(new Set(['11']));
+    expect(occupiedSeatIds({}, [], 100)).toEqual(new Set());
+  });
+});
 describe('席の配置', () => {
   it('今までの配置はそのまま使える', () => {
     expect(layoutProblems(DEFAULT_LAYOUT)).toEqual([]);
