@@ -15,13 +15,8 @@ export const COLORS = {
   // 卓の文字盤：塗った丸・縁の点・L.O.から退席までの帯。警告の卓は丸と弧も警告の色にする
   dialFace: '#f3f1ee', dialDot: '#b8b2ab', dialBand: '#f7d08f', nowFace: '#ffe2da', soonFace: '#ffe6bd', soonArc: '#dda949',
 } as const;
-// 地・枠・文字の組
-export interface Tone { bg: string; line: string; text: string }
-// 通知の tone（'danger'＝いま対応、'warning'＝もうすぐ）の色
-export const TONES: Record<'danger' | 'warning', Tone> = {
-  danger: { bg: COLORS.nowBg, line: COLORS.nowLine, text: COLORS.nowText },
-  warning: { bg: COLORS.soonBg, line: COLORS.soonLine, text: COLORS.soonText },
-};
+// ガラスの上のボタンの淡い塗り（Web の color-mix(in srgb, var(--text) 7%, transparent)）
+export const FILL = 'rgba(45, 43, 40, 0.07)';
 // 卓の色：警告の段階だけで決める（もうすぐ＝琥珀、いま対応＝朱）。ふだんは無彩色（退店済はカードごと薄くする）。
 // face は文字盤の塗り、arc は経過の弧
 export interface CardTone { bg: string; text: string; face: string; arc: string }

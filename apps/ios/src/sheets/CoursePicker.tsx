@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COURSE_LABEL, COURSES, type Course } from '@table-check/core/domain';
-import { COLORS } from '../theme';
+import { FILL, COLORS } from '../theme';
 import { feedback } from '../feedback';
 
 const OPTIONS: { value: Course | null; sub: string | null }[] = [
@@ -28,8 +28,8 @@ export function CoursePicker({ value, onChange }: { value: Course | null; onChan
 }
 const styles = StyleSheet.create({
   picker: { flexDirection: 'row', gap: 8, flex: 1 },
-  option: { flex: 1, minHeight: 50, paddingHorizontal: 2, paddingVertical: 4, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
-  selectedOption: { borderWidth: 2, borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
+  option: { flex: 1, minHeight: 50, paddingHorizontal: 2, paddingVertical: 4, borderWidth: 2, borderColor: 'transparent', borderRadius: 18, backgroundColor: FILL, alignItems: 'center', justifyContent: 'center' },
+  selectedOption: { borderColor: COLORS.action, backgroundColor: COLORS.actionBg },
   label: { fontSize: 14, color: COLORS.text },
   sub: { fontSize: 12, color: COLORS.text },
   selected: { fontWeight: '700' },

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GUESTS_MAX } from '@table-check/core/domain';
-import { COLORS } from '../theme';
+import { FILL, COLORS } from '../theme';
 import { feedback } from '../feedback';
 
 // 人数の −／＋。null は未入力
@@ -23,7 +23,7 @@ export function GuestStepper({ value, onChange, children }: { value: number | nu
 }
 const styles = StyleSheet.create({
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  step: { minWidth: 50, minHeight: 50, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  step: { minWidth: 50, minHeight: 50, borderRadius: 25, backgroundColor: FILL, alignItems: 'center', justifyContent: 'center' },
   stepLabel: { fontSize: 22, color: COLORS.text },
   value: { minWidth: 64, textAlign: 'center', fontSize: 18, fontWeight: '700', color: COLORS.text },
   muted: { color: COLORS.muted },

@@ -7,7 +7,7 @@ import { sheet } from './common';
 // ヘッダーのトイレタイマーの詳細。押しただけでリセットしないよう、ここで「済にしてリセット」を押す
 export function ShopTimerSheet({ label, icon, doneAt, onReset, onClose }: { label: string; icon: string; doneAt: number | undefined; onReset(): void; onClose(): void }) {
   return <>
-    <Text style={sheet.title} accessibilityRole="header">{icon} {label}</Text>
+    <Text style={[sheet.title, sheet.alertTitle]} accessibilityRole="header">{icon} {label}</Text>
     <View style={sheet.row}>
       <Text style={sheet.rowLabel}>前回</Text>
       <Text style={[sheet.text, doneAt === undefined && sheet.muted]}>{doneAt === undefined ? 'まだ済にしていません' : `${formatClock(doneAt)} に済`}</Text>
