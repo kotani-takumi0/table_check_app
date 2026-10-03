@@ -12,13 +12,15 @@ interface Props {
   session?: Session;
   time: number;
   frame: ViewStyle & { width: number; height: number };   // フロア図の中の位置と大きさ
-  onSeat(tableId: string): void;
+  onSeat(tableId: string, at?: { x: number; y: number }): void;   // at：押した場所（ご案内をそのそばに出す。No.85）
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;   // at：押した場所（詳細をそのそばに出す）
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
 }
+// 押した場所（画面の中の位置）。詳細・ご案内をそのそばに出す
+const pointOf = (event: GestureResponderEvent) => ({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY });
 // Web の SeatCard と同じ出し分け。テーブルは文字盤と四隅、カウンターは円の文字盤。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
 export function SeatCard({ seat, session, time, editing = false, settings, frame, onSeat, onOpen, mini, picking }: Props) {
@@ -29,7 +31,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, frame
     const d = Math.min(width, height);
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`}
-        onPress={() => { feedback.tap(); onSeat(seat.id); }}
+        onPress={event => { feedback.tap(); onSeat(seat.id, pointOf(event)); }}
         style={[frame, styles.emptyBox]}>
         {({ pressed }) => (
           <View style={[circle ? { width: d, height: d, borderRadius: d / 2 } : [styles.fill, styles.emptyRect, mini && styles.miniRadius], styles.empty,
@@ -61,7 +63,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, frame
     : exited ? '押すとご案内' : 'タイマー停止中';
   const meter = dialLabel(dial, remaining);
   const label = `${editing ? 'ほかの端末で編集中 ' : ''}${seat.id}番${others.length ? `（${session.tableIds.join('・')}番の団体）` : ''}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
-  const open = (event?: GestureResponderEvent) => { feedback.open(); onOpen(session, seat.id, event ? { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY } : undefined); };
+  const open = (event?: GestureResponderEvent) => { feedback.open(); onOpen(session, seat.id, event ? pointOf(event) : undefined); };
   const number = (size: number) => (
     <Text style={[styles.number, { fontSize: size }]} numberOfLines={1}>
       {seat.id}{groupMark !== '' && <Text style={[styles.group, { color: tone.text }]}> {groupMark}</Text>}
@@ -121,7 +123,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, frame
     const size = wide ? Math.min(width * 0.7, height - 18) : Math.min(width, height - 34);
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`} disabled={picking}
-        onPress={event => { if (exited) { feedback.step(); onSeat(seat.id); } else open(event); }} onLongPress={open} delayLongPress={600}
+        onPress={event => { if (exited) { feedback.step(); onSeat(seat.id, pointOf(event)); } else open(event); }} onLongPress={open} delayLongPress={600}
         style={({ pressed }) => [frame, styles.counter, faded, picking && styles.pickDisabled, pressed && styles.pressed]}>
         {wide ? <View style={styles.counterRow}>{number(14)}{dialView(size)}</View> : <>{number(14)}{dialView(size)}</>}
         {paid && <Text style={styles.paidMark}>¥✓</Text>}
@@ -133,7 +135,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, frame
   const full = isFull;
   const narrow = seat.colSpan === 1;
   const card = ({ pressed }: { pressed: boolean }) => [frame, styles.card, { backgroundColor: tone.bg }, faded, picking && styles.pickDisabled, pressed && styles.pressed];
-  const press = (event: GestureResponderEvent) => { if (exited) { feedback.tap(); onSeat(seat.id); } else open(event); };
+  const press = (event: GestureResponderEvent) => { if (exited) { feedback.tap(); onSeat(seat.id, pointOf(event)); } else open(event); };
   const a11y = `${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`;
   if (full) {
     // 大きい卓：四隅（左上 卓番／右上 人数・コース・会計済／左下 段階か札／右下 残り時間）と真ん中の文字盤

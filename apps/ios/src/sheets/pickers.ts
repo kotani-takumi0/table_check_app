@@ -13,7 +13,7 @@ export function menuOptions(menus: CourseMenu[], current: string | null): Select
   const options: SelectOption<string | null>[] = [{ value: null, label: '未定' }, ...menus.map(menu => ({ value: menu.id, label: `${priceLabel(menu)} ${menu.short}` }))];
   return current !== null && !menus.some(menu => menu.id === current) ? [...options, { value: current, label: '消したコース' }] : options;
 }
-// 来店する人数は組ごとに大きく変わるので、−／＋ ではなく一度で選べるようにする（No.71）。今の人数が30名より多ければそこまで並べる
+// 詳細パネルで人数を直すときの選び肢（No.71。ご案内は −／＋ とよく来る人数。No.85）。今の人数が30名より多ければそこまで並べる
 const GUESTS_PICK = 30;
 export function guestOptions(emptyLabel: string, current: number | null): SelectOption<number | null>[] {
   return [{ value: null, label: emptyLabel }, ...Array.from({ length: Math.max(GUESTS_PICK, current ?? 0) }, (_, i) => ({ value: i + 1, label: `${i + 1}名` }))];

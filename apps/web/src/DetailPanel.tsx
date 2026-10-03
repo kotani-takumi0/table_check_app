@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { CoursePicker } from './CoursePicker';
@@ -7,6 +7,7 @@ import { GuestPicker } from './GuestPicker';
 import { remainingLabel, remainingOf } from '@table-check/core/dial';
 import { CloseButton } from './CloseButton';
 import { menuOf } from '@table-check/core/courseMenus';
+import { useBeside } from './placeBeside';
 
 
 interface Props {
@@ -62,26 +63,6 @@ function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; 
     {error && <span className="time-error" role="alert">案内より後の時刻にしてください</span>}
   </div>;
 }
-// 押した卓のそばに出すときの位置（No.71）。卓の右に入らなければ左、どちらにも入らない狭い画面（スマホ）は真ん中に出す
-// TOP はツールバー（上から8＋高さ48）の下から出す
-const POPOVER_WIDTH = 360, GAP = 14, EDGE = 8, TOP = 64;
-function placeBeside(anchor: DOMRect | null, height: number): { panel: CSSProperties; arrow: CSSProperties; side: 'left' | 'right' } | null {
-  if (!anchor) return null;
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const right = anchor.right + GAP, left = anchor.left - GAP - POPOVER_WIDTH;
-  const side = right + POPOVER_WIDTH <= vw - EDGE ? 'right' : left >= EDGE ? 'left' : null;
-  if (side === null) return null;
-  const center = anchor.top + anchor.height / 2;
-  const top = Math.min(Math.max(TOP, center - height / 2), Math.max(TOP, vh - height - EDGE));
-  // 矢印は卓の真ん中を指す（パネルの角の丸みにかからない範囲で）。パネルは中をスクロールするので、矢印はパネルの外に描く
-  const arrowTop = top + Math.min(Math.max(28, center - top), height - 28);
-  const panelLeft = side === 'right' ? right : left;
-  return {
-    side,
-    panel: { position: 'absolute', top, left: panelLeft, width: POPOVER_WIDTH },
-    arrow: { top: arrowTop - 8, left: side === 'right' ? panelLeft - 8 : panelLeft + POPOVER_WIDTH - 8 },
-  };
-}
 export function DetailPanel({ session, time, othersEditing = false, settings, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
@@ -118,18 +99,8 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
   const alert = alertOf(session, time, rules);
   const remaining = remainingOf(session, time, rules);
   const paid = session.paidAt !== null;
-  // 押した卓のそばに出す。高さは中身で変わる（変更するを開くなど）ので、描いたあとに測って位置を決め直す
-  const [height, setHeight] = useState(0);
-  useLayoutEffect(() => {
-    const el = panel.current;
-    if (!el) return;
-    const measure = () => setHeight(el.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  const place = placeBeside(anchor, height);
+  // 押した卓のそばに出す（中身の高さで位置を決め直す）
+  const place = useBeside(panel, anchor);
   return <div className={`panel-backdrop ${place ? 'beside' : ''}`}
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
