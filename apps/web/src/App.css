@@ -481,6 +481,15 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .layout-item.label { border-style: dashed; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; }
 .layout-item.occupied { background: var(--action-bg); }
 .layout-item.selected { outline: 3px solid var(--action); outline-offset: 1px; }
+/* ドラッグ（No.93）：つかめるものは指で動かしてもスクロールしない。つかんでいる間はもとの場所を薄くし、行き先を影で見せる */
+.layout-grid { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.layout-item { touch-action: none; cursor: grab; }
+.layout-item.dragging { opacity: 0.35; }
+.layout-ghost { z-index: 4; border: 2px dashed var(--action); border-radius: 10px; background: color-mix(in srgb, var(--action) 18%, transparent); pointer-events: none; }
+.layout-ghost.blocked { border-color: var(--now); background: color-mix(in srgb, var(--now) 18%, transparent); }
+.layout-handle { z-index: 3; align-self: end; justify-self: end; width: 36px; height: 36px; margin: -14px; display: grid; place-items: center; touch-action: none; cursor: nwse-resize; }
+.layout-handle.hidden { opacity: 0; }
+.layout-handle span { width: 18px; height: 18px; border: 3px solid var(--surface); border-radius: 50%; background: var(--action); box-shadow: 0 1px 4px var(--glass-shadow); }
 .layout-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .layout-message { flex: 1; min-width: 240px; margin: 0; color: var(--muted); font-size: 14px; }
 .layout-foot .panel-button { min-height: 44px; }
