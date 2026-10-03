@@ -59,4 +59,7 @@ export class LocalSessionStore implements SessionStore {
   async remove(id: string): Promise<void> {
     this.write(this.read().filter(s => s.id !== id));
   }
+  async fetchSeatedBetween(start: number, end: number): Promise<Session[]> {
+    return this.read().filter(s => s.seatedAt >= start && s.seatedAt < end);
+  }
 }

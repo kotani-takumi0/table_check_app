@@ -25,6 +25,7 @@ import { worstSyncState, type SessionStore, type SyncState } from '@table-check/
 import { useSessions } from '@table-check/core/useSessions';
 import { editingSessionIds, type EditingMark, type EditingStore } from '@table-check/core/editing';
 import { now } from '@table-check/core/clock';
+import { businessDayOf, businessDayRange, csvFileName, sessionsCsv } from '@table-check/core/history';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
 // account：ログインしている店のメールアドレス（今の店は null）。onLeave：ログアウト・ログインし直す（最初の画面に戻る。No.88）
@@ -194,6 +195,12 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             const course = id === null ? null : shopSettings.courseMenus.find(menu => menu.id === id);
             setEditingCourse(course ? { course, isNew: false } : { course: newCourse(shopSettings.courseMenus, Date.now()), isNew: true });
             selectScreen('course');
+          }} today={businessDayOf(time)} onExportCsv={async day => {
+            const range = businessDayRange(day);
+            if (!range) throw new Error('日付を選んでください');
+            const daySessions = await store.fetchSeatedBetween(range.start, range.end);
+            if (daySessions.length > 0) downloadText(csvFileName(day), sessionsCsv(daySessions, shopSettings), 'text/csv');
+            return daySessions.length;
           }} inert={modal || menuOpen} />
       : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
@@ -207,4 +214,13 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
+}
+// 文字のファイルをこの端末に保存する（履歴の CSV。No.34）
+function downloadText(name: string, text: string, type: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

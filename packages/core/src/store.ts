@@ -10,4 +10,6 @@ export interface SessionStore {
   put(session: Session): Promise<void>;
   remove(id: string): Promise<void>;
   subscribeSync?(cb: (state: SyncState) => void): () => void;
+  // 案内が start 以上 end 未満のお客さん（履歴の書き出し。No.34）。卓に今出ているかは問わない（退店・置き換えのあとも残る）
+  fetchSeatedBetween(start: number, end: number): Promise<Session[]>;
 }

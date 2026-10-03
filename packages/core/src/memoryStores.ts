@@ -21,6 +21,9 @@ export class MemorySessionStore implements SessionStore {
   async remove(id: string): Promise<void> {
     this.write(this.sessions.filter(s => s.id !== id));
   }
+  async fetchSeatedBetween(start: number, end: number): Promise<Session[]> {
+    return this.sessions.filter(s => s.seatedAt >= start && s.seatedAt < end);
+  }
 }
 export class MemoryShopTimerStore implements ShopTimerStore {
   private done: ShopTimerDone = {};

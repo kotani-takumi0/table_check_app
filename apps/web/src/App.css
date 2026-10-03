@@ -423,6 +423,9 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .settings-group-title { margin: 0 0 8px; color: var(--muted); font-size: 14px; font-weight: 700; }
 .settings-row { display: flex; align-items: center; gap: 16px; padding: 8px 0; }
 .settings-row-text { flex: 1; min-width: 0; font-size: 17px; }
+.export-row { flex-wrap: wrap; }
+.export-row .settings-row-text { flex-basis: 100%; }
+.export-row .field-select { flex: 1; max-width: 220px; }
 .settings-help { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .minutes-stepper { flex-shrink: 0; display: grid; grid-template-columns: 44px 72px 44px; align-items: center; gap: 6px; }
 .minutes-stepper strong { text-align: center; font-size: 17px; font-variant-numeric: tabular-nums; }

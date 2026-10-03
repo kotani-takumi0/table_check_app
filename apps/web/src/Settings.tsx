@@ -6,7 +6,8 @@ import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SH
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
 // onEditCourse：コースを直す画面を開く（null は新しいコースを足す。No.89）
-export function Settings({ settings, onChange, onOpenLayout, onEditCourse, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; inert?: boolean }) {
+// onExportCsv：その営業日のお客さんを CSV で書き出し、書き出した人数（組）を返す（No.34）
+export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today, onExportCsv, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; today: string; onExportCsv(day: string): Promise<number>; inert?: boolean }) {
   return <section className="settings" aria-labelledby="settings-title" inert={inert}>
     <h1 id="settings-title" className="settings-title">設定</h1>
     <div className="settings-group glass">
@@ -42,7 +43,32 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, inert
         <button className="panel-button" onClick={onOpenLayout}>変える</button>
       </div>
     </div>
+    <div className="settings-group glass">
+      <h2 className="settings-group-title">記録</h2>
+      <ExportRow today={today} onExport={onExportCsv} />
+    </div>
   </section>;
+}
+// その日のお客さんを CSV で書き出す（No.34）。営業のあとに表計算や AI に渡して見返す。日は朝4時で区切る
+function ExportRow({ today, onExport }: { today: string; onExport(day: string): Promise<number> }) {
+  const [day, setDay] = useState(today);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const run = () => {
+    setBusy(true);
+    setMessage('');
+    onExport(day).then(count => setMessage(count === 0 ? 'この日のお客さんはいませんでした' : `${count}組を書き出しました`),
+      (error: unknown) => setMessage(`書き出せませんでした（${error instanceof Error ? error.message : '理由が分かりません'}）`)).finally(() => setBusy(false));
+  };
+  return <div className="settings-row export-row">
+    <div className="settings-row-text">
+      <label htmlFor="export-day"><strong>その日のお客さんを CSV で書き出す</strong></label>
+      <p id="export-help" className="settings-help">卓・人数・コース・時刻・お会計を1組1行で書き出します。日は朝4時で区切ります（0時を過ぎたお客さんも前の日に入ります）。全卓消去したお客さんは入りません。</p>
+      {message && <p className="settings-help" role="status">{message}</p>}
+    </div>
+    <input id="export-day" type="date" className="field-select" value={day} max={today} aria-describedby="export-help" onChange={event => setDay(event.target.value)} />
+    <button className="panel-button" disabled={busy || day === ''} onClick={run}>{busy ? '書き出しています…' : '書き出す'}</button>
+  </div>;
 }
 function SwitchRow({ id, label, help, checked, onChange }: { id: string; label: string; help: string; checked: boolean; onChange(checked: boolean): void }) {
   return <div className="settings-row">
