@@ -81,6 +81,13 @@ export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= GUESTS_MAX;
 }
+// ご案内の人数（No.85）：−／＋ で1人ずつ変える。未入力から ＋ で1名、1名から − で未入力（あとで）に戻る
+export function stepGuests(guests: number | null, delta: 1 | -1): number | null {
+  if (delta > 0) return Math.min(GUESTS_MAX, (guests ?? 0) + 1);
+  return guests === null || guests <= 1 ? null : guests - 1;
+}
+// ご案内でよく来る人数。押すとその人数になる（−／＋ を何度も押さずに済むように）
+export const QUICK_GUESTS = [2, 3, 4, 6] as const;
 export function setGuests(session: Session, guests: number | null): Session | null {
   return guests === null || isGuestCount(guests) ? { ...session, guests } : null;
 }

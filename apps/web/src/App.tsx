@@ -126,6 +126,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   useEffect(() => () => editingStore.setEditing(null), [editingStore]);
   // 詳細は押した卓のそばに出す（No.71）。卓の位置は描くたびに取り直す（画面の回転・一覧の開け閉めで動くため）
   const anchor = opened ? document.querySelector(`.floor [data-seat="${CSS.escape(openFrom)}"]`)?.getBoundingClientRect() ?? null : null;
+  // ご案内も押した卓のそばに出す（No.85。詳細パネルの「ご案内」から開いたときも、その卓のそば）
+  const seatingAnchor = seating === null ? null : document.querySelector(`.floor [data-seat="${CSS.escape(seating)}"]`)?.getBoundingClientRect() ?? null;
   const modal = Boolean(opened) || clearing || seating !== null || Boolean(openedShopTimer);
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time, shopSettings)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
@@ -201,7 +203,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} />}
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
-    {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} />}
+    {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} anchor={seatingAnchor} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;

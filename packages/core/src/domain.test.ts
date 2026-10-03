@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -132,6 +132,14 @@ describe('人数', () => {
     for (const bad of [0, 100, 2.5, -1, NaN]) expect(setGuests(otoshi, bad)).toBeNull();
     expect([1, 99].every(isGuestCount)).toBe(true);
     expect(['3', null, undefined].some(isGuestCount)).toBe(false);
+  });
+  it('ご案内の −／＋ は1人ずつ変わり、1名から − で未入力、99名で止まる', () => {
+    expect(stepGuests(null, 1)).toBe(1);
+    expect(stepGuests(3, 1)).toBe(4);
+    expect(stepGuests(99, 1)).toBe(99);
+    expect(stepGuests(3, -1)).toBe(2);
+    expect(stepGuests(1, -1)).toBeNull();
+    expect(stepGuests(null, -1)).toBeNull();
   });
   it('人数は状態の進み・戻し・卓の移動・追加で変わらない（団体は全員の人数のまま）', () => {
     const four = { ...otoshi, guests: 4 };

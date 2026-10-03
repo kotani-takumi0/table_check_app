@@ -378,7 +378,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .panel-editing { flex-basis: 100%; margin: 0; padding: 6px 12px; border-radius: 10px; background: var(--action-bg); color: var(--action-text); font-size: 14px; font-weight: 700; }
 /* No.71：詳細は押した卓のそばに小さく出す。後ろは暗くせず（フロアを見ながら操作できる）、外側を押すと閉じる */
 .panel-backdrop.beside { display: block; padding: 0; background: transparent; }
-.detail-panel.beside-left, .detail-panel.beside-right { max-height: calc(100dvh - 72px); gap: 12px; padding: 18px; border-radius: 26px; box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 12px 40px var(--glass-shadow), 0 2px 8px var(--glass-shadow); }
+.detail-panel.beside-left, .detail-panel.beside-right, .seat-panel.beside-left, .seat-panel.beside-right { max-height: calc(100dvh - 72px); gap: 12px; padding: 18px; border-radius: 26px; box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 12px 40px var(--glass-shadow), 0 2px 8px var(--glass-shadow); }
 .panel-arrow { position: absolute; z-index: 11; width: 16px; height: 16px; transform: rotate(45deg); background: color-mix(in srgb, var(--surface) 84%, transparent); pointer-events: none; }
 .panel-arrow.right { box-shadow: -1px 1px 0 var(--glass-edge); clip-path: polygon(0 0, 0 100%, 100% 100%); }
 .panel-arrow.left { box-shadow: 1px -1px 0 var(--glass-edge); clip-path: polygon(0 0, 100% 0, 100% 100%); }
@@ -393,9 +393,20 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .field-rows { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; }
 .field-label { font-size: 15px; font-weight: 700; }
 .time-row .field-select { grid-column: 2 / -1; }
-/* ご案内：入力が多いので真ん中に出す。大きいボタンは最後の「ご案内」だけ */
+/* ご案内（No.85）：押した卓のそばに出す（スマホは真ん中）。人数は −／＋ とよく来る人数、コース・料理はボタンで選ぶ。大きいボタンは最後の「ご案内」だけ */
 .seat-panel { width: min(420px, 100%); }
+.seat-panel h3.field-label { margin: 0; }
 .seat-go { min-height: 64px; font-size: 19px; font-weight: 700; }
+.guest-stepper { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: center; gap: 12px; }
+.stepper-button { width: 64px; height: 64px; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: var(--text); font-size: 30px; font-weight: 700; line-height: 1; }
+.stepper-button:disabled { opacity: 0.4; cursor: default; }
+.stepper-value { text-align: center; font-size: 36px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.stepper-value.muted { font-size: 24px; font-weight: 700; color: var(--muted); }
+.quick-guests { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.choice { min-height: 48px; padding: 4px 10px; border: 2px solid transparent; border-radius: 24px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); font-size: 15px; line-height: 1.25; }
+.choice[aria-pressed="true"], .choice[aria-checked="true"] { border-color: var(--action); background: var(--action); color: var(--on-action); font-weight: 700; }
+.choice-sub { display: block; font-size: 12px; }
 /* ツールバーの「時間制限なし」の目印（押すと設定） */
 .limit-off { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .mini .limit-off { min-height: 28px; padding: 0 8px; font-size: 12px; }

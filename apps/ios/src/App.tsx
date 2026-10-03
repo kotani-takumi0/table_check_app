@@ -95,8 +95,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   // 詳細は押した場所のそばに出す（No.71）。スマホは幅が足りないので、今までどおり下からのシート
   const [openAt, setOpenAt] = useState<{ x: number; y: number } | undefined>(undefined);
   const openPanel = useCallback((session: Session, from: string, at?: { x: number; y: number }) => { setOpenId(session.id); setOpenFrom(from); setOpenAt(at); }, []);
-  // 詳細パネルから案内したときは、同じシートの中で案内の確認に切り替える
-  const requestSeat = useCallback((tableId: string) => { setOpenId(null); setSeating(tableId); }, []);
+  // ご案内も押した場所のそばに出す（No.85）。スマホは下からのシート。詳細パネルから案内したときは、詳細を出していた場所に出す
+  const [seatAt, setSeatAt] = useState<{ x: number; y: number } | undefined>(undefined);
+  const requestSeat = useCallback((tableId: string, at?: { x: number; y: number }) => { setOpenId(null); setSeating(tableId); setSeatAt(at); }, []);
   const seatingOccupant = seating === null ? undefined : occupantOf(sessions, seating, time, shopSettings);
   // 確認中にほかの端末でその卓に案内されたら、確認をやめる（退店済の表示が消えただけなら続ける）
   const seatingTaken = seatingOccupant !== undefined && seatingOccupant.status !== 'exited';
@@ -142,10 +143,11 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   let popover: ReactNode = null;
   let popoverAt: { x: number; y: number } | undefined;
   if (seating !== null && !seatingTaken) {
-    content = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
+    const seatSheet = <SeatSheet key={`seat-${seating}`} tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null}
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSheet} />;
+    if (!mini && seatAt) { popover = seatSheet; popoverAt = seatAt; } else content = seatSheet;
   } else if (opened) {
-    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={next} onSeat={tableId => requestSeat(tableId, openAt)} onBack={back} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }
@@ -209,7 +211,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={() => setClearing(true)} mini={mini}
             menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)} timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
       </View>
-      {popover && <Popover key={popoverAt ? `detail-${openId}` : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
+      {popover && <Popover key={popoverAt ? (seating !== null ? `seat-${seating}` : `detail-${openId}`) : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
       {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
         <ScrollView style={[styles.sheet, LIQUID_GLASS && styles.glassSheet]} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">

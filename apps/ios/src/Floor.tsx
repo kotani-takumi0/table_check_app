@@ -13,7 +13,7 @@ interface Props {
   portrait: boolean;
   mini: boolean;
   picking: boolean;
-  onSeat(tableId: string): void;
+  onSeat(tableId: string, at?: { x: number; y: number }): void;
   onOpen(session: Session, from: string, at?: { x: number; y: number }): void;
   editingIds: Set<string>;   // ほかの端末で詳細を開いているお客さん（No.72）
   settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
