@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import { GRID, type SeatKind } from '@table-check/core/layout';
+import { cellAt, DRAG_THRESHOLD, dragBox, sameBox, type Cell, type DragKind } from '@table-check/core/layoutDrag';
 import { LABEL_MAX_LENGTH, NOTICE_AREAS, type ShopLayout } from '@table-check/core/shopLayout';
 import { LAYOUT_BLOCKS, useLayoutEditor } from '@table-check/core/useLayoutEditor';
 import { COLORS, FILL } from './theme';
@@ -11,17 +12,67 @@ import { SelectField, type SelectOption } from './sheets/SelectField';
 
 const KIND_OPTIONS: SelectOption<SeatKind>[] = [{ value: 'table', label: 'テーブル' }, { value: 'counter', label: 'カウンター席' }];
 const GAP = 4;
+// 大きさを変えるつまみの、指で押せる大きさ
+const HANDLE = 36;
 type Box = { col: number; colSpan: number; row: number; rowSpan: number };
+type Target = { type: 'seat' | 'label'; index: number };
 
 // 席の配置を作り直す画面（Web の LayoutEditor と同じ。No.86）。中身は core の useLayoutEditor を Web と共有する。
 // マス目は向きを変えても横向き（15列×7行）のまま。iPad の横向きは左にブロック、縦向き・スマホは上にブロックを出す
 export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait, mini }: {
   layout: ShopLayout; occupied: Set<string>; onSave(layout: ShopLayout): Promise<void>; onClose(): void; top: number; portrait: boolean; mini: boolean;
 }) {
-  const { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, remove, setSeatId, setSeatKind, setLabelText,
+  const { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText,
     conflict, reload, resetToDefault, changed, saving, canSave, save, status } = useLayoutEditor({ layout, occupied, onSave, onClose });
   const [gridWidth, setGridWidth] = useState(0);
   const cell = (gridWidth - GAP * (GRID.cols - 1)) / GRID.cols;
+  const gridHeight = GRID.rows * cell + (GRID.rows - 1) * GAP;
+  // ドラッグ（Web と同じ。No.93）：置いた卓・ことばをつかんで動かし、選んでいるものは右下のつまみで大きさを変える。
+  // 指を離すまでは下書きを変えず、行き先を影で見せる（置けない場所は朱）。少ししか動かさなければ、今までどおり押して選ぶ。
+  // 卓に指を置いている間は、画面のスクロールを止める（スクロールにドラッグを取られないように）
+  const gridView = useRef<View>(null);
+  const origin = useRef({ x: 0, y: 0 });
+  const drag = useRef<{ target: Target; kind: DragKind; item: Box; start: Cell | null; x: number; y: number; moved: boolean; box: Box } | null>(null);
+  const [preview, setPreview] = useState<{ target: Target; box: Box } | null>(null);
+  const [touching, setTouching] = useState(false);
+  const cellOfPage = (x: number, y: number) => cellAt(x - origin.current.x, y - origin.current.y, gridWidth, gridHeight, GAP);
+  const finishDrag = (cancel: boolean) => {
+    const d = drag.current;
+    drag.current = null;
+    setTouching(false);
+    setPreview(null);
+    if (!d || cancel) return;
+    if (!d.moved) { if (d.kind === 'move') { feedback.tap(); select(d.target); } return; }
+    if (sameBox(d.box, d.item)) { select(d.target); return; }
+    if (canPlace(d.target, d.box)) feedback.done(); else feedback.warn();
+    placeAt(d.target, d.box);
+  };
+  const dragHandlers = (target: Target, item: Box, kind: DragKind) => ({
+    onStartShouldSetResponder: () => true,
+    onResponderTerminationRequest: () => false,
+    onResponderGrant: (event: GestureResponderEvent) => {
+      const { pageX, pageY } = event.nativeEvent;
+      setTouching(true);
+      drag.current = { target, kind, item, start: null, x: pageX, y: pageY, moved: false, box: item };
+      // マス目の画面の中の位置は、つかむたびに測り直す（スクロール・回転で動くため）
+      gridView.current?.measure((_x, _y, _w, _h, left, top) => {
+        origin.current = { x: left, y: top };
+        if (drag.current) drag.current.start = cellOfPage(pageX, pageY);
+      });
+    },
+    onResponderMove: (event: GestureResponderEvent) => {
+      const d = drag.current;
+      if (!d?.start) return;
+      const { pageX, pageY } = event.nativeEvent;
+      if (!d.moved && Math.hypot(pageX - d.x, pageY - d.y) < DRAG_THRESHOLD) return;
+      d.moved = true;
+      d.box = dragBox(d.kind, d.item, d.start, cellOfPage(pageX, pageY));
+      setPreview({ target: d.target, box: d.box });
+    },
+    onResponderRelease: () => finishDrag(false),
+    onResponderTerminate: () => finishDrag(true),
+  });
+  const isDragged = (t: Target) => preview?.target.type === t.type && preview.target.index === t.index;
   const frame = (box: Box): ViewStyle => ({
     position: 'absolute', left: (box.col - 1) * (cell + GAP), top: (box.row - 1) * (cell + GAP),
     width: box.colSpan * cell + (box.colSpan - 1) * GAP, height: box.rowSpan * cell + (box.rowSpan - 1) * GAP,
@@ -34,9 +85,9 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
       onPress={() => { feedback.tap(); pressCell(col, row); }} style={({ pressed }) => [styles.cell, frame({ col, row, colSpan: 1, rowSpan: 1 }), pressed && styles.cellPressed]} />);
   }
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]} keyboardShouldPersistTaps="handled">
+    <ScrollView scrollEnabled={!touching} style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title} accessibilityRole="header">席の配置</Text>
-      <Text style={styles.help}>{stacked ? '上' : '左'}のブロックを選んでマス目を押すと置けます。置いた卓を押すと、卓番・種類・大きさを変えたり、別のマスを押して動かしたりできます。</Text>
+      <Text style={styles.help}>{stacked ? '上' : '左'}のブロックを選んでマス目を押すと置けます。置いた卓はつかんで動かせます。押すと、卓番・種類・大きさを変えられます。</Text>
       <View style={[styles.body, stacked && styles.stackedBody]}>
         <Glass tint={0.84} style={[styles.side, stacked && styles.stackedSide]}>
           {selected === null ? <>
@@ -71,7 +122,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
               <SizeRow name="幅" value={target.colSpan} onLess={() => resize(-1, 0)} onMore={() => resize(1, 0)} />
               <SizeRow name="高さ" value={target.rowSpan} onLess={() => resize(0, -1)} onMore={() => resize(0, 1)} />
             </View>}
-            <Text style={styles.help}>動かすときは、マス目の空いているところを押します。</Text>
+            <Text style={styles.help}>動かすときは、つかんで動かすか、マス目の空いているところを押します。右下の丸をつかむと大きさを変えられます。</Text>
             <View style={styles.actions}>
               <PanelButton label="直し終わる" onPress={() => { feedback.tap(); select(null); }} style={styles.action} />
               <PanelButton label="消す" tone="danger" disabled={locked} onPress={() => { feedback.warn(); remove(); }} style={styles.action} />
@@ -80,26 +131,34 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
         </Glass>
         <View style={styles.gridArea}>
           <View style={styles.gridFrame} onLayout={event => setGridWidth(event.nativeEvent.layout.width - 16)}>
-            {gridWidth > 0 && <View style={{ height: GRID.rows * cell + (GRID.rows - 1) * GAP }}>
+            {gridWidth > 0 && <View ref={gridView} collapsable={false} style={{ height: gridHeight }}>
               {cells}
               {NOTICE_AREAS.map((notice, i) => <View key={i} pointerEvents="none" style={[styles.notice, frame(notice)]}>
                 <Text style={styles.noticeText} numberOfLines={1} adjustsFontSizeToFit>{i === 0 ? '通知の場所' : '縦'}</Text>
               </View>)}
               {draft.labels.map((l, i) => {
                 const current = selected?.type === 'label' && selected.index === i;
-                return <Pressable key={`label-${i}`} accessibilityRole="button" accessibilityLabel={`ことば「${l.text}」（押すと直す）`} onPress={() => { feedback.tap(); select({ type: 'label', index: i }); }}
-                  style={[styles.item, styles.labelItem, frame(l), current && styles.selected]}>
+                const t: Target = { type: 'label', index: i };
+                return <View key={`label-${i}`} accessible accessibilityRole="button" accessibilityLabel={`ことば「${l.text}」（押すと直す）`} onAccessibilityTap={() => select(t)}
+                  {...dragHandlers(t, l, 'move')} style={[styles.item, styles.labelItem, frame(l), current && styles.selected, isDragged(t) && styles.dragging]}>
                   <Text style={styles.labelText} numberOfLines={1} adjustsFontSizeToFit>{l.text}</Text>
-                </Pressable>;
+                </View>;
               })}
               {draft.seats.map((s, i) => {
                 const current = selected?.type === 'seat' && selected.index === i;
-                return <Pressable key={`seat-${i}`} accessibilityRole="button" accessibilityLabel={`${s.id}番 ${s.kind === 'table' ? 'テーブル' : 'カウンター席'}（押すと直す）`}
-                  onPress={() => { feedback.tap(); select({ type: 'seat', index: i }); }}
-                  style={[styles.item, frame(s), s.kind === 'counter' && styles.round, isOccupied(i) && styles.occupied, current && styles.selected]}>
+                const t: Target = { type: 'seat', index: i };
+                return <View key={`seat-${i}`} accessible accessibilityRole="button" accessibilityLabel={`${s.id}番 ${s.kind === 'table' ? 'テーブル' : 'カウンター席'}（押すと直す）`}
+                  onAccessibilityTap={() => select(t)} {...dragHandlers(t, s, 'move')}
+                  style={[styles.item, frame(s), s.kind === 'counter' && styles.round, isOccupied(i) && styles.occupied, current && styles.selected, isDragged(t) && styles.dragging]}>
                   <Text style={[styles.seatText, mini && styles.miniSeatText]} numberOfLines={1} adjustsFontSizeToFit>{s.id}</Text>
-                </Pressable>;
+                </View>;
               })}
+              {/* 大きさを変えるつまみ：選んでいる卓・ことばの右下の角（読み上げでは左の幅・高さの −／＋ を使う）。つかんでいる間も消さない */}
+              {selected && target && <View accessible={false} {...dragHandlers(selected, target, 'resize')}
+                style={[styles.handle, { left: (target.col + target.colSpan - 1) * (cell + GAP) - HANDLE / 2, top: (target.row + target.rowSpan - 1) * (cell + GAP) - HANDLE / 2 }, preview && styles.hidden]}>
+                <View style={styles.handleDot} />
+              </View>}
+              {preview && <View pointerEvents="none" style={[styles.ghost, frame(preview.box), !canPlace(preview.target, preview.box) && styles.ghostBlocked]} />}
             </View>}
           </View>
         </View>
@@ -170,6 +229,12 @@ const styles = StyleSheet.create({
   miniSeatText: { fontSize: 11 },
   occupied: { backgroundColor: COLORS.actionBg },
   selected: { borderWidth: 3, borderColor: COLORS.action },
+  dragging: { opacity: 0.35 },
+  ghost: { borderWidth: 2, borderStyle: 'dashed', borderColor: COLORS.action, borderRadius: 10, backgroundColor: 'rgba(48, 90, 18, 0.18)' },
+  ghostBlocked: { borderColor: COLORS.now, backgroundColor: 'rgba(246, 98, 58, 0.18)' },
+  handle: { position: 'absolute', width: HANDLE, height: HANDLE, alignItems: 'center', justifyContent: 'center' },
+  handleDot: { width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: COLORS.surface, backgroundColor: COLORS.action },
+  hidden: { opacity: 0 },
   status: { minHeight: 19, fontSize: 14, lineHeight: 19, color: COLORS.muted },
   foot: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   footButton: { flexGrow: 1, minWidth: 150, minHeight: 44 },

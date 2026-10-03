@@ -105,6 +105,16 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     setMessage('');
     if (selected?.type === 'seat') updateSeat(selected.index, { colSpan: box.colSpan, rowSpan: box.rowSpan }); else updateLabel((selected as { index: number }).index, { colSpan: box.colSpan, rowSpan: box.rowSpan });
   };
+  // ドラッグ（No.93）：つかんだ卓・ことばを、その場所・大きさに置けるか（ドラッグ中の影の色に使う）
+  const canPlace = (target: NonNullable<LayoutSelected>, box: Box) => free(box, target);
+  // 指を離したところに置き、直すものとして選ぶ。置けなければ動かさず、理由を出す
+  const placeAt = (target: NonNullable<LayoutSelected>, box: Box) => {
+    setSelected(target);
+    if (!free(box, target)) { setMessage('そこには入りません（ほかの卓・通知の場所に重なるか、はみ出します）'); return; }
+    setMessage('');
+    const change = { col: box.col, row: box.row, colSpan: box.colSpan, rowSpan: box.rowSpan };
+    if (target.type === 'seat') updateSeat(target.index, change); else updateLabel(target.index, change);
+  };
   const remove = () => {
     setDirty(true);
     if (selected?.type === 'seat') {
@@ -138,6 +148,6 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
   const status = conflict ? 'ほかの端末で配置が変わりました。「最新を読み込む」を押してから直してください'
     : message || (problems.length ? `直すところ：${problems.join('／')}` : changed ? '保存すると、すべての端末の配置が変わります' : '');
   const canSave = changed && problems.length === 0 && !saving && !layoutChanged;
-  return { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, remove, setSeatId, setSeatKind, setLabelText,
+  return { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText,
     conflict, reload, resetToDefault, changed, saving, canSave, save, status };
 }
