@@ -1,5 +1,5 @@
 import type { User } from 'firebase/auth';
-import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, where, writeBatch, type Firestore, type SnapshotMetadata } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, where, writeBatch, type Firestore, type SnapshotMetadata } from 'firebase/firestore';
 import { now } from './clock';
 import type { Session } from './domain';
 import { fromSessionDoc, resolveSessions, tablesToWrite, toSessionDoc } from './firestoreMapping';
@@ -77,6 +77,12 @@ export class FirestoreSessionStore implements SessionStore {
       batch.set(doc(this.db, shopPath(this.base, 'tables'), tableId), { sessionId: session.id, updatedAt: serverTimestamp() });
     }
     void batch.commit().catch(error => console.error(error));
+  }
+  async fetchSeatedBetween(start: number, end: number): Promise<Session[]> {
+    if (!await this.ready) throw new Error('ログインできていません');
+    // 電波が無ければキャッシュにある分だけになる
+    const snapshot = await getDocs(query(collection(this.db, shopPath(this.base, 'sessions')), where('seatedAt', '>=', start), where('seatedAt', '<', end)));
+    return snapshot.docs.map(item => fromSessionDoc(item.id, item.data())).filter((s): s is Session => s !== null);
   }
   async remove(id: string): Promise<void> {
     if (!await this.ready) return;
