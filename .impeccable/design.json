@@ -1,0 +1,792 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-04T23:51:14+00:00",
+  "title": "Design System: Minopal",
+  "extensions": {
+    "colorMeta": {
+      "sand-ground": {
+        "role": "neutral",
+        "displayName": "暖かい灰色の地 Sand Ground",
+        "cssVar": "--bg",
+        "dark": "#171615",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 3
+      },
+      "sand-surface": {
+        "role": "neutral",
+        "displayName": "紙の面 Sand Surface",
+        "cssVar": "--surface",
+        "dark": "#22201e",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 1
+      },
+      "sand-ink": {
+        "role": "neutral",
+        "displayName": "墨 Sand Ink",
+        "cssVar": "--text",
+        "dark": "#eeeae7",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 12
+      },
+      "sand-muted": {
+        "role": "neutral",
+        "displayName": "薄墨 Sand Muted",
+        "cssVar": "--muted",
+        "dark": "#c3bdb6",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 11
+      },
+      "sand-line": {
+        "role": "neutral",
+        "displayName": "罫 Sand Line",
+        "cssVar": "--line",
+        "dark": "#3f3b37",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 6
+      },
+      "sand-line-strong": {
+        "role": "neutral",
+        "displayName": "濃い罫 Sand Line Strong",
+        "cssVar": "--line-strong",
+        "dark": "#4e4a45",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 7
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "淡い塗り Fill",
+        "cssVar": "color-mix(in srgb, var(--text) 7%, transparent)",
+        "dark": "color-mix(in srgb, #eeeae7 7%, transparent)"
+      },
+      "nopal": {
+        "role": "primary",
+        "displayName": "茎の緑 Nopal",
+        "cssVar": "--action",
+        "dark": "#4c7731",
+        "tonalRamp": [
+          "#203117",
+          "#4b6f36",
+          "#274e07",
+          "#305a12",
+          "#99c184",
+          "#b3d4a1",
+          "#c3e1b4",
+          "#d0eac2",
+          "#dbf1d0",
+          "#e7f7df",
+          "#f4fcef",
+          "#fbfff9"
+        ],
+        "scaleStep": 9
+      },
+      "on-nopal": {
+        "role": "primary",
+        "displayName": "茎の緑の上の文字",
+        "cssVar": "--on-action",
+        "dark": "#ffffff"
+      },
+      "nopal-text": {
+        "role": "primary",
+        "displayName": "茎の緑の文字",
+        "cssVar": "--action-text",
+        "dark": "#a4cc8f",
+        "tonalRamp": [
+          "#203117",
+          "#4b6f36",
+          "#274e07",
+          "#305a12",
+          "#99c184",
+          "#b3d4a1",
+          "#c3e1b4",
+          "#d0eac2",
+          "#dbf1d0",
+          "#e7f7df",
+          "#f4fcef",
+          "#fbfff9"
+        ],
+        "scaleStep": 9
+      },
+      "nopal-wash": {
+        "role": "primary",
+        "displayName": "淡い茎の緑",
+        "cssVar": "--action-bg",
+        "dark": "#192413",
+        "tonalRamp": [
+          "#203117",
+          "#4b6f36",
+          "#274e07",
+          "#305a12",
+          "#99c184",
+          "#b3d4a1",
+          "#c3e1b4",
+          "#d0eac2",
+          "#dbf1d0",
+          "#e7f7df",
+          "#f4fcef",
+          "#fbfff9"
+        ],
+        "scaleStep": 3
+      },
+      "tuna": {
+        "role": "secondary",
+        "displayName": "実の朱 Tuna",
+        "cssVar": "--now",
+        "dark": "#fe8160",
+        "tonalRamp": [
+          "#4d1708",
+          "#ab340f",
+          "#e55832",
+          "#f6623a",
+          "#fe9173",
+          "#ffb29d",
+          "#fec8b9",
+          "#ffd6cb",
+          "#ffe2da",
+          "#ffede8",
+          "#fef7f5",
+          "#fefdfc"
+        ],
+        "scaleStep": 9
+      },
+      "on-tuna": {
+        "role": "secondary",
+        "displayName": "実の朱の上の文字",
+        "cssVar": "--on-now",
+        "dark": "#100f0f",
+        "tonalRamp": [
+          "#4d1708",
+          "#ab340f",
+          "#e55832",
+          "#f6623a",
+          "#fe9173",
+          "#ffb29d",
+          "#fec8b9",
+          "#ffd6cb",
+          "#ffe2da",
+          "#ffede8",
+          "#fef7f5",
+          "#fefdfc"
+        ],
+        "scaleStep": 12
+      },
+      "tuna-text": {
+        "role": "secondary",
+        "displayName": "実の朱の文字",
+        "cssVar": "--now-text",
+        "dark": "#fea289",
+        "tonalRamp": [
+          "#4d1708",
+          "#ab340f",
+          "#e55832",
+          "#f6623a",
+          "#fe9173",
+          "#ffb29d",
+          "#fec8b9",
+          "#ffd6cb",
+          "#ffe2da",
+          "#ffede8",
+          "#fef7f5",
+          "#fefdfc"
+        ],
+        "scaleStep": 11
+      },
+      "tuna-wash": {
+        "role": "secondary",
+        "displayName": "淡い実の朱",
+        "cssVar": "--now-bg",
+        "dark": "#38140a",
+        "tonalRamp": [
+          "#4d1708",
+          "#ab340f",
+          "#e55832",
+          "#f6623a",
+          "#fe9173",
+          "#ffb29d",
+          "#fec8b9",
+          "#ffd6cb",
+          "#ffe2da",
+          "#ffede8",
+          "#fef7f5",
+          "#fefdfc"
+        ],
+        "scaleStep": 3
+      },
+      "tuna-line": {
+        "role": "secondary",
+        "displayName": "実の朱の罫",
+        "cssVar": "--now-line",
+        "dark": "#832508",
+        "tonalRamp": [
+          "#4d1708",
+          "#ab340f",
+          "#e55832",
+          "#f6623a",
+          "#fe9173",
+          "#ffb29d",
+          "#fec8b9",
+          "#ffd6cb",
+          "#ffe2da",
+          "#ffede8",
+          "#fef7f5",
+          "#fefdfc"
+        ],
+        "scaleStep": 7
+      },
+      "tuna-face": {
+        "role": "secondary",
+        "displayName": "実の朱の文字盤",
+        "cssVar": "--now-face",
+        "dark": "#4a1405",
+        "tonalRamp": [
+          "#4d1708",
+          "#ab340f",
+          "#e55832",
+          "#f6623a",
+          "#fe9173",
+          "#ffb29d",
+          "#fec8b9",
+          "#ffd6cb",
+          "#ffe2da",
+          "#ffede8",
+          "#fef7f5",
+          "#fefdfc"
+        ],
+        "scaleStep": 4
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "実の琥珀 Amber",
+        "cssVar": "--soon",
+        "dark": "#ffd896",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 9
+      },
+      "on-amber": {
+        "role": "tertiary",
+        "displayName": "実の琥珀の上の文字",
+        "cssVar": "--on-soon",
+        "dark": "#100f0f",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 12
+      },
+      "amber-text": {
+        "role": "tertiary",
+        "displayName": "実の琥珀の文字",
+        "cssVar": "--soon-text",
+        "dark": "#e9b455",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 11
+      },
+      "amber-wash": {
+        "role": "tertiary",
+        "displayName": "淡い実の琥珀",
+        "cssVar": "--soon-bg",
+        "dark": "#2c1d02",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 3
+      },
+      "amber-line": {
+        "role": "tertiary",
+        "displayName": "実の琥珀の罫",
+        "cssVar": "--soon-line",
+        "dark": "#624400",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 7
+      },
+      "amber-face": {
+        "role": "tertiary",
+        "displayName": "実の琥珀の文字盤",
+        "cssVar": "--soon-face",
+        "dark": "#382500",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 4
+      },
+      "amber-arc": {
+        "role": "tertiary",
+        "displayName": "実の琥珀の弧",
+        "cssVar": "--soon-arc",
+        "dark": "#ffd896",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 8
+      },
+      "dial-face": {
+        "role": "neutral",
+        "displayName": "文字盤の塗り",
+        "cssVar": "--dial-face",
+        "dark": "#2b2826",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 3
+      },
+      "dial-dot": {
+        "role": "neutral",
+        "displayName": "文字盤の点",
+        "cssVar": "--dial-dot",
+        "dark": "#655f59",
+        "tonalRamp": [
+          "#2d2b28",
+          "#68625c",
+          "#6b655e",
+          "#777069",
+          "#b8b2ab",
+          "#ccc7c1",
+          "#dad5d0",
+          "#e4e0db",
+          "#ece8e5",
+          "#f3f1ee",
+          "#faf9f7",
+          "#fefdfc"
+        ],
+        "scaleStep": 8
+      },
+      "dial-band": {
+        "role": "tertiary",
+        "displayName": "文字盤の L.O. の帯",
+        "cssVar": "--dial-band",
+        "dark": "#503701",
+        "tonalRamp": [
+          "#3b2700",
+          "#825b00",
+          "#f5b947",
+          "#ffc762",
+          "#dda949",
+          "#ecc176",
+          "#f7d08f",
+          "#fedba2",
+          "#ffe6bd",
+          "#ffefd5",
+          "#fff8ee",
+          "#fefdfa"
+        ],
+        "scaleStep": 6
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "最初の画面の題だけ。"
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "詳細パネルの題と状態名。"
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "パネルの卓番、時刻、設定の行。"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "本文とほとんどの部品。ボタンは15px。iOS は端末の書体（ヒラギノ）。"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "区切りの見出し、警告の札、卓カードの人数・コース。"
+      },
+      "seat-number": {
+        "displayName": "Seat Number",
+        "purpose": "卓カードの卓番。カードの大きさで 17 / 14 / 11px に詰める。"
+      },
+      "guest-count": {
+        "displayName": "Guest Count",
+        "purpose": "卓カードの人数の数字。"
+      },
+      "dial-time": {
+        "displayName": "Dial Time",
+        "purpose": "文字盤の中の経過（時:分）。スマホでは 27〜34px。"
+      },
+      "clock": {
+        "displayName": "Clock",
+        "purpose": "ツールバーの時刻。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "glass",
+        "value": "inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 8px 28px var(--glass-shadow), 0 2px 6px var(--glass-shadow)",
+        "purpose": "ツールバー・中央のパネル・通知。glass-shadow はライトで墨の10%、ダークで黒の35%。"
+      },
+      {
+        "name": "glass-beside",
+        "value": "inset 0 1px 0 var(--glass-rim), inset 0 -1px 0 var(--glass-rim-low), 0 0 0 0.5px var(--glass-edge), 0 12px 40px var(--glass-shadow), 0 2px 8px var(--glass-shadow)",
+        "purpose": "卓のそばに出す詳細パネルとご案内。"
+      },
+      {
+        "name": "knob",
+        "value": "0 1px 3px rgb(0 0 0 / 0.25)",
+        "purpose": "スイッチのつまみ。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "popover-in",
+        "value": "0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2); from opacity 0, scale 0.6",
+        "purpose": "ポップオーバーが押したボタンから現れる。"
+      },
+      {
+        "name": "menu-in",
+        "value": "0.18s ease-out; from translateX(-24px), opacity 0",
+        "purpose": "メニューが左から出る。"
+      },
+      {
+        "name": "state",
+        "value": "0.15s",
+        "purpose": "スイッチ・折りたたみの矢印・ヒントの切り替え。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce で上の動きをすべて止める",
+        "purpose": "動きを減らす設定の尊重。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mini",
+        "value": "max-width: 600px, max-height: 600px",
+        "purpose": "スマホ。卓カードは mini の姿。"
+      },
+      {
+        "name": "narrow-phone",
+        "value": "max-width: 419px",
+        "purpose": "版の表示を隠す。"
+      },
+      {
+        "name": "portrait",
+        "value": "orientation: portrait",
+        "purpose": "配置図を時計回りに90°回す。"
+      }
+    ],
+    "themes": {
+      "note": "Web はライトとダーク（prefers-color-scheme と data-theme）。iOS はライトだけ。ダークでは bg を sand-2、surface を sand-3 に上げる。",
+      "source": [
+        "apps/web/src/App.css",
+        "apps/ios/src/theme.ts",
+        "design-system/project/tokens.json"
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "茎の緑のカプセル。1画面に1つだけ。",
+      "html": "<button class=\"ds-btn-primary\">2名でご案内</button>",
+      "css": ".ds-btn-primary { font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 50px; padding: 4px 20px; border: none; border-radius: 25px; background: var(--action, #305a12); color: var(--on-action, #fff); font-size: 15px; font-weight: 700; cursor: pointer; transition: filter 0.15s; } .ds-btn-primary:hover { filter: brightness(1.08); } .ds-btn-primary:active { filter: brightness(0.92); } .ds-btn-primary:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "墨の8%の淡い塗り。「1つ戻す」など。",
+      "html": "<button class=\"ds-btn-secondary\">1つ戻す</button>",
+      "css": ".ds-btn-secondary { font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 50px; padding: 4px 20px; border: none; border-radius: 25px; background: rgba(45, 43, 40, 0.08); color: var(--text, #2d2b28); font-size: 15px; cursor: pointer; } .ds-btn-secondary:hover { background: rgba(45, 43, 40, 0.12); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "消去・取り消し。淡い朱の地に朱の文字。",
+      "html": "<button class=\"ds-btn-danger\">全卓消去</button>",
+      "css": ".ds-btn-danger { font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 50px; padding: 4px 20px; border: none; border-radius: 25px; background: var(--now-bg, #ffede8); color: var(--now-text, #ab340f); font-size: 15px; font-weight: 700; cursor: pointer; } .ds-btn-danger:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Choice",
+      "kind": "chip",
+      "refersTo": "choice",
+      "description": "コース・よく来る人数を選ぶカプセル。選ぶと茎の緑。",
+      "html": "<div class=\"ds-choices\"><button class=\"ds-choice\">通常</button><button class=\"ds-choice\" aria-pressed=\"true\">飲み放題</button></div>",
+      "css": ".ds-choices { display: grid; grid-template-columns: repeat(2, 140px); gap: 8px; } .ds-choice { font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 48px; padding: 4px 10px; border: 2px solid transparent; border-radius: 24px; background: rgba(45, 43, 40, 0.07); color: var(--text, #2d2b28); font-size: 15px; cursor: pointer; } .ds-choice:hover { background: rgba(45, 43, 40, 0.11); } .ds-choice[aria-pressed=\"true\"] { border-color: var(--action, #305a12); background: var(--action, #305a12); color: #fff; font-weight: 700; } .ds-choice:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Field Select",
+      "kind": "input",
+      "refersTo": "field-select",
+      "description": "人数・コース・料理のドロップダウン。",
+      "html": "<select class=\"ds-select\"><option>4名</option><option>5名</option></select>",
+      "css": ".ds-select { font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 48px; min-width: 160px; padding: 0 12px; border: 1px solid var(--line-strong, #ccc7c1); border-radius: 12px; background: var(--bg, #f3f1ee); color: var(--text, #2d2b28); font-size: 16px; } .ds-select:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Toolbar",
+      "kind": "nav",
+      "refersTo": "toolbar",
+      "description": "フロアの上に浮かぶガラスのカプセル。右に時刻。",
+      "html": "<div class=\"ds-toolbar\"><button class=\"ds-tb-btn\" aria-label=\"メニュー\">☰</button><span class=\"ds-tb-chip\">トイレ 12分</span><time class=\"ds-tb-time\">19:42</time></div>",
+      "css": ".ds-toolbar { font-family: 'Zen Kaku Gothic New', sans-serif; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px 0 6px; border-radius: 24px; color: var(--muted, #68625c); background: linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, transparent 42%), color-mix(in srgb, var(--surface, #fefdfc) 84%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.8); backdrop-filter: blur(14px) saturate(1.8); border: 0.5px solid rgb(255 255 255 / 0.9); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 0.5px rgb(45 43 40 / 0.1), 0 8px 28px rgb(45 43 40 / 0.1), 0 2px 6px rgb(45 43 40 / 0.1); } .ds-tb-btn { min-width: 36px; min-height: 36px; border: none; border-radius: 18px; background: transparent; color: var(--text, #2d2b28); font-size: 16px; cursor: pointer; } .ds-tb-btn:hover { background: rgba(45, 43, 40, 0.07); } .ds-tb-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(45, 43, 40, 0.07); font-size: 13px; } .ds-tb-time { margin-left: auto; color: var(--text, #2d2b28); font: 500 17px 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Seat Card",
+      "kind": "card",
+      "refersTo": "seat-card",
+      "description": "フロアの卓カード。文字盤が主役。ふだんは無彩色、L.O.は琥珀。",
+      "html": "<div class=\"ds-seat-row\"><div class=\"ds-seat\"><div class=\"ds-seat-head\"><b>3</b><span><b class=\"ds-num\">4</b>名</span></div><svg class=\"ds-dial\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"#f3f1ee\"/><path d=\"M50 6 A44 44 0 0 1 94 50\" fill=\"none\" stroke=\"#2d2b28\" stroke-width=\"5\" stroke-linecap=\"round\"/><text x=\"50\" y=\"58\" text-anchor=\"middle\" font-family=\"Roboto Mono, monospace\" font-weight=\"700\" font-size=\"22\" fill=\"#2d2b28\">0:32</text></svg><div class=\"ds-seat-foot\"><span class=\"ds-status\">お通し済</span><span class=\"ds-rest\">L.O.まで58分</span></div></div><div class=\"ds-seat ds-soon\"><div class=\"ds-seat-head\"><b>11</b><span><b class=\"ds-num\">2</b>名</span></div><svg class=\"ds-dial\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"#ffe6bd\"/><path d=\"M50 6 A44 44 0 1 1 6 50\" fill=\"none\" stroke=\"#dda949\" stroke-width=\"5\" stroke-linecap=\"round\"/><text x=\"50\" y=\"58\" text-anchor=\"middle\" font-family=\"Roboto Mono, monospace\" font-weight=\"700\" font-size=\"22\" fill=\"#2d2b28\">1:32</text></svg><div class=\"ds-seat-foot\"><span class=\"ds-badge\">L.O.の時間</span><span class=\"ds-rest\">退店まで28分</span></div></div></div>",
+      "css": ".ds-seat-row { display: flex; gap: 6px; } .ds-seat { font-family: 'Zen Kaku Gothic New', sans-serif; width: 200px; height: 170px; display: grid; grid-template-rows: auto 1fr auto; padding: 8px 12px 10px; border: 1.5px solid transparent; border-radius: 12px; background: var(--surface, #fefdfc); color: var(--text, #2d2b28); line-height: 1.2; cursor: pointer; } .ds-seat:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; } .ds-seat-head, .ds-seat-foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--muted, #68625c); } .ds-seat-head > b { font-size: 20px; color: var(--text, #2d2b28); } .ds-num { font-size: 1.5em; font-weight: 900; color: var(--text, #2d2b28); font-variant-numeric: tabular-nums; } .ds-dial { width: 92px; height: 92px; justify-self: center; align-self: center; } .ds-status { font-size: 16px; font-weight: 700; color: var(--text, #2d2b28); } .ds-rest { font-size: 12px; } .ds-soon { background: var(--soon-bg, #ffefd5); } .ds-badge { padding: 3px 10px; border-radius: 999px; background: var(--soon, #ffc762); color: var(--on-soon, #3b2700); font-size: 13px; font-weight: 700; }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "iOS 26 の通知バナーのようなガラスのカプセル。左の丸で急ぎ具合。",
+      "html": "<div class=\"ds-toast\"><span class=\"ds-toast-msg\">11卓 ラストオーダーの時間です</span><button class=\"ds-toast-btn\">L.O.確認済みにする</button></div>",
+      "css": ".ds-toast { font-family: 'Zen Kaku Gothic New', sans-serif; display: flex; align-items: center; gap: 10px; width: 420px; min-height: 48px; padding: 4px 5px 4px 16px; border-radius: 999px; color: var(--text, #2d2b28); background: linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, transparent 42%), color-mix(in srgb, var(--surface, #fefdfc) 84%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.8); backdrop-filter: blur(14px) saturate(1.8); border: 0.5px solid rgb(255 255 255 / 0.9); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 0.5px rgb(45 43 40 / 0.1), 0 8px 28px rgb(45 43 40 / 0.1), 0 2px 6px rgb(45 43 40 / 0.1); } .ds-toast::before { content: ''; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--soon, #ffc762); } .ds-toast-msg { flex: 1; font-size: 15px; } .ds-toast-btn { font-family: 'Zen Kaku Gothic New', sans-serif; height: 36px; padding: 0 16px; border: none; border-radius: 18px; background: var(--action, #305a12); color: #fff; font-size: 14px; cursor: pointer; } .ds-toast-btn:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Switch",
+      "kind": "custom",
+      "refersTo": "switch",
+      "description": "iOS の切り替えと同じ形。オンは茎の緑。",
+      "html": "<button class=\"ds-switch\" role=\"switch\" aria-checked=\"true\" aria-label=\"時間制限なし\"><span class=\"ds-knob\"></span></button>",
+      "css": ".ds-switch { position: relative; width: 52px; height: 32px; padding: 0; border: none; border-radius: 16px; background: rgba(45, 43, 40, 0.18); cursor: pointer; transition: background 0.15s; } .ds-switch[aria-checked=\"true\"] { background: var(--action, #305a12); } .ds-knob { position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); transition: transform 0.15s; } .ds-switch[aria-checked=\"true\"] .ds-knob { transform: translateX(20px); } .ds-switch:focus-visible { outline: 3px solid var(--text, #2d2b28); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "ホールの壁時計",
+    "overview": "**Creative North Star: \"ホールの壁時計\"**\n\nMinopal は、居酒屋のホールに掛かった壁時計のようにふるまう。お盆を持って通りがかった人が、一瞬見上げただけで「どの卓に、何を、いつまでに」がわかる。ふだんは静かで、時間が来た卓だけが色づく。色は飾りではなく、時計の針と同じく「知らせ」として働く。\n\n雰囲気は静かで落ち着いている。暖かい灰色の地（sand）に、無彩色の卓カードが店の席の並びのまま並ぶ。カードの主役は、アイコンの「茎の時計」から生まれた文字盤（120分で一周する経過の弧と、縁の12個の点）。色はアイコンのウチワサボテンから取った4つの役割だけで、段階（案内済・お通し済など）は色ではなく文字で読ませる。\n\n部品の手触りは iOS にそろえる。カプセルのボタン、浮かぶ操作の層だけに使う Liquid Glass、iOS 26 のアラートや通知バナー、iOS のスイッチ。フロアの卓は内容なのでガラスにせず、平らに置く。",
+    "keyCharacteristics": [
+      "4つの色の役割（地・操作・いま対応・もうすぐ）だけ。ふだんの卓は無彩色",
+      "段階は文字、急ぎは色と語の両方で出す",
+      "卓カードの主役は文字盤。数字はすべて等幅（tabular-nums）",
+      "ガラスは浮かぶ操作の層（ツールバー・パネル・通知）だけ",
+      "押せるものは指で押せる大きさ（主要50px、下限32px）",
+      "Web はライトとダーク、iOS はライトだけ"
+    ],
+    "rules": [
+      {
+        "name": "The 色は知らせ Rule",
+        "body": "色が付くのは対応が要る卓だけ。新しい段階を足しても色は増やさず、段階は文字で出す。フロアを一瞥したとき、色の付いた卓へまっすぐ目が行くことがこの系の目的。",
+        "section": "colors"
+      },
+      {
+        "name": "The 4つの役割 Rule",
+        "body": "押す・選ぶ・移動先を示すものは茎の緑。急ぎは朱（いま）と琥珀（もうすぐ）のどちらかに入れる。この4つ以外の色を足さない。緑を飾りに使わない。",
+        "section": "colors"
+      },
+      {
+        "name": "The 語が本体 Rule",
+        "body": "警告には必ず短い語（「お席の時間」「お通し未提供」「L.O.の時間」）を付ける。色は目を引くための補助で、色だけでは伝えない。",
+        "section": "colors"
+      },
+      {
+        "name": "The 4.5:1 Rule",
+        "body": "文字は置かれる地に対して 4.5:1 以上。色はスケールを直接使わず、役割を通して使う。",
+        "section": "colors"
+      },
+      {
+        "name": "The 等幅の数字 Rule",
+        "body": "時刻・経過・人数・品数など、数字を出すところは必ず `tabular-nums` を付ける。",
+        "section": "typography"
+      },
+      {
+        "name": "The 10px の床 Rule",
+        "body": "10px より小さい文字は作らない（10px は `¥✓` の印だけ）。入らないなら要素を小さくせず、その姿から外して詳細パネルへ送る。",
+        "section": "typography"
+      },
+      {
+        "name": "The ガラスは操作の層だけ Rule",
+        "body": "卓カードは内容なのでガラスにしない。数字が読みにくくなるため。",
+        "section": "elevation"
+      },
+      {
+        "name": "The 上の端は地へ消える Rule",
+        "body": "フロアがツールバーの下にもぐるところは、地の色へフェードさせる（scroll edge effect）。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 色は役割（`action` `now` `soon` と地）を通して使い、スケールの段を直接使わない。",
+      "**Do** 警告を足すときは「いま対応」か「もうすぐ」のどちらかに入れ、「時間です」くらいの短い語を用意する。",
+      "**Do** 数字には Roboto Mono（iOS は端末の書体）と `tabular-nums` を一緒に使う。",
+      "**Do** 押せるものは 50px を既定にし、場所がないときだけ 36px、下限は 32px。",
+      "**Do** 浮かぶ操作の層だけをガラスにし、「透明度を下げる」がオンなら不透明にする。",
+      "**Do** 見た目を変えるときは `apps/web/src/App.css`（と iOS の `apps/ios/src/theme.ts`）を直し、そのあと `design-system/` へ写す。"
+    ],
+    "donts": [
+      "**Don't** 段階ごとに色を付けない（以前の青・緑・紫・青緑・ピンクの段階色はやめた）。",
+      "**Don't** 茎の緑を、押す・選ぶ・移動先以外に使わない。",
+      "**Don't** 卓カードをガラスにしない。",
+      "**Don't** 10px より小さい文字、32px より小さい押せるものを作らない。",
+      "**Don't** 1画面に大きいボタンを2つ以上置かない。次にやることは1つ。",
+      "**Don't** 後ろを暗くするモーダルで卓のそばの操作を覆わない（中央のパネル・アラートを除く）。"
+    ]
+  }
+}
