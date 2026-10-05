@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { DrinkPlan } from '@table-check/core/domain';
 import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
-import { newShopTimerId, SHOP_TIMER_LIMITS, stepInterval, type ShopTimer } from '@table-check/core/shopTimers';
+import { newShopTimerId, SHOP_TIMER_LIMITS, stepInterval, type ShopTimer, type ShopTimerId } from '@table-check/core/shopTimers';
+import { FALLBACK_SHOP_TIMER_ICON, SHOP_TIMER_ICONS, shopTimerIcon } from '@table-check/core/shopTimerIcons';
+import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
@@ -143,13 +145,24 @@ function CourseRows({ menus, onEdit }: { menus: CourseMenu[]; onEdit(id: string 
 // 店のタイマー（No.91）：トイレチェックのように、決まった間隔でやる作業。ツールバーに並べ、時間になったら知らせる
 function ShopTimerRows({ timers, onChange }: { timers: ShopTimer[]; onChange(timers: ShopTimer[]): void }) {
   const put = (timer: ShopTimer) => onChange(timers.map(t => t.id === timer.id ? timer : t));
+  // アイコン（No.99）：左のボタンで、そのタイマーの下に候補を開く。選ぶと閉じて、ボタンに戻る
+  const [picking, setPicking] = useState<ShopTimerId | null>(null);
+  const pick = (timer: ShopTimer, icon: string) => {
+    if (icon !== timer.icon) put({ ...timer, icon });
+    setPicking(null);
+    requestAnimationFrame(() => document.getElementById(`timer-icon-${timer.id}`)?.focus());
+  };
   return <>
     <p className="settings-help">ツールバーにアイコンと残り時間を出し、時間になったら知らせます。{SHOP_TIMER_LIMITS.timers}つまで。</p>
     {timers.map((timer, i) => {
       const less = stepInterval(timer, -1), more = stepInterval(timer, 1);
-      return <div key={timer.id} className="settings-row shop-timer-row">
-        <SavedInput id={`timer-icon-${timer.id}`} label={`タイマー${i + 1}のアイコン`} value={timer.icon} maxLength={SHOP_TIMER_LIMITS.icon} placeholder="🧹"
-          onSave={icon => { if (icon !== '') put({ ...timer, icon }); }} />
+      const current = shopTimerIcon(timer.icon);
+      const open = picking === timer.id;
+      return <Fragment key={timer.id}><div className="settings-row shop-timer-row">
+        <button id={`timer-icon-${timer.id}`} className="timer-icon-button" aria-expanded={open} aria-controls={`timer-icons-${timer.id}`}
+          aria-label={`タイマー${i + 1}のアイコンを変える（いまは${current.name}）`} onClick={() => setPicking(open ? null : timer.id)}>
+          <ShopTimerGlyph icon={timer.icon} className="timer-icon-glyph" />
+        </button>
         <SavedInput id={`timer-label-${timer.id}`} label={`タイマー${i + 1}の名前`} value={timer.label} maxLength={SHOP_TIMER_LIMITS.label} placeholder="作業の名前"
           onSave={label => { if (label !== '') put({ ...timer, label }); }} />
         <div className="minutes-stepper" role="group" aria-label={`${timer.label}の間隔`}>
@@ -158,10 +171,15 @@ function ShopTimerRows({ timers, onChange }: { timers: ShopTimer[]; onChange(tim
           <button className="panel-button small" aria-label={`${timer.label}の間隔を長く`} disabled={!more} onClick={() => more && put(more)}>＋</button>
         </div>
         <button className="panel-button small danger" aria-label={`「${timer.label}」を消す`} onClick={() => onChange(timers.filter(t => t.id !== timer.id))}>消す</button>
-      </div>;
+      </div>
+      {open && <div id={`timer-icons-${timer.id}`} className="icon-picker" role="group" aria-label={`${timer.label}のアイコン`}>
+        {SHOP_TIMER_ICONS.map(icon => <button key={icon.id} className="icon-choice" aria-pressed={icon.id === current.id} onClick={() => pick(timer, icon.id)}>
+          <ShopTimerGlyph icon={icon.id} className="icon-choice-glyph" /><span>{icon.name}</span>
+        </button>)}
+      </div>}</Fragment>;
     })}
     {timers.length < SHOP_TIMER_LIMITS.timers && <button className="panel-button add-plan"
-      onClick={() => onChange([...timers, { id: newShopTimerId(timers, Date.now()), label: '新しいタイマー', icon: '⏰', intervalMin: 60 }])}>＋ タイマーを足す</button>}
+      onClick={() => onChange([...timers, { id: newShopTimerId(timers, Date.now()), label: '新しいタイマー', icon: FALLBACK_SHOP_TIMER_ICON, intervalMin: 60 }])}>＋ タイマーを足す</button>}
   </>;
 }
 // 文字の設定：入力を終えたら（ほかを押す・Enter）保存する。打っている途中・かな漢字変換を確定する Enter では保存しない
