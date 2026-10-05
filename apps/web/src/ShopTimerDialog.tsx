@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { formatClock } from '@table-check/core/domain';
 import { CloseButton } from './CloseButton';
+import { ShopTimerGlyph } from './ShopTimerGlyph';
 
 interface Props {
   label: string;
@@ -24,7 +25,7 @@ export function ShopTimerDialog({ label, icon, doneAt, onReset, onClose, returnF
   }, [onClose]);
   return <div className="panel-backdrop popover-backdrop from-start" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel alert popover" role="dialog" aria-modal="true" aria-labelledby="shop-timer-title">
-      <h2 id="shop-timer-title" className="panel-title"><span aria-hidden="true">{icon}</span> {label}</h2>
+      <h2 id="shop-timer-title" className="panel-title shop-timer-title"><ShopTimerGlyph icon={icon} className="shop-timer-title-glyph" />{label}</h2>
       <div className="time-row">
         <span>前回</span>
         <span className={doneAt === undefined ? 'muted' : ''}>{doneAt === undefined ? 'まだ済にしていません' : `${formatClock(doneAt)} に済`}</span>

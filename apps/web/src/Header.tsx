@@ -4,6 +4,7 @@ import { shopTimerState, type ShopTimer, type ShopTimerDone, type ShopTimerId } 
 import type { SyncState } from '@table-check/core/store';
 import { useEffect, useState } from 'react';
 import { CactusClock } from './CactusClock';
+import { ShopTimerGlyph } from './ShopTimerGlyph';
 
 interface Props {
   time: number;
@@ -41,14 +42,21 @@ export function Header({ time, syncState, showSync, timers, shopTimers, onShopTi
       </button>
     </div>
     <div className="toolbar-group glass shop-timers">
+      {/* タイマーが多くて入らないときは、チップの並びだけを横にスクロールする（時間制限なしの目印は外に置いて隠さない） */}
+      <div className="shop-timer-list">
       {timers.map(timer => {
         // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
         const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
-        const rest = state.due ? '時間です' : `あと${Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000))}分`;
+        const minutes = Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000));
+        const rest = state.due ? '時間です' : `あと${minutes}分`;
+        // 名前（スマホでは隠す）は幅が足りなければ省略し、残り時間の数字は切らない。スマホは「あと」も省く
         return <button key={timer.id} className={`shop-timer ${state.due ? 'due' : ''}`} aria-label={`${timer.label} ${rest}（押すと詳細）`} title={timer.label} onClick={() => onShopTimerOpen(timer.id)}>
-          <span className="shop-timer-icon" aria-hidden="true">{timer.icon}</span> <span className="shop-timer-rest">{rest}</span>
+          <ShopTimerGlyph icon={timer.icon} />
+          <span className="shop-timer-name" aria-hidden="true">{timer.label}</span>
+          <span className="shop-timer-rest" aria-hidden="true">{state.due ? rest : <><span className="shop-timer-ato">あと</span>{minutes}分</>}</span>
         </button>;
       })}
+      </div>
       {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく */}
       {timeLimitOff && <button className="limit-off" aria-label="時間制限なし（押すと設定）" onClick={onOpenSettings}><span className="limit-off-long">時間</span>制限なし</button>}
     </div>

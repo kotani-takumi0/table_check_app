@@ -185,9 +185,17 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .mini .app-update-long { display: none; }
 
 .shop-timers { min-width: 0; display: flex; gap: 8px; }
-.shop-timer { min-width: 0; overflow: hidden; text-overflow: ellipsis; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
-.shop-timer-rest { font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
+/* タイマーが多くて入らないときは、チップの並びだけを横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない。時間制限なしの目印は外） */
+.shop-timer-list { min-width: 0; display: flex; align-items: center; gap: inherit; overflow-x: auto; scrollbar-width: none; }
+.shop-timer-list::-webkit-scrollbar { display: none; }
+/* 最小幅：アイコン・名前の「ト…」・「あと120分」・余白が入る幅（名前だけが縮む） */
+.shop-timer { flex-shrink: 1; min-width: 11.7em; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
+/* No.99：線のアイコン（色は文字と同じ）＋名前＋残り時間。幅が足りなければ名前から省略し、残り時間の数字は切らない */
+.shop-timer-glyph { flex-shrink: 0; width: 18px; height: 18px; }
+.shop-timer-name { min-width: 2em; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 700; }
+.shop-timer-rest { flex-shrink: 0; font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
 .shop-timer.due { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
+.shop-timer.due .shop-timer-name { color: inherit; }
 /* 通知の並び：入る行数（--toast-rows）で空きを等分し、はみ出さない高さにする（iOS の flex: 1 / rows と同じ）。
    はみ出しを切らない（overflow: visible）ので、ガラスの影がツールバーと同じ大きさで出せ、下の端も四角く切れない */
 .toasts { --toast-rows: 2; grid-column: 6 / 16; grid-row: 2; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
@@ -278,7 +286,11 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .mini .toolbar time { font-size: 14px; }
 /* スマホは卓が小さく、卓番が上の端の近くにあるので、ツールバーの下にもぐらせない */
 .mini .floor { padding-top: 44px; }
-.mini .shop-timer { min-height: 28px; padding: 0 8px; font-size: 12px; }
+/* スマホ：押しやすいよう高さ 32px にし、名前と「あと」を省いてアイコンと時間だけにする */
+/* スマホは名前を出さず縮めてよい所がないので、チップは縮めずに並びをスクロールする */
+.mini .shop-timer { flex-shrink: 0; min-width: 0; min-height: 32px; gap: 5px; padding: 0 8px; font-size: 12px; }
+.mini .shop-timer-glyph { width: 16px; height: 16px; }
+.mini .shop-timer-name, .mini .shop-timer-ato { display: none; }
 .mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini .floor { --gy: 4px; --gx: 4px; }
 /* 小さいスマホでも3行（卓番・状態・タイマー）が読める高さを確保し、足りなければフロア図を縦にスクロール */
@@ -409,7 +421,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .choice-sub { display: block; font-size: 12px; }
 /* ツールバーの「時間制限なし」の目印（押すと設定） */
 .limit-off { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.mini .limit-off { min-height: 28px; padding: 0 8px; font-size: 12px; }
+.mini .limit-off { min-height: 32px; padding: 0 8px; font-size: 12px; }
 /* スマホは幅が足りないので「制限なし」と短くし、右のゴミ箱を押し出さない */
 .mini .limit-off-long { display: none; }
 /* 右のまとまり（時計・ゴミ箱）は中身より縮めない（縮めるのは左のトイレのチップと、オフラインの文言だけ） */
@@ -438,11 +450,22 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .shop-timer-row .setting-input { flex: none; }
 .shop-timer-row .minutes-stepper { grid-template-columns: 44px 96px 44px; }
 .shop-timer-row .panel-button.small { min-height: 44px; }
+/* アイコンを選ぶ（No.99）：左のボタンで、そのタイマーの下に候補を開く。選んでいるものは操作の緑 */
+.timer-icon-button { min-height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--text); }
+.timer-icon-button[aria-expanded="true"] { border-color: var(--action); background: var(--action-bg); color: var(--action-text); }
+.timer-icon-glyph, .icon-choice-glyph { width: 22px; height: 22px; }
+.icon-picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.icon-choice { min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; border: 2px solid transparent; border-radius: 12px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); font-size: 12px; }
+.icon-choice[aria-pressed="true"] { border-color: var(--action); background: var(--action-bg); color: var(--action-text); font-weight: 700; }
+/* 詳細の題：アイコン＋名前 */
+.shop-timer-title { align-items: center; }
+.shop-timer-title-glyph { flex-shrink: 0; width: 24px; height: 24px; }
 /* スマホは2段：1段目にアイコンと名前、2段目に間隔と「消す」（間隔の ＋ と「消す」が重ならないように） */
 @media (max-width: 600px) {
   .shop-timer-row { grid-template-columns: 56px minmax(0, 1fr) auto; }
   .shop-timer-row .setting-input:nth-child(2) { grid-column: 2 / -1; }
   .shop-timer-row .minutes-stepper { grid-column: 1 / 3; justify-self: start; }
+  .icon-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .course-list-head { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .course-fields { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; }
