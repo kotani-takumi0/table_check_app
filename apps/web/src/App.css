@@ -184,9 +184,10 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .app-update { flex-shrink: 0; min-height: 30px; padding: 0 12px; border: none; border-radius: 15px; background: var(--action-bg); color: var(--action-text); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .mini .app-update-long { display: none; }
 
-/* タイマーが多くて入らないときは、並びを横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない） */
-.shop-timers { min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
-.shop-timers::-webkit-scrollbar { display: none; }
+.shop-timers { min-width: 0; display: flex; gap: 8px; }
+/* タイマーが多くて入らないときは、チップの並びだけを横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない。時間制限なしの目印は外） */
+.shop-timer-list { min-width: 0; display: flex; align-items: center; gap: inherit; overflow-x: auto; scrollbar-width: none; }
+.shop-timer-list::-webkit-scrollbar { display: none; }
 /* 最小幅：アイコン・名前の「ト…」・「あと120分」・余白が入る幅（名前だけが縮む） */
 .shop-timer { flex-shrink: 1; min-width: 11.7em; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
 /* No.99：線のアイコン（色は文字と同じ）＋名前＋残り時間。幅が足りなければ名前から省略し、残り時間の数字は切らない */
