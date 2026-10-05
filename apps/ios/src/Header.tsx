@@ -7,6 +7,7 @@ import { version } from '../../../package.json';
 import { COLORS, FILL, TABULAR } from './theme';
 import { Glass } from './Glass';
 import { CactusClock } from './CactusClock';
+import { ShopTimerGlyph } from './ShopTimerGlyph';
 import Svg, { Path } from 'react-native-svg';
 
 interface Props {
@@ -49,11 +50,15 @@ export function Header({ time, syncState, timers, shopTimers, onShopTimerOpen, c
         {timers.map(timer => {
           // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
           const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
-          const rest = state.due ? '時間です' : `あと${Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000))}分`;
+          const minutes = Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000));
+          const rest = state.due ? '時間です' : `あと${minutes}分`;
+          // 線のアイコン＋名前＋残り時間（No.99。Web と同じ）。名前（スマホでは出さない）は幅が足りなければ省略し、残り時間は切らない。スマホは「あと」も省く
           return (
             <Pressable key={timer.id} accessibilityRole="button" accessibilityLabel={`${timer.label} ${rest}（押すと詳細）`} onPress={() => onShopTimerOpen(timer.id)}
-              style={({ pressed }) => [styles.chip, mini && styles.miniChip, state.due && styles.due, pressed && styles.pressed]}>
-              <Text style={[styles.chipLabel, mini && styles.miniChipLabel, state.due && styles.dueLabel, TABULAR]} numberOfLines={1} ellipsizeMode="tail">{timer.icon} {rest}</Text>
+              style={({ pressed }) => [styles.chip, styles.timerChip, mini && styles.miniChip, state.due && styles.due, pressed && styles.pressed]}>
+              <ShopTimerGlyph icon={timer.icon} size={mini ? 16 : 18} color={state.due ? COLORS.nowText : COLORS.muted} />
+              {!mini && <Text style={[styles.chipLabel, styles.timerName, state.due && styles.dueLabel]} numberOfLines={1} ellipsizeMode="tail">{timer.label}</Text>}
+              <Text style={[styles.chipLabel, styles.timerRest, mini && styles.miniChipLabel, state.due && styles.dueLabel, TABULAR]} numberOfLines={1}>{state.due || !mini ? rest : `${minutes}分`}</Text>
             </Pressable>
           );
         })}
@@ -104,7 +109,12 @@ const styles = StyleSheet.create({
   right: { marginLeft: 'auto', flexShrink: 1, minWidth: 0, maxWidth: '60%', gap: 10, paddingLeft: 14 },
   // 幅が足りないときはチップごと縮め、文字を省略する（Web の .shop-timer と同じ）
   chip: { flexShrink: 1, minWidth: 0, minHeight: 36, paddingHorizontal: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: FILL, justifyContent: 'center' },
-  miniChip: { minHeight: 30, paddingHorizontal: 8 },
+  // 店のタイマーのチップ：アイコン・名前・残り時間を横に並べる（No.99）
+  timerChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  timerName: { flexShrink: 1, minWidth: 0, color: COLORS.text, fontWeight: '700' },
+  timerRest: { flexShrink: 0 },
+  // スマホも押しやすいよう 32pt にする
+  miniChip: { minHeight: 32, paddingHorizontal: 8, gap: 5 },
   chipLabel: { fontSize: 13, color: COLORS.muted },
   miniChipLabel: { fontSize: 12 },
   due: { borderColor: COLORS.now, backgroundColor: COLORS.nowBg },
