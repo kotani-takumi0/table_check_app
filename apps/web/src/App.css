@@ -287,7 +287,8 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* スマホは卓が小さく、卓番が上の端の近くにあるので、ツールバーの下にもぐらせない */
 .mini .floor { padding-top: 44px; }
 /* スマホ：押しやすいよう高さ 32px にし、名前と「あと」を省いてアイコンと時間だけにする */
-.mini .shop-timer { min-width: 6.4em; min-height: 32px; gap: 5px; padding: 0 8px; font-size: 12px; }
+/* スマホは名前を出さず縮めてよい所がないので、チップは縮めずに並びをスクロールする */
+.mini .shop-timer { flex-shrink: 0; min-width: 0; min-height: 32px; gap: 5px; padding: 0 8px; font-size: 12px; }
 .mini .shop-timer-glyph { width: 16px; height: 16px; }
 .mini .shop-timer-name, .mini .shop-timer-ato { display: none; }
 .mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
