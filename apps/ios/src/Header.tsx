@@ -110,7 +110,8 @@ const styles = StyleSheet.create({
   // 幅が足りないときはチップごと縮め、文字を省略する（Web の .shop-timer と同じ）
   chip: { flexShrink: 1, minWidth: 0, minHeight: 36, paddingHorizontal: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: FILL, justifyContent: 'center' },
   // 店のタイマーのチップ：アイコン・名前・残り時間を横に並べる（No.99）
-  timerChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // 幅が足りないときも、中身がとなりのチップに重ならないようチップの外は切る（Web の .shop-timer と同じ）
+  timerChip: { flexDirection: 'row', alignItems: 'center', gap: 6, overflow: 'hidden' },
   timerName: { flexShrink: 1, minWidth: 0, color: COLORS.text, fontWeight: '700' },
   timerRest: { flexShrink: 0 },
   // スマホも押しやすいよう 32pt にする
