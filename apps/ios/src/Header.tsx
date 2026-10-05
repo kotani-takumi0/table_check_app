@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatClock } from '@table-check/core/domain';
 import { shopTimerState, type ShopTimer, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
@@ -47,6 +47,8 @@ export function Header({ time, syncState, timers, shopTimers, onShopTimerOpen, c
         </Pressable>
       </Glass>
       <Glass style={[styles.group, styles.shopTimers, mini && styles.miniGroup]}>
+        {/* タイマーが多くて入らないときは横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない。Web と同じ） */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timerScroll} contentContainerStyle={[styles.timerRow, mini && styles.miniTimerRow]}>
         {timers.map(timer => {
           // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
           const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
@@ -62,6 +64,7 @@ export function Header({ time, syncState, timers, shopTimers, onShopTimerOpen, c
             </Pressable>
           );
         })}
+        </ScrollView>
         {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく（押すと設定） */}
         {timeLimitOff && <Pressable accessibilityRole="button" accessibilityLabel="時間制限なし（押すと設定）" onPress={onOpenSettings}
           style={({ pressed }) => [styles.chip, styles.limitOff, mini && styles.miniChip, pressed && styles.pressed]}>
@@ -111,11 +114,14 @@ const styles = StyleSheet.create({
   chip: { flexShrink: 1, minWidth: 0, minHeight: 36, paddingHorizontal: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: FILL, justifyContent: 'center' },
   // 店のタイマーのチップ：アイコン・名前・残り時間を横に並べる（No.99）
   // 幅が足りないときも、中身がとなりのチップに重ならないようチップの外は切る（Web の .shop-timer と同じ）
-  timerChip: { flexDirection: 'row', alignItems: 'center', gap: 6, overflow: 'hidden' },
+  timerChip: { flexDirection: 'row', alignItems: 'center', gap: 6, overflow: 'hidden', minWidth: 120 },
+  timerScroll: { flexGrow: 0, flexShrink: 1 },
+  timerRow: { alignItems: 'center', gap: 6 },
+  miniTimerRow: { gap: 4 },
   timerName: { flexShrink: 1, minWidth: 0, color: COLORS.text, fontWeight: '700' },
   timerRest: { flexShrink: 0 },
   // スマホも押しやすいよう 32pt にする
-  miniChip: { minHeight: 32, paddingHorizontal: 8, gap: 5 },
+  miniChip: { minHeight: 32, minWidth: 76, paddingHorizontal: 8, gap: 5 },
   chipLabel: { fontSize: 13, color: COLORS.muted },
   miniChipLabel: { fontSize: 12 },
   due: { borderColor: COLORS.now, backgroundColor: COLORS.nowBg },

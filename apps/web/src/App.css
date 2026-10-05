@@ -184,11 +184,14 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .app-update { flex-shrink: 0; min-height: 30px; padding: 0 12px; border: none; border-radius: 15px; background: var(--action-bg); color: var(--action-text); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .mini .app-update-long { display: none; }
 
-.shop-timers { min-width: 0; display: flex; gap: 8px; }
-.shop-timer { min-width: 0; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
+/* タイマーが多くて入らないときは、並びを横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない） */
+.shop-timers { min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.shop-timers::-webkit-scrollbar { display: none; }
+/* 最小幅：アイコン・名前の「ト…」・「あと120分」・余白が入る幅（名前だけが縮む） */
+.shop-timer { flex-shrink: 1; min-width: 11.7em; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); font-size: 13px; white-space: nowrap; }
 /* No.99：線のアイコン（色は文字と同じ）＋名前＋残り時間。幅が足りなければ名前から省略し、残り時間の数字は切らない */
 .shop-timer-glyph { flex-shrink: 0; width: 18px; height: 18px; }
-.shop-timer-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 700; }
+.shop-timer-name { min-width: 2em; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 700; }
 .shop-timer-rest { flex-shrink: 0; font-family: 'Roboto Mono', 'Zen Kaku Gothic New', monospace; font-variant-numeric: tabular-nums; }
 .shop-timer.due { border-color: var(--now); background: var(--now-bg); color: var(--now-text); font-weight: 700; }
 .shop-timer.due .shop-timer-name { color: inherit; }
@@ -283,7 +286,7 @@ button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 /* スマホは卓が小さく、卓番が上の端の近くにあるので、ツールバーの下にもぐらせない */
 .mini .floor { padding-top: 44px; }
 /* スマホ：押しやすいよう高さ 32px にし、名前と「あと」を省いてアイコンと時間だけにする */
-.mini .shop-timer { min-height: 32px; gap: 5px; padding: 0 8px; font-size: 12px; }
+.mini .shop-timer { min-width: 6.4em; min-height: 32px; gap: 5px; padding: 0 8px; font-size: 12px; }
 .mini .shop-timer-glyph { width: 16px; height: 16px; }
 .mini .shop-timer-name, .mini .shop-timer-ato { display: none; }
 .mini .sync-state { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
