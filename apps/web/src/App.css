@@ -343,6 +343,13 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 /* No.71：詳細は押した卓のそばに小さく出す。後ろは暗くせず（フロアを見ながら操作できる）、外側を押すと閉じる */
 .panel-backdrop.beside { display: block; padding: 0; background: transparent; }
 .detail-panel.beside-left, .detail-panel.beside-right, .seat-panel.beside-left, .seat-panel.beside-right { max-height: calc(100dvh - 72px); }
+/* No.110：スマホは下から出すシート。親指が届く位置にボタンが来る。上に引き手（下へ引くと閉じる）と右上に ×、後ろはうっすら暗くする */
+.panel-backdrop.sheet { place-items: end center; padding: 0; background: rgb(22 33 27 / 0.22); }
+.panel-backdrop.sheet > .panel { width: min(560px, 100%); max-height: 86dvh; padding: 6px 18px calc(20px + env(safe-area-inset-bottom)); border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -8px 32px rgb(22 33 27 / 0.18); animation: sheet-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; transition: transform 0.2s ease-out; }
+.panel-backdrop.sheet .close-x { top: 14px; }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+.sheet-grip { flex: none; height: 22px; margin: 0 -18px -6px; display: grid; place-items: center; touch-action: none; cursor: grab; }
+.sheet-grip::before { content: ''; width: 40px; height: 5px; border-radius: 3px; background: #c9d1cc; }
 
 /* 入力・ドロップダウン（コース・料理・人数・設定） */
 .field-select { min-width: 0; min-height: 48px; padding: 0 12px; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); color: var(--ink); font: inherit; font-size: 16px; }
@@ -522,7 +529,8 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .mini .shop-timer-name, .mini .shop-timer-ato { display: none; }
 .mini .limit-off { height: 32px; padding: 0 8px; font-size: 12px; }
 .mini .list-backdrop { inset: 48px 0 0 0; }
-.mini .side-menu { top: 48px; width: min(300px, 100%); }
+/* No.110：スマホのメニューは画面の幅いっぱい */
+.mini .side-menu { top: 48px; width: 100%; border-right: 0; }
 .mini .popover-backdrop { padding: 54px 8px 8px; }
 .mini .popover { max-height: calc(100dvh - 62px); }
 .mini .settings { padding: 16px 12px 32px; }
