@@ -12,7 +12,7 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 | `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。Web と同じフロア図と操作を、iOS の部品（シート・時刻ピッカー・触覚フィードバック）で作る |
 | `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
 
-Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンは Notion の Top ページと同じ画像で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
+Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンはヘッダーの「Minopal」の横の印（緑の四角2つと淡い緑の丸、右下だけ赤の四角）と同じ絵で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
 
 ## 店のデータを守る（2026-10-03 時点）
 
@@ -151,7 +151,7 @@ npm run deploy:store    # table-check-dev（店）に Hosting と Firestore ル�
    - 実機の iPhone／iPad では、**Expo Go と Mac の Expo CLI が同じ Expo アカウントでログインしていないと開けません**。アカウント（無料）を https://expo.dev/signup で作り、Mac で `apps/ios` に移って `npx expo login` を実行し、Expo Go でも右上のアイコンから同じアカウントでログインします。
 3. リポジトリ直下で `npm run ios` を実行し、出てきた QR コードを iPhone／iPad のカメラで読みます（Expo Go を入れていないと「使用可能なデータがありません」と出ます）。`apps/ios` 以外で `npx expo start` を実行すると、その場所に `tsconfig.json` と `.expo/` が作られるので注意してください。
 
-ホーム画面の名前は「Minopal」で、アイコンは Notion の Top ページと同じ画像（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.3.0・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
+ホーム画面の名前は「Minopal」で、アイコンはヘッダーの印と同じ絵（`apps/ios/assets/icon.png`）です。画面と操作は Web と同じです（「操作と保存」を参照）。ヘッダー右の `v2.0.0` のような表示で版を確かめられます（Web と同じく、リポジトリ直下の `package.json` の `version`）。今は Firebase につながないので、ヘッダーの版の表示が `v2.3.0・試し` になり、Web やほかの端末とは同期しません。アプリを開き直すと卓は空に戻ります。
 
 #### つながらないとき（トンネル接続）
 
