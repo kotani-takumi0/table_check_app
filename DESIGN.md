@@ -2,351 +2,332 @@
 name: Minopal
 description: 飲食店ホール用の卓タイマー。一瞥で読めるフロア図
 colors:
-  sand-ground: "#f3f1ee"
-  sand-surface: "#fefdfc"
-  sand-ink: "#2d2b28"
-  sand-muted: "#68625c"
-  sand-line: "#dad5d0"
-  sand-line-strong: "#ccc7c1"
-  fill: "rgba(45, 43, 40, 0.07)"
-  nopal: "#305a12"
-  on-nopal: "#ffffff"
-  nopal-text: "#305a12"
-  nopal-wash: "#e7f7df"
-  tuna: "#f6623a"
-  on-tuna: "#4d1708"
-  tuna-text: "#ab340f"
-  tuna-wash: "#ffede8"
-  tuna-line: "#ffb29d"
-  tuna-face: "#ffe2da"
-  amber: "#ffc762"
-  on-amber: "#3b2700"
-  amber-text: "#825b00"
-  amber-wash: "#ffefd5"
-  amber-line: "#ecc176"
-  amber-face: "#ffe6bd"
-  amber-arc: "#dda949"
-  dial-face: "#f3f1ee"
-  dial-dot: "#b8b2ab"
-  dial-band: "#f7d08f"
+  page: "#ffffff"
+  tile: "#f3f6f4"
+  area: "#ebf0ed"
+  ink: "#16211b"
+  ink-2: "#4b5a51"
+  muted: "#627168"
+  line: "#e2e9e4"
+  edge: "#bcc6c0"
+  dash: "#a9b5ae"
+  track: "#e5ebe7"
+  key: "#1b7a3e"
+  key-hover: "#156332"
+  key-wash: "#e7f3eb"
+  now: "#d93036"
+  now-ink: "#b3242a"
+  now-wash: "#fdf0f0"
+  now-line: "#f2b8ba"
+  soon: "#ffb020"
+  soon-edge: "#c96f00"
+  soon-ink: "#7a4300"
+  soon-wash: "#fff5e3"
+  soon-line: "#f1cf95"
+  focus: "#ffd43d"
 typography:
   display:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
-    fontSize: "28px"
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif"
+    fontSize: "26px"
     fontWeight: 700
     lineHeight: 1.3
   headline:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
-    fontSize: "22px"
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif"
+    fontSize: "24px"
     fontWeight: 700
     lineHeight: 1.3
   title:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif"
     fontSize: "17px"
-    fontWeight: 700
-    lineHeight: 1.2
-  body:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-    lineHeight: 1.2
-  label:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
-    fontSize: "13px"
     fontWeight: 700
     lineHeight: 1.3
+  body:
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 400
+    lineHeight: 1.5
+  label:
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif"
+    fontSize: "14px"
+    fontWeight: 700
+    lineHeight: 1.4
   seat-number:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
+    fontFamily: "'Inter', 'Noto Sans JP', sans-serif"
     fontSize: "20px"
     fontWeight: 700
-    lineHeight: 1.2
-  guest-count:
-    fontFamily: "'Zen Kaku Gothic New', sans-serif"
-    fontSize: "1.5em"
-    fontWeight: 900
     lineHeight: 1
     fontFeature: "tnum"
-  dial-time:
-    fontFamily: "'Roboto Mono', monospace"
-    fontSize: "24px"
-    fontWeight: 700
+  elapsed:
+    fontFamily: "'Inter', 'Noto Sans JP', sans-serif"
+    fontSize: "46px"
+    fontWeight: 600
+    lineHeight: 1
     fontFeature: "tnum"
   clock:
-    fontFamily: "'Roboto Mono', monospace"
-    fontSize: "17px"
-    fontWeight: 500
+    fontFamily: "'Inter', 'Noto Sans JP', sans-serif"
+    fontSize: "22px"
+    fontWeight: 600
     fontFeature: "tnum"
 rounded:
   mini: "6px"
-  card: "12px"
-  group: "20px"
-  popover: "26px"
-  panel: "32px"
-  alert: "36px"
-  pill: "999px"
+  control: "8px"
+  card: "10px"
+  panel: "12px"
 spacing:
-  hair: "2px"
   xs: "4px"
   sm: "6px"
   md: "8px"
   lg: "12px"
   xl: "16px"
-  panel: "22px"
+  xxl: "24px"
 components:
   button-primary:
-    backgroundColor: "{colors.nopal}"
-    textColor: "{colors.on-nopal}"
-    rounded: "{rounded.pill}"
-    padding: "4px 12px"
-    height: "50px"
+    backgroundColor: "{colors.key}"
+    textColor: "{colors.page}"
+    rounded: "{rounded.control}"
+    padding: "0 18px"
+    height: "48px"
   button-next:
-    backgroundColor: "{colors.nopal}"
-    textColor: "{colors.on-nopal}"
-    rounded: "{rounded.pill}"
-    height: "60px"
+    backgroundColor: "{colors.key}"
+    textColor: "{colors.page}"
+    rounded: "{rounded.control}"
+    height: "56px"
     width: "100%"
+  button-line:
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.key}"
+    rounded: "{rounded.control}"
+    height: "36px"
   button-secondary:
-    backgroundColor: "{colors.fill}"
-    textColor: "{colors.sand-ink}"
-    rounded: "{rounded.pill}"
-    padding: "4px 12px"
-    height: "50px"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    padding: "0 18px"
+    height: "48px"
   button-danger:
-    backgroundColor: "{colors.tuna-wash}"
-    textColor: "{colors.tuna-text}"
-    rounded: "{rounded.pill}"
-    height: "50px"
+    backgroundColor: "{colors.now}"
+    textColor: "{colors.page}"
+    rounded: "{rounded.control}"
+    height: "48px"
   choice:
-    backgroundColor: "{colors.fill}"
-    textColor: "{colors.sand-ink}"
-    rounded: "{rounded.pill}"
-    padding: "4px 10px"
-    height: "48px"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    height: "46px"
   choice-selected:
-    backgroundColor: "{colors.nopal}"
-    textColor: "{colors.on-nopal}"
-    rounded: "{rounded.pill}"
-    height: "48px"
+    backgroundColor: "{colors.key-wash}"
+    textColor: "{colors.key}"
+    rounded: "{rounded.control}"
+    height: "46px"
   stepper-button:
-    backgroundColor: "{colors.sand-surface}"
-    textColor: "{colors.sand-ink}"
-    rounded: "{rounded.pill}"
-    size: "64px"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    size: "56px"
   field-select:
-    backgroundColor: "{colors.sand-ground}"
-    textColor: "{colors.sand-ink}"
-    rounded: "{rounded.card}"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
     padding: "0 12px"
     height: "48px"
   seat-card:
-    backgroundColor: "{colors.sand-surface}"
-    textColor: "{colors.sand-ink}"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.card}"
-    padding: "8px 12px 10px"
+    padding: "10px 12px"
   seat-card-soon:
-    backgroundColor: "{colors.amber-wash}"
-    textColor: "{colors.amber-text}"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.card}"
   seat-card-now:
-    backgroundColor: "{colors.tuna-wash}"
-    textColor: "{colors.tuna-text}"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.card}"
-  badge-now:
-    backgroundColor: "{colors.tuna}"
-    textColor: "{colors.on-tuna}"
-    rounded: "{rounded.pill}"
-    padding: "3px 10px"
-  badge-soon:
-    backgroundColor: "{colors.amber}"
-    textColor: "{colors.on-amber}"
-    rounded: "{rounded.pill}"
-    padding: "3px 10px"
+  status-band-now:
+    backgroundColor: "{colors.now}"
+    textColor: "{colors.page}"
+    height: "32px"
+  status-band-soon:
+    backgroundColor: "{colors.soon}"
+    textColor: "{colors.ink}"
+    height: "32px"
   panel:
-    backgroundColor: "{colors.sand-surface}"
-    textColor: "{colors.sand-ink}"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.panel}"
-    padding: "22px"
-    width: "440px"
+    padding: "16px 18px 18px"
+    width: "360px"
   toast:
-    backgroundColor: "{colors.sand-surface}"
-    textColor: "{colors.sand-ink}"
-    rounded: "{rounded.pill}"
-    padding: "4px 5px 4px 16px"
+    backgroundColor: "{colors.page}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.card}"
+    padding: "4px 6px 4px 12px"
 ---
 
 # Design System: Minopal
 
 ## Overview
 
-**Creative North Star: "ホールの壁時計"**
+**Creative North Star: "役所の書類のような卓の一覧"**
 
-Minopal は、居酒屋のホールに掛かった壁時計のようにふるまう。お盆を持って通りがかった人が、一瞬見上げただけで「どの卓に、何を、いつまでに」がわかる。ふだんは静かで、時間が来た卓だけが色づく。色は飾りではなく、時計の針と同じく「知らせ」として働く。
+Minopal は、デジタル庁デザインシステム（DADS）のような堅実さでふるまう。卓の状態を、帳票の罫線とラベルのように、誰が見ても同じに読めるようにする。お盆を持って通りがかった人が一瞥すると、赤い帯の付いた卓へ目が行き、その帯の語（「お通し未提供」）でやることがわかる。卓を押すとそばにパネルが出て、いちばん大きい塗りのボタンを押せば状態が進む。
 
-雰囲気は静かで落ち着いている。暖かい灰色の地（sand）に、無彩色の卓カードが店の席の並びのまま並ぶ。カードの主役は、アイコンの「茎の時計」から生まれた文字盤（120分で一周する経過の弧と、縁の12個の点）。色はアイコンのウチワサボテンから取った4つの役割だけで、段階（案内済・お通し済など）は色ではなく文字で読ませる。
-
-部品の手触りは iOS にそろえる。カプセルのボタン、浮かぶ操作の層だけに使う Liquid Glass、iOS 26 のアラートや通知バナー、iOS のスイッチ。フロアの卓は内容なのでガラスにせず、平らに置く。
+白い地に 1px の灰色の線、角丸 8px。ガラス・ぼかし・暗い画面（ダーク）はやめた（2026-10-06 ユーザー決定。No.107）。色はキーの緑を1色と、DADS の意味の色（赤＝いま対応、橙＝もうすぐ）だけ。ふだんの卓は白と黒だけで、段階は文字で読ませる。
 
 **Key Characteristics:**
-- 4つの色の役割（地・操作・いま対応・もうすぐ）だけ。ふだんの卓は無彩色
-- 段階は文字、急ぎは色と語の両方で出す
-- 卓カードの主役は文字盤。数字はすべて等幅（tabular-nums）
-- ガラスは浮かぶ操作の層（ツールバー・パネル・通知）だけ
-- 押せるものは指で押せる大きさ（主要50px、下限32px）
-- Web はライトとダーク、iOS はライトだけ
+- 白い面と 1px の線。影は浮かぶもの（パネル・通知・メニュー）の下だけ
+- 色の役割は4つ（押す・選ぶ＝緑、いま対応＝赤、もうすぐ＝橙、ふだん＝白と黒）
+- 卓カードの主役は大きな経過（時:分）と、120分の物差し
+- ボタンは3段：塗り・枠・下線の文字。大きい塗りのボタンは1画面に1つ
+- 数字は Inter の等幅（tabular-nums）
+- フォーカスは黄と黒の二重の輪
+
+いまこの作りなのは Web（`apps/web/src/App.css`）。iOS（`apps/ios/src/theme.ts`）は前の見た目のままで、No.111 で同じ作りにする。
 
 ## Colors
 
-アイコンのウチワサボテンから作った4つの役割。どの色も「何をしてほしいか」を表し、「どの段階か」は表さない。
+どの色も「何をしてほしいか」を表し、「どの段階か」は表さない。
 
 ### Primary
-- **茎の緑 Nopal**：操作の色。主ボタンの塗り、選んでいるもの、次に出す料理の枠、移動先の空席、スイッチのオン、編集中の印。文字に使うときは `nopal-text`（ダークでは段11に上げる）。淡い地の `nopal-wash` は、選んでいるメニュー項目や移動先を選んでいる間のバーに使う。
+- **キーの緑 Key `#1b7a3e`**：操作の色。塗りのボタン、枠のボタンと下線の文字、選んでいるもの（淡い `key-wash` の地＋緑の枠）、物差しの経過、次に出す料理の枠、移動先の空席、スイッチのオン、編集中の印、詳細を開いている卓の枠。ヘッダーの印と店のタイマーのアイコンも緑。
 
 ### Secondary
-- **実の朱 Tuna**：いま対応。お通し未提供・お席の時間の卓、オフライン、トイレなどの「時間です」、消去。卓は `tuna-wash` の地・`tuna-face` の文字盤・`tuna` の弧と札に替わる。札の文字は段12（`on-tuna`）。
+- **いま対応の赤 Now `#d93036`**：お通し未提供・お席の時間の卓、オフライン、店のタイマーの「時間です」、全卓消去。卓は 2px の赤い枠と、赤く塗った下の帯（白い文字）、赤い物差し。パネルの中では淡い `now-wash` の地に `now-ink` の文字。
 
 ### Tertiary
-- **実の琥珀 Amber**：もうすぐ。L.O.の時間の卓と送信待ち。卓は `amber-wash` の地・`amber-face` の文字盤・`amber-arc` の弧・`amber` の札。文字盤の 90〜120分の淡い帯（`dial-band`）も琥珀。
+- **もうすぐの橙 Soon `#ffb020`**：L.O.の時間の卓と送信待ち。卓は 2px の `soon-edge` の枠と、橙に塗った下の帯（墨の文字）、`soon-edge` の物差し。
 
 ### Neutral
-- **暖かい灰色の地 Sand Ground**：画面の地。フロア図の余白、パネルの中の入力欄の面。
-- **紙の面 Sand Surface**：ふだんの卓カード、パネル、ガラスの元になる面。
-- **墨 Sand Ink**：本文、卓番、ふだんの卓の段階名。
-- **薄墨 Sand Muted**：補助の文字、空席の卓番、残り時間、版の表示。
-- **罫 Sand Line / Line Strong**：1pxの罫と入力欄の枠 / 空席の点線と、同じ面に置くボタンの枠。
-- **淡い塗り Fill**：墨の7〜8%。ガラスの上の副ボタン、チップ、閉じるボタン。
+- **面 Page `#ffffff`**：ヘッダー、卓カード、パネル、設定のまとまり。
+- **地 Tile `#f3f6f4`**：画面の地（うっすら緑）。空席はこの地に点線。
+- **場所 Area `#ebf0ed`**：カウンターなど、フロアのことばの場所。
+- **墨 Ink `#16211b` / Ink-2 `#4b5a51` / Muted `#627168`**：本文・卓番 / 補助の文字・残り時間 / 空席の卓番・版の表示。
+- **線 Line `#e2e9e4` / Edge `#bcc6c0` / Dash `#a9b5ae`**：区切りの線 / 卓・入力・ふつうのボタンの枠 / 空席の点線。
+- **物差しの地 Track `#e5ebe7`**。
 
 ### Named Rules
-**The 色は知らせ Rule.** 色が付くのは対応が要る卓だけ。新しい段階を足しても色は増やさず、段階は文字で出す。フロアを一瞥したとき、色の付いた卓へまっすぐ目が行くことがこの系の目的。
+**The 色は知らせ Rule.** 色が付くのは対応が要る卓だけ。新しい段階を足しても色は増やさず、段階は文字で出す。
 
-**The 4つの役割 Rule.** 押す・選ぶ・移動先を示すものは茎の緑。急ぎは朱（いま）と琥珀（もうすぐ）のどちらかに入れる。この4つ以外の色を足さない。緑を飾りに使わない。
+**The 4つの役割 Rule.** 押す・選ぶ・移動先は緑。急ぎは赤（いま）か橙（もうすぐ）のどちらかに入れる。緑を飾りに使わない。
 
-**The 語が本体 Rule.** 警告には必ず短い語（「お席の時間」「お通し未提供」「L.O.の時間」）を付ける。色は目を引くための補助で、色だけでは伝えない。
+**The 語が本体 Rule.** 警告には必ず短い語（「お席の時間」「お通し未提供」「L.O.の時間」）を付ける。色だけでは伝えない。
 
-**The 4.5:1 Rule.** 文字は置かれる地に対して 4.5:1 以上。色はスケールを直接使わず、役割を通して使う。
+**The 4.5:1 Rule.** 文字は置かれる地に対して 4.5:1 以上。
 
 ## Typography
 
-**Display Font:** Zen Kaku Gothic New（400 / 500 / 700 / 900、sans-serif にフォールバック）
-**Body Font:** Zen Kaku Gothic New
-**Label/Mono Font:** Roboto Mono（400 / 500、monospace にフォールバック）。数字だけ
+**Body Font:** Noto Sans JP（400 / 500 / 700 / 800）
+**Number Font:** Inter（500 / 600 / 700、`tnum` と `cv11`）。卓番・経過・時刻・人数・分など数字だけ
 
-**Character:** 角の立ちすぎない日本語のゴシックに、等幅の数字を合わせる。時刻と経過は1分ごとに変わるので、桁の幅が動いて視界の端で気が散らないよう、数字は必ず等幅にする。iOS は端末の書体（ヒラギノ）に `tabular-nums` を合わせる。
+**Character:** 公共の書類のような、癖のない日本語のゴシック。時刻と経過は1分ごとに変わるので、桁の幅が動かないよう数字は Inter の等幅にする。本文は 16px が基準、字間は 0.02em。
 
 ### Hierarchy
-- **Display**（700、28px）：最初の画面の題だけ。
-- **Headline**（700、22px、1.3）：詳細パネルの題と状態名。
-- **Title**（700、17px）：パネルの卓番、時刻、設定の行。
-- **Body**（400、14px が基準、ボタンは 15px）：本文と、ほとんどの部品。
-- **Label**（700、13px）：パネルの区切りの見出し、警告の札、卓カードの人数・コース。
-- **Seat Number**（700、20px）：卓カードの卓番。カードの大きさに合わせて 17 / 14 / 11px に詰める。
-- **Guest Count**（900、1.5em）：卓カードの人数の数字。太く大きく。
-- **Dial Time**（Roboto Mono 700、24px）：文字盤の中の経過（時:分）。スマホの小さい文字盤では 27〜34px に上げる。
+- **Display**（700、26px）：設定・席の配置などの画面の題、ログインの名前。
+- **Headline**（700、24px）：詳細パネルの今の段階（「ご案内済み」）。
+- **Title**（700、17px）：設定のまとまりの見出し、ヘッダーの名前。
+- **Body**（400、16px）：本文。ボタンは 15px・700。補助の説明は 13px。
+- **Label**（700、14px）：入力の見出し、卓カードの下の帯。
+- **Seat Number**（Inter 700、20px）：卓番。カウンター 17px、スマホ 12px。
+- **Elapsed**（Inter 600、大きい卓は最大 46px）：卓カードの経過。マスの大きさに合わせて縮める。
+- **Clock**（Inter 600、22px）：ヘッダーの時刻。
 
 ### Named Rules
-**The 等幅の数字 Rule.** 時刻・経過・人数・品数など、数字を出すところは必ず `tabular-nums` を付ける。
+**The 等幅の数字 Rule.** 時刻・経過・人数・品数など、数字には Inter と `tabular-nums` を使う。
 
-**The 10px の床 Rule.** 10px より小さい文字は作らない（10px は `¥✓` の印だけ）。入らないなら要素を小さくせず、その姿から外して詳細パネルへ送る。
+**The 10px の床 Rule.** 10px より小さい文字は作らない。入らないなら要素を外して詳細パネルへ送る。
 
 ## Layout
 
-フロア図が画面のすべて。店の席の並びを 15列×7行のマス目にそのまま置き、画面いっぱいに広げる。ツールバーはフロアの上に浮かび、フロアは縮めない。
+フロア図が画面のすべて。上に白い固定のヘッダー（高さ 56px、スマホは 48px）、その下に店の席の並びを 15列×7行のマス目でそのまま置く。
 
-- **マス目の隙間**：横向きは行12px・列6px（カードが横長なので行間を広く）。縦向きは行6px。スマホは4px。
-- **縦向き**：配置図ごと時計回りに90°回して 7列×15行にする。カードの姿は画面の幅ではなく、割り当てられたマスの縦横比で決まる。
-- **密度の4つの姿**：大きい卓（四隅の情報と真ん中の文字盤）、低い卓（左に情報、右に文字盤）、細い卓（上に情報、下に文字盤）、カウンター（円の文字盤）。スマホ（幅か高さが600px以下）は mini で、卓番・文字盤・段階だけ。減らすのは情報ではなく配置と文字の大きさ。
-- **スマホ**：行の高さは 44px を下限にし、入らなければフロア図ごと縦にスクロールする。
-- **パネル**：押した卓のそばに小さく出す（右に入らなければ左。スマホは真ん中）。後ろは暗くせず、フロアを見ながら操作できる。
-- **余白**：2 / 4 / 6 / 8 / 12 / 16 / 22px。画面の端は 16px（スマホは 8px）。
+- **マス目の隙間**：横向きは行10px・列6px。縦向きは行6px。スマホは4px。
+- **縦向き**：配置図ごと時計回りに90°回して 7列×15行にする。
+- **卓カードの姿**：大きい卓（卓番・人数／区分／大きな経過／物差し／下の帯）、低い卓（卓番・人数と区分・経過を1行に、その下に物差しと帯）、細い卓・カウンター・スマホ（上から卓番、経過、物差し、帯）。スマホの低いマスは帯を省き、警告は下の細い色の線で出す。
+- **スマホ**：行の高さは 48px を下限にし、入らなければフロア図ごと縦にスクロールする。
+- **パネル**：押した卓のそばに出す（右に入らなければ左。スマホは真ん中）。後ろは暗くせず、開いている卓を緑の枠で囲む。
+- **設定**：左に見出しの目次（幅200px、いま見ているまとまりを緑）、右に白いまとまり（最大720px）。スマホは目次を隠す。
+- **余白**：4 / 6 / 8 / 12 / 16 / 24px。
 
 ## Elevation & Depth
 
-基本は平ら。面の区別は 1px と 1.5px の枠、淡い地（段3）、点線で付ける。影を落とすのは、フロアの上に浮かぶガラスの層（ツールバー・詳細パネル・ポップオーバー・通知・メニュー）の下だけ。
-
-ガラスは Liquid Glass の regular に寄せる。`surface` を 58〜84% 混ぜた面に、ぼかし 14px と彩度 1.8 倍、上側のつや、縁の光、柔らかい2段の影。文字の多いパネルほど面を濃くする（84%）。端末の「透明度を下げる」がオンなら不透明な `surface`、「コントラストを上げる」なら面を 92% にして枠を濃くする。iOS は expo-glass-effect の Liquid Glass。使えない iOS ではほぼ不透明な面にする。
+基本は平ら。面の区別は 1px の線と地の色で付ける。卓カードはごく薄い影（`lift`）だけ。影を落とすのは、フロアの上に浮かぶもの（詳細パネル・ご案内・確認・通知・メニュー）の下だけ。
 
 ### Shadow Vocabulary
-- **ガラスの影**（`0 8px 28px` と `0 2px 6px`、墨の10%。ダークは黒の35%）：ツールバー・パネル・通知。
-- **そばに出すパネルの影**（`0 12px 40px` と `0 2px 8px`）：卓のそばに出す詳細パネルとご案内。
-- **つまみの影**（`0 1px 3px rgb(0 0 0 / 0.25)`）：スイッチのつまみと、席の配置の大きさを変える丸。
+- **lift**（`0 1px 2px rgb(22 33 27 / 0.06)`）：卓カード、席の配置のブロック。
+- **float**（`0 2px 6px` と `0 16px 40px`、墨の8%・16%）：パネル・通知・メニュー・ログインのカード。
+- **急ぎの卓**（`0 2px 10px`、赤・橙の12%）：いま対応・もうすぐの卓カード。
 
 ### Named Rules
-**The ガラスは操作の層だけ Rule.** 卓カードは内容なのでガラスにしない。数字が読みにくくなるため。
-
-**The 上の端は地へ消える Rule.** フロアがツールバーの下にもぐるところは、地の色へフェードさせる（scroll edge effect）。
+**The 暗くするのは全卓消去だけ Rule.** 卓のそばに出すパネルとポップオーバーは後ろを暗くしない。後ろを止める（暗くする）のは全卓消去の確認だけ。メニューの後ろはごく薄く（12%）。
 
 ## Shapes
 
-角は丸く、操作はカプセル。角丸は大きさで段をつける：スマホの卓 6px、卓カードと入力欄 12px、設定のまとまりとメニュー 20px、そばに出すパネル 26px、中央のパネル 32px、アラート 36px。押すものはピルで、角丸は常に短辺の半分にする（高さ50pxなら25px）。
-
-空席は点線の枠（テーブルは角丸の四角、カウンターは円）。カウンター席は円そのものが文字盤になる。文字盤は塗った丸、縁の12個の点（アイコンのトゲ）、5px の弧で、弧の端は丸める。
+角丸は小さく、段は少なく：ボタン・入力・チップ 8px、卓カード 10px、パネル・設定のまとまり・ログイン 12px。カプセルの形と丸いボタンは使わない（スイッチのつまみだけ丸）。空席はテーブルもカウンターも四角の点線。
 
 ## Components
 
 ### Buttons
-iOS のカプセル。大きいボタンは1画面に1つだけ。
-- **Shape:** ピル（短辺の半分）。
-- **Primary:** 茎の緑の塗りに白の文字、高さ50px。詳細パネルの「次にやること」は 60px・18px・700 で幅いっぱい。ご案内の「2名でご案内」は 64px・19px。
-- **Secondary:** 墨の8%の淡い塗り、枠なし、高さ50px。小さいもの（「1つ戻す」など）は 40px・14px。
-- **Danger:** 朱の淡い地に朱の文字（700）。消去や取り消しに使う。
-- **Text button:** 緑の文字に下線。折りたたみの補助操作に使う。
-- **Focus:** 墨の 3px の輪を 2px 離して描く。押している卓は茎の緑の 3px の輪。
-- **Disabled:** 不透明度 40%。
+3段。大きい塗りのボタンは1画面に1つだけ。
+- **塗り（Primary）**：緑の地に白の文字、高さ48px。詳細パネルの「次にやること」は 56px・18px で幅いっぱい。ご案内の「2名でご案内」も 56px。
+- **枠（Line）**：白の地に緑の枠と文字。「お会計済みにする」など次に大事な操作。
+- **下線の文字（Text）**：緑の文字に下線（4px 離す）。「1つ戻す」「料理をすべて見る」など控えめな操作。
+- **ふつう（Secondary）**：白の地に灰色の枠（`edge`）と墨の文字。−／＋、「修正」「やめる」「もどる」など。
+- **消す（Danger）**：赤の枠と文字。全卓消去の確認の中だけ赤の塗り。
+- **Focus**：墨の 3px の輪を 2px 離し、その外に黄色（`#ffd43d`）の 6px。
+- **Disabled**：地の色に線の枠、薄墨の文字。
 
 ### Chips
-- **Style:** 選ぶボタン（コース・料理・よく来る人数）は高さ48pxのピルで、淡い塗り。選ぶと茎の緑の塗りに白の文字（700）。
-- **卓のチップ（団体）:** 1px の罫で囲んだピル、高さ36px。右の × で外す。
-- **ツールバーのチップ（トイレ）:** 淡い塗りのピル、高さ36px。時間が来たら朱の枠・淡い朱の地・朱の文字。
-
-### Cards / Containers
-主役は卓カード（Signature Component を参照）。設定のまとまりはガラスの面で、角丸20px・余白 16px 20px。
+- **選ぶボタン（コース・料理・よく来る人数）**：高さ46px、灰色の枠。選ぶと 2px の緑の枠と淡い緑の地、緑の文字（コース・料理は先頭に ✓）。
+- **卓のチップ（団体）**：灰色の枠、高さ36px。右の × で外す。
+- **ヘッダーの店のタイマー**：地の色の塗り、高さ34px、緑の線のアイコン・名前（墨の700）・残り時間。時間が来たら淡い赤の地と赤の枠・文字。
 
 ### Inputs / Fields
-- **Style:** 高さ48〜50px、`sand-ground` の面、1px の罫（ドロップダウンは濃い罫）、角丸12px。時刻の欄は Roboto Mono 18px。
-- **Focus:** ブラウザ・OS の標準の輪。
-- **Error:** 欄の下に朱の文字（14px）で理由を出す。時刻の順を崩す値は保存しない。
-- **人数のステッパー:** 64px の丸い −／＋ に、真ん中の数字（36px・900）。
+- **Style**：高さ48px（パネルの中は44px）、白の地、灰色の 1px の枠、角丸8px。ドロップダウンは右に下向きの矢印。時刻の欄は Inter。
+- **Focus**：黄と黒の二重の輪。
+- **Error**：欄の下に赤の文字（14px・700）で理由を出す。
 
 ### Navigation
-- **ツールバー:** フロアの上に浮かぶガラスのカプセル（高さ48px、スマホは40px）。左にメニュー、店のタイマー、右に同期の状態・版・時刻（Roboto Mono 17px・500）・ゴミ箱。
-- **店のタイマーのチップ:** 線のアイコン・名前（墨の 700）・残り時間（等幅）。幅が足りなければ名前から省き、数字は切らない。スマホ（高さ32px）は名前と「あと」を省いてアイコンと「12分」だけ。時間が来たらチップごと朱の枠・淡い朱の地・朱の文字。
-- **メニュー:** ツールバーのボタンで左から出すガラスの一覧（幅280px、角丸20px）。いまの画面は淡い緑の地に緑の文字（700）。スマホは画面の幅いっぱい。
-- **移動先を選んでいる間:** ツールバーの場所に、緑の枠と淡い緑の地のバーを出す。
+- **ヘッダー**：白い帯（56px）。左にメニュー・印と名前「Minopal」・区切りの線・店のタイマー、右に同期（✓ 同期済み）・版・時刻・ゴミ箱。アイコンのボタンは 40px の四角で、押すと地の色。
+- **メニュー**：ヘッダーの下から左に出す白い引き出し（幅280px）。いまの画面は淡い緑の地に緑の文字。下にいまの店とログイン・ログアウト。
+- **移動先を選んでいる間**：ヘッダーの場所に、淡い緑の地と緑の下線の帯を出す。
 
 ### Toasts
-iOS 26 の通知バナーのような、フロアに浮かぶガラスのカプセル（角丸ピル、最大高さ52px）。左の 12px の丸の色（朱・琥珀）で急ぎ具合、文言は 15px。「済にする」など主な操作は緑のピル。3件以上は先頭だけを出し、残りは「ほか N件」にまとめる。
+フロアの空きに置く白い札（角丸10px、急ぎの色の枠と float の影）。左の丸（赤・橙）で急ぎ具合。「済にする」など主な操作は緑の塗り。3件以上は先頭だけを出し、残りは「ほか N件」にまとめる。ポップアップにしてヘッダーにしまう形は No.109。
 
 ### Panels
-詳細パネル・ご案内は、押した卓のそばに出すガラスのポップオーバー（角丸26px、余白18px、小さな矢印つき）。中央に出すパネルは角丸32px・余白22px・幅440px、アラートは 36px・幅380px。右上に 44px の丸い ×。並びはよく使う順：状態と経過 → 次にやること → 1つ戻す・お会計 → 料理 → 「変更する」（折りたたみ）。出るときは 0.2秒で拡大しながら現れ、動きを減らす設定では出さない。
+詳細パネル・ご案内は、押した卓のそばに出す白いパネル（幅360px、角丸12px）。上に卓番の黒い札と「2名・通常」、その下に今の段階（24px）、経過と残り時間、警告は淡い赤の囲み。並び：段階と経過 → 次にやること（塗り） → お会計（枠） → 1つ戻す（下線） → 料理 → 「変更する」（折りたたみ、行は線で区切る）。右上に 40px の ×。0.2秒で下から現れ、動きを減らす設定では止める。
 
 ### Switch
-iOS の切り替えと同じ形（52×32px）。オンは茎の緑、つまみは白の 28px の丸。
+iOS の切り替えと同じ形（52×32px）。オンは緑、オフは灰色。
 
 ### Seat Card（Signature Component）
-フロアの卓カード。文字盤が主役で、四隅に情報。
-- **ふだん:** `surface` の面、墨の弧、段階名は墨の 16px・700。
-- **もうすぐ:** 淡い琥珀の地、琥珀の文字盤と弧、琥珀の札。
-- **いま対応:** 淡い朱の地、朱の文字盤と弧、朱の札。
-- **空席:** 透明な地に濃い罫の点線、卓番は薄墨の 500。
-- **退店済:** カードごと不透明度 50%。
-- **編集中（ほかの端末）:** 茎の緑の 2px の点線の輪と、上の辺の真ん中に緑の小さな札。
-- **四隅:** 左上に卓番と人数（人数の数字は 900 で大きく）、右上にコース・料理の進み・会計済、左下に段階か理由の札、右下に「L.O.まで55分」などの残り時間（13px、薄墨）。
-- **文字盤:** 中に時:分。縁の12個の点、90〜120分の淡い琥珀の帯、12時から時計回りに伸びる経過の弧（120分で一周）。開始待ちは `--:--`。
+フロアの卓カード。白い面・灰色の 1px の枠・角丸10px。
+- **中身**：左上に卓番、右上に人数、2行目に飲み放題の区分（通常）・料理の進み・会計済、真ん中に大きな経過（時:分）、その下に物差し、最下段に段階の帯（左に段階、右に「L.O.まで55分」など）。
+- **物差し**：高さ6px（小さいカードは4px）。経過を緑で塗り、お席の時間（ふつう120分）で右端に届く。L.O.（ふつう90分、退店の時刻を決めた卓はずらす）に墨の目盛り。時間制限なしの間は目盛りを出さない。
+- **もうすぐ**：2px の橙の枠、橙の帯、橙の物差し。
+- **いま対応**：2px の赤の枠、赤の帯（白の文字）、赤の物差し。
+- **空席**：地の上に点線の四角、卓番は薄墨の500。
+- **退店済**：中身を不透明度 50%。
+- **詳細を開いている卓**：3px の緑の枠を 3px 離して囲む。
+- **編集中（ほかの端末）**：2px の緑の点線と、上の辺の真ん中に緑の小さな札。
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** 色は役割（`action` `now` `soon` と地）を通して使い、スケールの段を直接使わない。
-- **Do** 警告を足すときは「いま対応」か「もうすぐ」のどちらかに入れ、「時間です」くらいの短い語を用意する。
-- **Do** 数字には Roboto Mono（iOS は端末の書体）と `tabular-nums` を一緒に使う。
-- **Do** 押せるものは 50px を既定にし、場所がないときだけ 36px、下限は 32px。
-- **Do** 浮かぶ操作の層だけをガラスにし、「透明度を下げる」がオンなら不透明にする。
+- **Do** 色は役割（`key` `now` `soon` と地）を通して使う。
+- **Do** 警告を足すときは「いま対応」か「もうすぐ」のどちらかに入れ、短い語を用意する。
+- **Do** 数字には Inter と `tabular-nums` を使う。
+- **Do** 押せるものは 48px を既定にし、場所がないときだけ 36px、下限は 32px。
+- **Do** ボタンは塗り・枠・下線の文字の3段から選ぶ。
 - **Do** 見た目を変えるときは `apps/web/src/App.css`（と iOS の `apps/ios/src/theme.ts`）を直し、そのあと `design-system/` へ写す。
 
 ### Don't:
-- **Don't** 段階ごとに色を付けない（以前の青・緑・紫・青緑・ピンクの段階色はやめた）。
-- **Don't** 茎の緑を、押す・選ぶ・移動先以外に使わない。
-- **Don't** 卓カードをガラスにしない。
+- **Don't** ガラス・ぼかし・暗い画面（ダーク）を使わない。
+- **Don't** カプセルの形や丸すぎるボタンを使わない。角丸は 8〜12px。
+- **Don't** 段階ごとに色を付けない。
+- **Don't** 緑を、押す・選ぶ・移動先以外に使わない。
+- **Don't** 卓カードを文字盤（茎の時計）に戻さない。経過は物差しで出す。
 - **Don't** 10px より小さい文字、32px より小さい押せるものを作らない。
-- **Don't** 1画面に大きいボタンを2つ以上置かない。次にやることは1つ。
-- **Don't** 後ろを暗くするモーダルで卓のそばの操作を覆わない（中央のパネル・アラートを除く）。
-- **Don't** 絵文字をアイコンに使わない。アイコンはメニュー・ゴミ箱と同じ線（24 の枠、太さ 1.8、角は丸）で描き、色は文字と同じにする（店のタイマーは `packages/core/src/shopTimerIcons.ts` の9つから選ぶ）。
+- **Don't** 1画面に大きい塗りのボタンを2つ以上置かない。次にやることは1つ。
+- **Don't** 全卓消去の確認のほかで、後ろを暗くして止めない。
+- **Don't** 絵文字をアイコンに使わない。アイコンはメニュー・ゴミ箱と同じ線（24 の枠、太さ 1.8、角は丸）で描く（店のタイマーは `packages/core/src/shopTimerIcons.ts` の9つから選ぶ）。
