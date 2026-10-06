@@ -8,6 +8,7 @@ import { remainingLabel, remainingOf } from '@table-check/core/dial';
 import { CloseButton } from './CloseButton';
 import { menuOf } from '@table-check/core/courseMenus';
 import { useBeside } from './placeBeside';
+import { SheetGrip } from './SheetGrip';
 
 
 interface Props {
@@ -32,6 +33,7 @@ interface Props {
   onRelease(session: Session, tableId: string): void;
   returnFocus: HTMLElement | null;
   anchor: DOMRect | null;       // 押した卓の位置。そのそばに出す（無ければ真ん中）
+  sheet?: boolean;              // スマホ：下から出すシートにする（No.110。親指が届く位置にボタンが来る）
 }
 function TimeRow({ label, value, order, onSave }: { label: string; value: number | null; order: string; onSave(hhmm: string): boolean }) {
   const [draft, setDraft] = useState(value === null ? '' : formatClock(value));
@@ -63,7 +65,7 @@ function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; 
     {error && <span className="time-error" role="alert">案内より後の時刻にしてください</span>}
   </div>;
 }
-export function DetailPanel({ session, time, othersEditing = false, settings, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor }: Props) {
+export function DetailPanel({ session, time, othersEditing = false, settings, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease, returnFocus, anchor, sheet = false }: Props) {
   const panel = useRef<HTMLElement>(null);
   // 開いたらパネルにフォーカスを移し、閉じたら開く前の要素に戻す（背景は App 側で inert）
   useEffect(() => {
@@ -99,15 +101,16 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
   const alert = alertOf(session, time, rules);
   const remaining = remainingOf(session, time, rules);
   const paid = session.paidAt !== null;
-  // 押した卓のそばに出す（中身の高さで位置を決め直す）
-  const place = useBeside(panel, anchor);
-  return <div className={`panel-backdrop ${place ? 'beside' : ''}`}
+  // 押した卓のそばに出す（中身の高さで位置を決め直す）。スマホは下から出すシート
+  const place = useBeside(panel, sheet ? null : anchor);
+  return <div className={`panel-backdrop ${place ? 'beside' : sheet ? 'sheet' : ''}`}
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
     <section ref={panel} tabIndex={-1} className={`panel detail-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel}
       onPointerDownCapture={() => { downInPanel.current = true; }}
       onClickCapture={event => { if (!downInPanel.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); } downInPanel.current = false; }}
       role="dialog" aria-modal="true" aria-labelledby="panel-seat panel-title">
+      {sheet && <SheetGrip onClose={onClose} />}
       {/* No.71：いちばん見てほしいのは「次にやること」1つ。大きいボタンはそれだけにし、戻す・お会計は小さく、ほかは「変更する」にしまう */}
       <div className={`panel-head ${alert.level !== 'none' ? `alert-${alert.level}` : ''}`}>
         {/* 卓番の札と人数・区分。その下に今の段階（見出し）と経過・残り時間 */}
