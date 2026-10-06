@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, drinkPlanName, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
@@ -107,24 +107,27 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
     <section ref={panel} tabIndex={-1} className={`panel detail-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel}
       onPointerDownCapture={() => { downInPanel.current = true; }}
       onClickCapture={event => { if (!downInPanel.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); } downInPanel.current = false; }}
-      role="dialog" aria-modal="true" aria-labelledby="panel-title">
+      role="dialog" aria-modal="true" aria-labelledby="panel-seat panel-title">
       {/* No.71：いちばん見てほしいのは「次にやること」1つ。大きいボタンはそれだけにし、戻す・お会計は小さく、ほかは「変更する」にしまう */}
       <div className={`panel-head ${alert.level !== 'none' ? `alert-${alert.level}` : ''}`}>
-        <h2 id="panel-title" className="panel-title"><span className="panel-seat">{session.tableIds.join('・')}番</span> <span className="panel-status">{STATUS_LABEL[display]}</span></h2>
-        <span className="timer">{timer.label} {timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}{remaining && <span className="panel-remaining"> ・ {remainingLabel(remaining)}</span>}</span>
+        {/* 卓番の札と人数・区分。その下に今の段階（見出し）と経過・残り時間 */}
+        <p className="panel-who"><span id="panel-seat" className="panel-seat" aria-label={`${session.tableIds.join('・')}番`}>{session.tableIds.join('・')}</span>
+          <span className="panel-guests">{session.guests === null ? '人数未入力' : <><b>{session.guests}</b>名</>}・{session.course === null ? '通常' : drinkPlanName(settings.drinkPlans, session.course)}</span></p>
+        <h2 id="panel-title" className="panel-title">{STATUS_LABEL[display]}</h2>
+        <p className="timer">{timer.label} <b>{timer.elapsedMs === null ? '--:--' : formatElapsed(timer.elapsedMs)}</b>{remaining && <span className="panel-remaining">{remainingLabel(remaining)}</span>}</p>
         {othersEditing && <p className="panel-editing" role="status">ほかの端末でもこの卓を開いています。操作がぶつからないよう声をかけてください</p>}
         {/* 退店の時刻を決めた卓は、変更するを開かなくても分かるように出す */}
         {session.leaveAt !== null && <span className="panel-leave">退店 {formatClock(session.leaveAt)}</span>}
-        {alert.reason && <span className="badge">{REASON_LABEL[alert.reason]}</span>}
+        {alert.reason && <p className="panel-alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.01" /></svg>{REASON_LABEL[alert.reason]}</p>}
       </div>
       {next ? <button className="panel-button primary panel-next" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course, rules)]}</button>
         : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
       <div className="panel-quick">
-        <button className="text-button" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
         {/* お会計：今の状態を左に、押すと切り替える */}
-        <span className={`pay-state ${paid ? '' : 'muted'}`} id="panel-pay">{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</span>
-        <button className="panel-button small" aria-pressed={paid} aria-describedby="panel-pay" onClick={() => onPay(session)}>{paid ? '未払いに戻す' : 'お会計済みにする'}</button>
+        <span className="pay-state" id="panel-pay"><span className="pay-label">お会計</span><b className={paid ? '' : 'muted'}>{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</b></span>
+        <button className="panel-button small line" aria-pressed={paid} aria-describedby="panel-pay" onClick={() => onPay(session)}>{paid ? '未払いに戻す' : 'お会計済みにする'}</button>
       </div>
+      <button className="text-button panel-back" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
       {session.course !== null && <section className="panel-section" aria-labelledby="panel-dishes">
         <h3 id="panel-dishes" className="panel-heading">料理{progress && <span className="panel-heading-sub">{progress.served}/{progress.total}品</span>}</h3>
         {progress ? <>
@@ -189,6 +192,5 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
       </details>
       <CloseButton onClick={onClose} />
     </section>
-    {place && <span className={`panel-arrow ${place.side}`} aria-hidden="true" style={place.arrow} />}
   </div>;
 }
