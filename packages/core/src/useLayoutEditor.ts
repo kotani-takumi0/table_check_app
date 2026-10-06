@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GRID, type Seat, type SeatKind } from './layout';
-import { DEFAULT_LAYOUT, layoutProblems, nextSeatId, NOTICE_AREAS, overlaps, type LayoutLabel, type ShopLayout } from './shopLayout';
+import { DEFAULT_LAYOUT, layoutProblems, nextSeatId, overlaps, type LayoutLabel, type ShopLayout } from './shopLayout';
 
 // 席の配置を作り直す画面（No.75）の中身。Web と iOS（No.86）で同じものを使い、見た目だけそれぞれで作る
 // 左に並べるブロック。選んでからマス目の空いているところを押すと置く。大きさはあとで幅・高さを変えられる
@@ -56,8 +56,8 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
   const changed = JSON.stringify(draft) !== JSON.stringify(baseline);
   const seat = selected?.type === 'seat' ? draft.seats[selected.index] : undefined;
   const label = selected?.type === 'label' ? draft.labels[selected.index] : undefined;
-  // ほかの卓・ことば・通知の場所と重ならず、マス目に収まるか（動かす・大きさを変えるものは自分を除いて調べる）
-  const free = (box: Box, except?: LayoutSelected) => fits(box) && !NOTICE_AREAS.some(notice => overlaps(box, notice))
+  // ほかの卓・ことばと重ならず、マス目に収まるか（動かす・大きさを変えるものは自分を除いて調べる）
+  const free = (box: Box, except?: LayoutSelected) => fits(box)
     && draft.seats.every((s, i) => (except?.type === 'seat' && except.index === i) || !overlaps(box, s))
     && draft.labels.every((l, i) => (except?.type === 'label' && except.index === i) || !overlaps(box, l));
   const updateSeat = (index: number, change: Partial<Seat>) => {
@@ -74,7 +74,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     if (seat || label) {
       const target = seat ?? label!;
       const box = { ...target, col, row };
-      if (!free(box, selected)) { setMessage('そこには入りません（ほかの卓・通知の場所に重なるか、はみ出します）'); return; }
+      if (!free(box, selected)) { setMessage('そこには入りません（ほかの卓に重なるか、はみ出します）'); return; }
       if (selected?.type === 'seat') updateSeat(selected.index, { col, row }); else updateLabel((selected as { index: number }).index, { col, row });
       return;
     }
@@ -101,7 +101,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     if (!target) return;
     const box = { ...target, colSpan: target.colSpan + dCol, rowSpan: target.rowSpan + dRow };
     if (box.colSpan < 1 || box.rowSpan < 1) return;
-    if (!free(box, selected)) { setMessage('その大きさにすると、ほかの卓や通知の場所に重なるか、はみ出します'); return; }
+    if (!free(box, selected)) { setMessage('その大きさにすると、ほかの卓に重なるか、はみ出します'); return; }
     setMessage('');
     if (selected?.type === 'seat') updateSeat(selected.index, { colSpan: box.colSpan, rowSpan: box.rowSpan }); else updateLabel((selected as { index: number }).index, { colSpan: box.colSpan, rowSpan: box.rowSpan });
   };
@@ -110,7 +110,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
   // 指を離したところに置き、直すものとして選ぶ。置けなければ動かさず、理由を出す
   const placeAt = (target: NonNullable<LayoutSelected>, box: Box) => {
     setSelected(target);
-    if (!free(box, target)) { setMessage('そこには入りません（ほかの卓・通知の場所に重なるか、はみ出します）'); return; }
+    if (!free(box, target)) { setMessage('そこには入りません（ほかの卓に重なるか、はみ出します）'); return; }
     setMessage('');
     const change = { col: box.col, row: box.row, colSpan: box.colSpan, rowSpan: box.rowSpan };
     if (target.type === 'seat') updateSeat(target.index, change); else updateLabel(target.index, change);

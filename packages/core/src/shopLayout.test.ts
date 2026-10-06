@@ -31,11 +31,14 @@ describe('席の配置', () => {
   it('今までの配置はそのまま使える', () => {
     expect(layoutProblems(DEFAULT_LAYOUT)).toEqual([]);
   });
-  it('重なり・はみ出し・卓番の重複・通知の場所を見つける', () => {
-    const layout: ShopLayout = { seats: [table('11', 1, 1), table('11', 2, 2), table('12', 14, 6), table('13', 7, 2, 1, 1)], labels: [] };
+  it('重なり・はみ出し・卓番の重複を見つける', () => {
+    const layout: ShopLayout = { seats: [table('11', 1, 1), table('11', 2, 2), table('12', 14, 6)], labels: [] };
     expect(layoutProblems(layout)).toEqual(expect.arrayContaining([
-      '11番が2つあります', '12番がマス目からはみ出しています', '13番が通知の場所に重なっています', '11番と11番が重なっています',
+      '11番が2つあります', '12番がマス目からはみ出しています', '11番と11番が重なっています',
     ]));
+  });
+  it('通知はポップアップにしたので、前の通知の場所（2行目の右・6列目）にも置ける（No.109）', () => {
+    expect(layoutProblems({ seats: [table('13', 7, 2, 1, 1), table('14', 6, 4, 1, 1)], labels: [] })).toEqual([]);
   });
   it('卓番は1〜999の数字だけ', () => {
     expect(layoutProblems({ seats: [table('A1', 1, 1)], labels: [] })).toContain('卓番「A1」は 1〜999 の数字にしてください');
@@ -67,8 +70,6 @@ describe('席の配置', () => {
     expect(usedRows(DEFAULT_LAYOUT)).toBe(7);
     const portrait = portraitOf(DEFAULT_LAYOUT);
     expect(portrait.grid).toEqual({ cols: 7, rows: 15 });
-    // 通知は縦向きの6行目の左（App.css で決め打ちしていた位置と同じ）
-    expect(portrait.notice).toEqual({ col: 1, colSpan: 6, row: 6, rowSpan: 1 });
     const deeper = { seats: [...DEFAULT_LAYOUT.seats, table('15', 1, 8)], labels: DEFAULT_LAYOUT.labels };
     expect(usedRows(deeper)).toBe(9);
     expect(portraitOf(deeper).grid).toEqual({ cols: 9, rows: 15 });

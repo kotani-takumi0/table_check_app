@@ -26,7 +26,7 @@ export const SEATS: Seat[] = [
   { id: '13', kind: 'table', col: 10, colSpan: 3, row: 5, rowSpan: 2 },
   { id: '21', kind: 'table', col: 13, colSpan: 3, row: 5, rowSpan: 2 },
 ];
-// 縦向きの画面では、手描きの配置図と同じ向き（今の配置を時計回りに90°）で並べる。卓・ことば・通知の場所に使う。
+// 縦向きの画面では、手描きの配置図と同じ向き（今の配置を時計回りに90°）で並べる。卓とことばに使う。
 // within.rows は回す前（横向き）の行の数で、回したあとの列の数になる（shopLayout の portraitOf が、置いてある行までに絞って渡す）
 export function rotateClockwise<T extends { col: number; colSpan: number; row: number; rowSpan: number }>(box: T, within: { rows: number }): T {
   return { ...box, col: within.rows + 2 - box.row - box.rowSpan, colSpan: box.rowSpan, row: box.col, rowSpan: box.colSpan };
