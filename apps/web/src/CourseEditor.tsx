@@ -18,7 +18,7 @@ export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete
   const setDish = (index: number, dish: string) => setDraft(d => ({ ...d, dishes: d.dishes.map((x, i) => i === index ? dish : x) }));
   return <section className="settings course-editor" aria-labelledby="course-title" inert={inert}>
     <h1 id="course-title" className="settings-title">{isNew ? 'コースを足す' : `${priceLabel(course)} ${course.short}を直す`}</h1>
-    <div className="settings-group glass">
+    <div className="settings-group sheet">
       <h2 className="settings-group-title">コース</h2>
       <div className="course-fields">
         <label className="field-label" htmlFor="course-name">名前</label>
@@ -31,7 +31,7 @@ export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete
           onChange={event => setDraft(d => ({ ...d, price: event.target.value === '' ? NaN : Number(event.target.value) }))} />
       </div>
     </div>
-    <div className="settings-group glass">
+    <div className="settings-group sheet">
       <h2 className="settings-group-title">時間</h2>
       <div className="settings-row">
         <div className="settings-row-text">
@@ -53,7 +53,7 @@ export function CourseEditor({ course, isNew, settings, usedBy, onSave, onDelete
         </div>;
       })}
     </div>
-    <div className="settings-group glass">
+    <div className="settings-group sheet">
       <h2 className="settings-group-title">料理（出す順）</h2>
       <ol className="course-dishes">
         {draft.dishes.map((dish, i) => <li key={i} className="course-dish">

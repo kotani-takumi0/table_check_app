@@ -67,7 +67,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
       <p className="settings-help">左のブロックを選んでマス目を押すと置けます。置いた卓はつかんで動かせます。押すと、卓番・種類・大きさを変えられます。</p>
     </div>
     <div className="layout-body">
-      <div className="layout-side glass">
+      <div className="layout-side sheet">
         {selected === null ? <>
           <h2 className="settings-group-title">ブロック</h2>
           <div className="layout-blocks" role="radiogroup" aria-label="置くブロック">

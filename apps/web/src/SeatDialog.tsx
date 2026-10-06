@@ -73,6 +73,5 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, settings, 
       <button className="panel-button primary seat-go" onClick={seat}>{guests === null ? 'ご案内（人数はあとで）' : `${guests}名でご案内`}</button>
       <CloseButton onClick={onClose} />
     </section>
-    {place && <span className={`panel-arrow ${place.side}`} aria-hidden="true" style={place.arrow} />}
   </div>;
 }
