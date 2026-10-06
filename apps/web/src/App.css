@@ -100,9 +100,20 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .pick-bar { position: relative; z-index: 5; flex: none; height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-bottom: 2px solid var(--key); background: var(--key-wash); color: var(--key); }
 .pick-bar strong { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 16px; }
 
-/* フロア */
-.floor { flex: 1; min-height: 0; padding: 14px 16px 16px; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: 10px 6px; isolation: isolate; }
-.floor-label { display: grid; place-items: center; border-radius: 10px; background: var(--area); box-shadow: inset 0 0 0 1px #e0e7e2; color: var(--ink-2); font-size: 13px; font-weight: 700; letter-spacing: 0.3em; pointer-events: none; }
+/* フロア（No.108）：全面を同じ大きさの正方形のマスで敷き詰める。マスの大きさは、枠（.floor-frame）に縦横とも入るいちばん大きい正方形
+   （横向きのタブレットで約64px）。低すぎる画面（スマホの横向きなど）は --min-cell より小さくせず、入らない分は縦にスクロールする */
+.floor-frame { flex: 1; min-height: 0; overflow-y: auto; container-type: size; }
+.floor {
+  --gap: 6px; --pad-x: 16px; --pad-y: 14px; --min-cell: 56px;
+  --fit-w: calc((100cqw - 2 * var(--pad-x) - (var(--cols) - 1) * var(--gap)) / var(--cols));
+  --fit-h: calc((100cqh - 2 * var(--pad-y) - (var(--rows) - 1) * var(--gap)) / var(--rows));
+  --cell: min(var(--fit-w), max(var(--fit-h), var(--min-cell)));
+  min-height: 100%; padding: var(--pad-y) var(--pad-x); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell));
+  gap: var(--gap); justify-content: center; align-content: center; isolation: isolate;
+}
+/* 何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする（卓・ことばはこの上に重ねる） */
+.floor-cell { border-radius: 8px; background: #e9eeeb; pointer-events: none; }
+.floor-label { display: grid; place-items: center; border-radius: 10px; background: #e2e9e4; color: var(--ink-2); font-size: 13px; font-weight: 700; letter-spacing: 0.2em; pointer-events: none; }
 
 /* 卓カード：卓番・人数・区分・大きな経過・物差しと、下に段階の帯。大きさはカードに合わせる（container-type: size の cqw・cqh） */
 .card { position: relative; min-width: 0; min-height: 0; overflow: hidden; padding: 0; border: 1px solid var(--edge); border-radius: 10px; background: var(--page); box-shadow: var(--lift); color: var(--ink); text-align: left; line-height: 1.2; user-select: none; -webkit-user-select: none; touch-action: manipulation; container-type: size; transition: transform 0.12s ease-out; }
@@ -125,25 +136,37 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .ruler-lo { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
 /* 下の段階の帯：左に段階（警告は理由）、右に残り時間 */
 .card-status { min-width: 0; height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-top: 1px solid var(--line); font-size: 14px; font-weight: 700; white-space: nowrap; }
-.card-status .stage { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.card-status .stage { flex-shrink: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .card-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); font-size: 13px; font-weight: 500; }
 .paid-meta { color: var(--ink); font-weight: 700; }
 .paid-inline { margin-left: 3px; font-size: 10px; font-weight: 700; }
 
 /* 大きい卓（高さ2行以上・幅2列以上） */
-.table.full .card-body { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto minmax(0, 1fr) auto; row-gap: 4px; }
+.table.full .card-body { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto minmax(0, 1fr) auto; row-gap: 2px; padding: 8px 10px; }
+.table.full .seat-number { font-size: 18px; }
+.table.full .guest-num { font-size: 15px; }
+.table.full .card-sub { font-size: 12px; }
+.table.full .card-status { height: 28px; padding: 0 10px; font-size: 13px; }
+.table.full .card-meta { font-size: 12px; }
 .table.full .guest-count { justify-self: end; }
 .table.full .card-sub, .table.full .elapsed, .table.full .ruler { grid-column: 1 / -1; }
-.table.full .elapsed { align-self: center; font-size: clamp(24px, min(24cqh, 20cqw), 46px); }
+.table.full .elapsed { align-self: center; font-size: clamp(22px, min(26cqh, 20cqw), 46px); }
 .table.full .ruler { margin-bottom: 2px; }
-/* 低い卓（上段の高さ1行）：卓番・人数と区分・経過を1行に、その下に物差し */
-.table.low:not(.narrow) .card-body { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 6px; padding: 6px 12px 8px; }
-.table.low .who { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
-.table.low .who .guest-num { font-size: 15px; }
-.table.low .card-sub { font-size: 12px; }
-.table.low:not(.narrow) .elapsed { font-size: clamp(18px, 34cqh, 28px); }
+/* 低い卓（高さ1マス）：卓番・人数・段階・経過を1行に、その下に物差し。正方形のマスでは高さが足りないので下の帯は出さない（No.108） */
+.table.low:not(.narrow) { grid-template-rows: minmax(0, 1fr); }
+.table.low:not(.narrow) .card-status { display: none; }
+.table.low:not(.narrow) .card-body { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 6px; padding: 7px 10px 8px; }
+.table.low:not(.narrow) .seat-number { font-size: 18px; }
+.table.low .who-inline { white-space: nowrap; }
+.table.low .who-inline .guest-num { font-size: 14px; }
+.stage-inline { justify-self: start; max-width: 100%; overflow: hidden; padding: 1px 0; font-size: 13px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+.alert-now .stage-inline { padding: 1px 8px; border-radius: 4px; background: var(--now); color: #fff; }
+.alert-soon .stage-inline { padding: 1px 8px; border-radius: 4px; background: var(--soon); color: var(--ink); }
+.table.low:not(.narrow) .elapsed { font-size: clamp(16px, 34cqh, 24px); }
 .table.low:not(.narrow) .ruler { grid-column: 1 / -1; }
-.table.low .card-status { height: 28px; }
+.table.low .who { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.table.low .who .guest-num { font-size: 14px; }
+.table.low .card-sub { font-size: 12px; }
 /* 細い卓（縦向きの幅1列）・カウンター・スマホ：上から卓番、経過、物差し、段階 */
 .narrow .card-body, .counter .card-body, .card.mini .card-body { justify-items: center; align-content: center; gap: 5px; padding: 8px 6px; }
 .narrow .who { align-items: center; text-align: center; }
@@ -153,8 +176,14 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .narrow .ruler-lo, .counter .ruler-lo, .card.mini .ruler-lo { top: -2px; bottom: -2px; }
 .narrow .card-status, .counter .card-status, .card.mini .card-status { height: 24px; justify-content: center; padding: 0 2px; font-size: 12px; }
 .narrow .card-meta { display: none; }
-.counter .seat-number { font-size: 17px; }
-.counter .elapsed { font-size: clamp(14px, 24cqw, 20px); letter-spacing: -0.01em; }
+.counter .seat-number { font-size: 14px; color: var(--ink-2); }
+.counter .elapsed { font-size: clamp(13px, 25cqw, 20px); letter-spacing: -0.01em; }
+/* カウンター（1マス）：段階の帯は出さず、急ぎのときは下に色の線（No.108。段階は読み上げと詳細で分かる） */
+.counter.occupied { grid-template-rows: minmax(0, 1fr); }
+.counter .card-status { display: none; }
+.counter .card-body { gap: 3px; padding: 6px 5px; }
+.counter.alert-now::after, .counter.alert-soon::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--now); }
+.counter.alert-soon::after { background: var(--soon); }
 
 /* 状態の色：いま対応＝赤の太い枠と帯、もうすぐ＝橙。ふだんは白と黒、退店済は全体を薄くする */
 .occupied.alert-now { border: 2px solid var(--now); box-shadow: 0 2px 10px rgb(217 48 54 / 0.12); }
@@ -169,7 +198,7 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .occupied.exited > * { opacity: 0.5; }
 .occupied.exited .ruler-fill { background: #9db3a5; }
 /* 空席：点線の枠（テーブルもカウンターも四角） */
-.empty { display: grid; place-items: center; border: 1.5px dashed var(--dash); background: transparent; box-shadow: none; color: var(--muted); }
+.empty { display: grid; place-items: center; border: 1.5px dashed var(--dash); background: var(--tile); box-shadow: none; color: var(--muted); }
 .empty .seat-number { font-size: 18px; font-weight: 500; }
 .empty:hover:not(:disabled) { background: var(--page); }
 /* 詳細・ご案内を開いている卓は緑の枠で囲む（パネルの矢印の代わり） */
@@ -185,12 +214,12 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .pick-disabled { opacity: 0.35; }
 
 /* 通知：フロア図の空きに置く白い札。急ぎ具合は左の印の色と文言で出す（ポップアップにするのは No.109） */
-.toasts { --toast-rows: 2; grid-column: 6 / 16; grid-row: 2; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
+.toasts { --toast-rows: 2; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
 .toasts.rows-1 { --toast-rows: 1; }
 .toast { --tone: var(--now); --tone-wash: var(--now-wash); --tone-line: var(--now-line); min-width: 0; min-height: 0; max-height: 56px; display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 12px; border: 1px solid var(--tone-line); border-radius: 10px; background: var(--page); box-shadow: var(--float); color: var(--ink); }
 .toast::before { content: ''; flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 0 5px var(--tone-wash); margin: 0 4px 0 2px; }
 .toast.warning { --tone: var(--soon); --tone-wash: var(--soon-wash); --tone-line: var(--soon-line); }
-.toast-message { flex: 1; min-width: 0; color: var(--ink); font-size: 15px; }
+.toast-message { flex: 1; min-width: 0; overflow: hidden; color: var(--ink); font-size: 15px; white-space: nowrap; text-overflow: ellipsis; }
 .toast-rest .toast-message { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
 .toast-more { margin-left: 8px; font-size: 12px; font-weight: 500; white-space: nowrap; }
 .toast-button { height: min(36px, 100%); padding: 0 14px; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -433,7 +462,14 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .layout-size { display: grid; grid-template-columns: auto 36px 1fr 36px; align-items: center; gap: 6px 8px; font-size: 14px; }
 .layout-size strong { text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
 .layout-size .panel-button.small { padding: 0; font-size: 18px; font-weight: 500; }
-.layout-grid { position: relative; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--tile); }
+.layout-grid-frame { min-width: 0; min-height: 0; display: grid; place-items: center; container-type: size; }
+/* No.108：フロアと同じ正方形のマス。箱はマスの大きさぴったりにする（padding・gap は LayoutEditor.tsx の GRID_PADDING・GRID_GAP と同じ。枠は線ではなく影で描き、指の位置をずらさない） */
+.layout-grid {
+  --gap: 4px;
+  --cell: min(calc((100cqw - 16px - (var(--cols) - 1) * var(--gap)) / var(--cols)), calc((100cqh - 16px - (var(--rows) - 1) * var(--gap)) / var(--rows)));
+  position: relative; display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell)); gap: var(--gap); padding: 8px;
+  border-radius: 12px; background: var(--tile); box-shadow: inset 0 0 0 1px var(--line);
+}
 .layout-cell { min-width: 0; min-height: 0; border: 1px dashed #cfd8d2; border-radius: 6px; background: transparent; }
 .layout-cell:hover { background: var(--key-wash); }
 .layout-notice { z-index: 1; display: grid; place-items: center; border-radius: 8px; background: repeating-linear-gradient(135deg, rgb(22 33 27 / 0.05) 0 6px, transparent 6px 12px); color: var(--muted); font-size: 12px; pointer-events: none; }
@@ -456,8 +492,6 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .layout-foot .panel-button { min-height: 44px; }
 
 /* 縦向き：配置を時計回りに90°回した 7列×15行。通知も同じく回した位置に置く */
-.portrait .floor { row-gap: 6px; }
-.portrait .toasts { grid-column: 1 / 7; grid-row: 6; }
 .portrait .layout-body, .mini .layout-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(320px, 1fr); }
 
 /* スマホ：小さいカードに卓番・経過・段階だけ。操作はタップで開く詳細パネルで行う */
@@ -483,7 +517,7 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .mini .settings-toc { display: none; }
 .mini .layout-editor { padding: 12px 8px; }
 /* 小さいスマホでも卓番・経過・段階が読める高さを確保し、足りなければフロア図を縦にスクロール */
-.mini .floor { padding: 8px; gap: 4px; grid-template-rows: repeat(var(--rows), minmax(48px, 1fr)); overflow-y: auto; }
+.mini .floor { --gap: 4px; --pad-x: 8px; --pad-y: 8px; --min-cell: 44px; }
 .mini .floor-label { letter-spacing: 0.1em; font-size: 12px; }
 .card.mini { border-radius: 8px; }
 .card.mini .card-body { gap: 3px; padding: 4px 3px; }

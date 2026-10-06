@@ -1,4 +1,4 @@
-import { GRID, SEATS, type Seat, type SeatKind } from './layout';
+import { GRID, rotateClockwise, SEATS, type Seat, type SeatKind } from './layout';
 import { isVisible, RULES, type Rules, type Session } from './domain';
 import { resolveSessions } from './firestoreMapping';
 import type { SyncState } from './store';
@@ -10,7 +10,7 @@ export function occupiedSeatIds(tables: Record<string, string | null>, sessions:
 }
 
 // 席の配置（No.75）。お店の人が「設定 → 席の配置」でマス目にブロックを置いて作り、全端末で共有する（Firestore の shopLayout/main）。
-// 位置は横向き（15列×7行）のマス目で持ち、縦向き・スマホは今までどおり時計回りに回して並べる
+// 位置は横向き（15列×10行。No.108 より前は15列×7行）のマス目で持ち、縦向き・スマホは時計回りに回して並べる
 export interface LayoutLabel { text: string; col: number; colSpan: number; row: number; rowSpan: number }
 export interface ShopLayout { seats: Seat[]; labels: LayoutLabel[] }
 export const DEFAULT_LAYOUT: ShopLayout = {
@@ -27,7 +27,7 @@ export const LABEL_MAX_LENGTH = 12;
 export function isSeatId(id: string): boolean {
   return /^[1-9][0-9]{0,2}$/.test(id);
 }
-type Box = { col: number; colSpan: number; row: number; rowSpan: number };
+export type Box = { col: number; colSpan: number; row: number; rowSpan: number };
 function inGrid(box: Box): boolean {
   return [box.col, box.colSpan, box.row, box.rowSpan].every(Number.isInteger)
     && box.col >= 1 && box.row >= 1 && box.colSpan >= 1 && box.rowSpan >= 1
@@ -79,9 +79,19 @@ export function parseShopLayout(data: unknown): ShopLayout | null {
   const layout = { seats, labels };
   return layoutProblems(layout).length === 0 ? layout : null;
 }
-// ことばも卓と同じく、縦向きでは時計回りに回す（layout の rotateClockwise と同じ式）
-export function rotateLabelClockwise(label: LayoutLabel): LayoutLabel {
-  return { ...label, col: GRID.rows + 2 - label.row - label.rowSpan, colSpan: label.rowSpan, row: label.col, rowSpan: label.colSpan };
+// 卓・ことば・通知の場所を置いている、いちばん下の行（No.108）。縦向きはここまでを回して出し、何も置いていない下の行は出さない
+export function usedRows(layout: ShopLayout): number {
+  return Math.max(...[...layout.seats, ...layout.labels, ...NOTICE_AREAS].map(box => box.row + box.rowSpan - 1));
+}
+// 縦向きの並び：置いてある行までを時計回りに90°回す。通知は縦向きの場所（NOTICE_AREAS の2つ目）を回した位置に出す
+export function portraitOf(layout: ShopLayout): { grid: { cols: number; rows: number }; seats: Seat[]; labels: LayoutLabel[]; notice: Box } {
+  const within = { rows: usedRows(layout) };
+  return {
+    grid: { cols: within.rows, rows: GRID.cols },
+    seats: layout.seats.map(seat => rotateClockwise(seat, within)),
+    labels: layout.labels.map(label => rotateClockwise(label, within)),
+    notice: rotateClockwise(NOTICE_AREAS[1], within),
+  };
 }
 export interface ShopLayoutStore {
   subscribe(cb: (layout: ShopLayout) => void): () => void;

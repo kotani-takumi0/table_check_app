@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LAYOUT, layoutProblems, MemoryShopLayoutStore, nextSeatId, occupiedSeatIds, parseShopLayout, rotateLabelClockwise, seatIdsOf, type ShopLayout } from './shopLayout';
+import { DEFAULT_LAYOUT, layoutProblems, MemoryShopLayoutStore, nextSeatId, occupiedSeatIds, parseShopLayout, portraitOf, seatIdsOf, usedRows, type ShopLayout } from './shopLayout';
 import { rotateClockwise } from './layout';
 import { newSession } from './domain';
 
@@ -55,9 +55,23 @@ describe('席の配置', () => {
   });
   it('ことばも卓と同じく縦向きに回す', () => {
     const label = DEFAULT_LAYOUT.labels[0];
-    const asSeat = rotateClockwise({ id: 'x', kind: 'table', ...label });
-    const { text: _, ...rotated } = rotateLabelClockwise(label);
+    const asSeat = rotateClockwise({ id: 'x', kind: 'table' as const, ...label }, { rows: 7 });
+    const { text: _, ...rotated } = portraitOf(DEFAULT_LAYOUT).labels[0];
     expect(rotated).toEqual({ col: asSeat.col, colSpan: asSeat.colSpan, row: asSeat.row, rowSpan: asSeat.rowSpan });
+  });
+  it('マス目は15×10。8〜10行目にも置ける（No.108）', () => {
+    expect(layoutProblems({ seats: [table('11', 1, 9)], labels: [] })).toEqual([]);
+    expect(layoutProblems({ seats: [table('11', 1, 10)], labels: [] })).toEqual(['11番がマス目からはみ出しています']);
+  });
+  it('縦向きは置いてある行までを回す。今の配置は7行なので、縦向きは今までと同じ7列', () => {
+    expect(usedRows(DEFAULT_LAYOUT)).toBe(7);
+    const portrait = portraitOf(DEFAULT_LAYOUT);
+    expect(portrait.grid).toEqual({ cols: 7, rows: 15 });
+    // 通知は縦向きの6行目の左（App.css で決め打ちしていた位置と同じ）
+    expect(portrait.notice).toEqual({ col: 1, colSpan: 6, row: 6, rowSpan: 1 });
+    const deeper = { seats: [...DEFAULT_LAYOUT.seats, table('15', 1, 8)], labels: DEFAULT_LAYOUT.labels };
+    expect(usedRows(deeper)).toBe(9);
+    expect(portraitOf(deeper).grid).toEqual({ cols: 9, rows: 15 });
   });
   it('メモリの保存先は保存した配置を購読者に渡す', async () => {
     const store = new MemoryShopLayoutStore();

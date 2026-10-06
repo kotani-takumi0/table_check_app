@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { occupantOf, type Session } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
-import { GRID, PORTRAIT_GRID, rotateClockwise } from '@table-check/core/layout';
-import { rotateLabelClockwise, type ShopLayout } from '@table-check/core/shopLayout';
+import { GRID } from '@table-check/core/layout';
+import { NOTICE_AREAS, portraitOf, type ShopLayout } from '@table-check/core/shopLayout';
 import { COLORS } from './theme';
 import { SeatCard } from './SeatCard';
 
@@ -21,18 +21,15 @@ interface Props {
   toasts: ReactNode;   // 通知。フロア図の空き（横向きはカウンター上辺の右）に置く
 }
 interface Area { col: number; row: number; colSpan: number; rowSpan: number }
-// Web の App.css と同じ通知の位置（grid の列・行）。縦向きは時計回りに90°回した位置（core の NOTICE_AREAS は空けてある）
-const TOASTS = {
-  landscape: { col: 6, row: 2, colSpan: 10, rowSpan: 1 },
-  portrait: { col: 1, row: 6, colSpan: 6, rowSpan: 1 },
-} as const;
-// フロア図：Web と同じ 15列×7行（縦向きは 7列×15行）に卓を並べる
+// フロア図：Web と同じ 15列×10行（縦向きは、置いてある行までを回した 7列×15行など）に卓を並べる。
+// 通知は core の NOTICE_AREAS（縦向きは回した位置）に置く。正方形のマスにするのは No.111
 export function Floor({ sessions, time, editingIds, settings, layout, portrait, mini, picking, onSeat, onOpen, toasts }: Props) {
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const grid = portrait ? PORTRAIT_GRID : GRID;
-  const seats = portrait ? layout.seats.map(rotateClockwise) : layout.seats;
-  const labels = portrait ? layout.labels.map(rotateLabelClockwise) : layout.labels;
-  const toastArea = portrait ? TOASTS.portrait : TOASTS.landscape;
+  const turned = portrait ? portraitOf(layout) : null;
+  const grid = turned?.grid ?? GRID;
+  const seats = turned?.seats ?? layout.seats;
+  const labels = turned?.labels ?? layout.labels;
+  const toastArea = turned?.notice ?? NOTICE_AREAS[0];
   const gx = mini ? 4 : 6;
   const gy = mini ? 4 : portrait ? 6 : 12;
   const cellW = (size.width - gx * (grid.cols - 1)) / grid.cols;

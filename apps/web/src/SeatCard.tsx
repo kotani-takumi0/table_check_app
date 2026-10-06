@@ -134,8 +134,15 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
       {sub}
       {elapsed}
       {ruler}
+    </span> : shape === 'table low' ? <span className="card-body">
+      {/* 低い卓（No.108。正方形のマスで高さが1マスしかない）：卓番・人数・段階・経過を1行に、その下に物差し。下の帯は出さない */}
+      {number}
+      <span className="who-inline">{guestCount}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}</span>
+      <span className="stage-inline">{stageText}</span>
+      {elapsed}
+      {ruler}
     </span> : <span className="card-body">
-      {/* 低い卓・細い卓：卓番・人数と区分・経過を1行に、その下に物差し */}
+      {/* 細い卓（縦向き）：上から卓番・人数と区分・経過・物差し */}
       {number}
       <span className="who">{guestCount}{sub}</span>
       {elapsed}

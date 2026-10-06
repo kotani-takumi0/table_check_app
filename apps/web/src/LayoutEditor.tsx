@@ -103,6 +103,8 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
           </div>
         </>}
       </div>
+      {/* No.108：フロアと同じ正方形のマス。マス目の箱はマスの大きさぴったりにする（指の位置からマスを求めるため） */}
+      <div className="layout-grid-frame">
       <div ref={grid} className="layout-grid" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
         {cells}
         {NOTICE_AREAS.map((notice, i) => <div key={i} className="layout-notice" style={area(notice)} aria-hidden="true">{i === 0 ? '通知の場所' : '縦向きの通知'}</div>)}
@@ -116,6 +118,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
           style={area({ col: selectedBox.col + selectedBox.colSpan - 1, row: selectedBox.row + selectedBox.rowSpan - 1, colSpan: 1, rowSpan: 1 })}
           {...dragProps(selected, selectedBox, 'resize')}><span /></div>}
         {preview && <div className={`layout-ghost ${canPlace(preview.target, preview.box) ? '' : 'blocked'}`} aria-hidden="true" style={area(preview.box)} />}
+      </div>
       </div>
     </div>
     <div className="layout-foot">

@@ -1,6 +1,8 @@
 export type SeatKind = 'table' | 'counter';
 export interface Seat { id: string; kind: SeatKind; col: number; colSpan: number; row: number; rowSpan: number; }
-export const GRID = { cols: 15, rows: 7 } as const;
+// フロアのマス目（横向き）。No.108 で 15×7 から 15×10 に広げ、横向きのタブレットで1マスが正方形になるようにした。
+// 古い版（v2.2.x 以前）は7行目までしか読めず、8行目より下に置いた配置は壊れているとみなして最初の配置を出す
+export const GRID = { cols: 15, rows: 10 } as const;
 export const SEATS: Seat[] = [
   { id: '31', kind: 'table', col: 1, colSpan: 3, row: 1, rowSpan: 1 },
   { id: '33', kind: 'table', col: 4, colSpan: 3, row: 1, rowSpan: 1 },
@@ -24,8 +26,8 @@ export const SEATS: Seat[] = [
   { id: '13', kind: 'table', col: 10, colSpan: 3, row: 5, rowSpan: 2 },
   { id: '21', kind: 'table', col: 13, colSpan: 3, row: 5, rowSpan: 2 },
 ];
-// 縦向きの画面では、手描きの配置図と同じ向き（今の配置を時計回りに90°）で並べる
-export const PORTRAIT_GRID = { cols: GRID.rows, rows: GRID.cols } as const;
-export function rotateClockwise(seat: Seat): Seat {
-  return { ...seat, col: GRID.rows + 2 - seat.row - seat.rowSpan, colSpan: seat.rowSpan, row: seat.col, rowSpan: seat.colSpan };
+// 縦向きの画面では、手描きの配置図と同じ向き（今の配置を時計回りに90°）で並べる。卓・ことば・通知の場所に使う。
+// within.rows は回す前（横向き）の行の数で、回したあとの列の数になる（shopLayout の portraitOf が、置いてある行までに絞って渡す）
+export function rotateClockwise<T extends { col: number; colSpan: number; row: number; rowSpan: number }>(box: T, within: { rows: number }): T {
+  return { ...box, col: within.rows + 2 - box.row - box.rowSpan, colSpan: box.rowSpan, row: box.col, rowSpan: box.colSpan };
 }

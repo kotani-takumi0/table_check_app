@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, occupantOf, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
-import { GRID, PORTRAIT_GRID, rotateClockwise } from '@table-check/core/layout';
-import { DEFAULT_LAYOUT, rotateLabelClockwise, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
+import { GRID } from '@table-check/core/layout';
+import { DEFAULT_LAYOUT, NOTICE_AREAS, portraitOf, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
 import { LayoutEditor } from './LayoutEditor';
 import { CourseEditor } from './CourseEditor';
 import { coursesInUse, newCourse, putCourse } from '@table-check/core/courseEditor';
@@ -166,9 +166,12 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
   // 新しい版（No.83）：詳細・ダイアログ・メニュー・卓選び・席の配置の途中では読み込み直さない
   const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout' || screen === 'course', syncState);
-  const grid = portrait ? PORTRAIT_GRID : GRID;
-  const seats = portrait ? layout.seats.map(rotateClockwise) : layout.seats;
-  const labels = portrait ? layout.labels.map(rotateLabelClockwise) : layout.labels;
+  // 縦向きは、置いてある行までを回して出す（No.108。何も置いていない下の行は出さない）
+  const turned = portrait ? portraitOf(layout) : null;
+  const grid = turned?.grid ?? GRID;
+  const seats = turned?.seats ?? layout.seats;
+  const labels = turned?.labels ?? layout.labels;
+  const noticeArea = turned?.notice ?? NOTICE_AREAS[0];
   return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
@@ -202,11 +205,16 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             if (daySessions.length > 0) downloadText(csvFileName(day), sessionsCsv(daySessions, shopSettings), 'text/csv');
             return daySessions.length;
           }} inert={modal || menuOpen} />
-      : <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
+      : <div className="floor-frame">
+        {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
+        <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
+        {Array.from({ length: grid.cols * grid.rows }, (_, i) => <span key={`cell-${i}`} className="floor-cell" aria-hidden="true" style={{ gridColumn: i % grid.cols + 1, gridRow: Math.floor(i / grid.cols) + 1 }} />)}
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
-        <Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} />
+        {/* 正方形のマスでは通知の場所が1マスの高さしかないので、1件ずつ出して残りは「ほか N件」にまとめる（No.108。ポップアップにするのは No.109） */}
+        <Toasts toasts={toasts} onDismiss={dismiss} rows={1} area={noticeArea} />
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} settings={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} selected={(opened !== undefined && openFrom === position.id) || seating === position.id} />)}
-      </section>}
+        </section>
+      </div>}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} />}
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}
