@@ -18,7 +18,7 @@ type Box = { col: number; colSpan: number; row: number; rowSpan: number };
 type Target = { type: 'seat' | 'label'; index: number };
 
 // 席の配置を作り直す画面（Web の LayoutEditor と同じ。No.86）。中身は core の useLayoutEditor を Web と共有する。
-// マス目は向きを変えても横向き（15列×7行）のまま。iPad の横向きは左にブロック、縦向き・スマホは上にブロックを出す
+// マス目は向きを変えても横向き（15列×10行）のまま。iPad の横向きは左にブロック、縦向き・スマホは上にブロックを出す
 export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait, mini }: {
   layout: ShopLayout; occupied: Set<string>; onSave(layout: ShopLayout): Promise<void>; onClose(): void; top: number; portrait: boolean; mini: boolean;
 }) {

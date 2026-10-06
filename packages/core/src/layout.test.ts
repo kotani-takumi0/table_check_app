@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
-import { GRID, PORTRAIT_GRID, rotateClockwise, SEATS, type Seat } from './layout';
+import { GRID, rotateClockwise, SEATS, type Seat } from './layout';
+import { DEFAULT_LAYOUT, portraitOf } from './shopLayout';
 it('21席、IDは一意で32/35/37は存在しない', () => {
   expect(SEATS).toHaveLength(21);
   expect(new Set(SEATS.map(s => s.id)).size).toBe(21);
@@ -27,10 +28,11 @@ it('すべての席はグリッド内に収まり、互いに重ならない', (
   fitsWithoutOverlap(SEATS, GRID);
 });
 it('縦向き（時計回りに90°）でもグリッド内に収まり、互いに重ならない', () => {
-  fitsWithoutOverlap(SEATS.map(rotateClockwise), PORTRAIT_GRID);
+  const portrait = portraitOf(DEFAULT_LAYOUT);
+  fitsWithoutOverlap(portrait.seats, portrait.grid);
 });
 it('縦向きの配置は手描きの図と一致する', () => {
-  const at = (id: string) => { const s = rotateClockwise(SEATS.find(seat => seat.id === id)!); return [s.col, s.colSpan, s.row, s.rowSpan]; };
+  const at = (id: string) => { const s = rotateClockwise(SEATS.find(seat => seat.id === id)!, { rows: 7 }); return [s.col, s.colSpan, s.row, s.rowSpan]; };
   expect(at('31')).toEqual([7, 1, 1, 3]);   // 右の列の一番上
   expect(at('38')).toEqual([7, 1, 13, 3]);  // 右の列の一番下
   expect(at('10')).toEqual([6, 1, 1, 1]);   // カウンター右側の上
