@@ -10,10 +10,13 @@ export function LoginScreen({ busy, error, onLogin, onGuest }: { busy: boolean; 
   const [password, setPassword] = useState('');
   const submit = (event: FormEvent) => { event.preventDefault(); onLogin(email, password); };
   return <main className="login">
-    <section className="login-card glass" aria-labelledby="login-title">
-      <h1 id="login-title" className="login-title">Minopal</h1>
+    <section className="login-card sheet" aria-labelledby="login-title">
+      <div className="login-head">
+        <h1 id="login-title" className="login-title"><span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span>Minopal</h1>
+        <p className="settings-help">飲食店ホールの卓タイマー</p>
+      </div>
       <form className="login-form" onSubmit={submit} aria-describedby={error ? 'login-error' : undefined}>
-        <h2 className="settings-group-title">ログイン</h2>
+        <h2 className="sr-only">ログイン</h2>
         <label className="field-label" htmlFor="login-email">メールアドレス</label>
         <input id="login-email" className="field-select" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} />
         <label className="field-label" htmlFor="login-password">パスワード</label>
@@ -22,6 +25,7 @@ export function LoginScreen({ busy, error, onLogin, onGuest }: { busy: boolean; 
         <button className="panel-button primary" type="submit" disabled={busy}>{busy ? 'ログインしています…' : 'ログイン'}</button>
         {TEST_LOGIN && <button className="panel-button" type="button" disabled={busy} onClick={() => onLogin(TEST_LOGIN.email, TEST_LOGIN.password)}>テスト用でログイン（開発中だけ）</button>}
       </form>
+      <p className="login-or" aria-hidden="true">または</p>
       <div className="login-guest">
         <button className="panel-button" disabled={busy} onClick={onGuest}>ログインせずに使う</button>
         <p className="settings-help">今の店（ログインなしで使っている店）のデータで使います。</p>
