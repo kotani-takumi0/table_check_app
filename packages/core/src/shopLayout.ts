@@ -15,7 +15,7 @@ export interface LayoutLabel { text: string; col: number; colSpan: number; row: 
 export interface ShopLayout { seats: Seat[]; labels: LayoutLabel[] }
 export const DEFAULT_LAYOUT: ShopLayout = {
   seats: SEATS,
-  labels: [{ text: 'カウンター', col: 1, colSpan: 4, row: 3, rowSpan: 4 }],
+  labels: [{ text: 'カウンター', col: 1, colSpan: 3, row: 5, rowSpan: 4 }],
 };
 // No.109 より前は、通知（L.O.・トイレ）を出す場所（2行目の列6〜15と、6列目の2〜7行目）に卓・ことばを置けなかった。
 // 通知はフロアの上のポップアップにしたので、どこにでも置ける。古い版はこの場所に置いた配置を壊れているとみなし、最初の配置を出す
