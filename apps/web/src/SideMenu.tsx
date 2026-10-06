@@ -6,7 +6,7 @@ const SCREENS: Screen[] = ['floor', 'settings'];
 // 選ぶとその画面に切り替えて閉じる（No.77。以前ここにあった全卓一覧はなくした）
 // account・onLeave：いまの店（ログインした店はメールアドレス）を出し、ログアウト・ログインし直すで最初の画面に戻る（No.88）
 export function SideMenu({ screen, onSelect, account, shopName, onLeave, leaveError, inert }: { screen: Screen; onSelect(screen: Screen): void; account: string | null; shopName: string; onLeave?(): void; leaveError: string; inert?: boolean }) {
-  return <nav id="side-menu" className="side-menu glass" aria-label="メニュー" inert={inert}>
+  return <nav id="side-menu" className="side-menu sheet" aria-label="メニュー" inert={inert}>
     <ul className="side-menu-items">
       {SCREENS.map(item => <li key={item}>
         <button className="side-menu-item" aria-current={item === screen || (item === 'settings' && (screen === 'layout' || screen === 'course')) ? 'page' : undefined} onClick={() => onSelect(item)}>

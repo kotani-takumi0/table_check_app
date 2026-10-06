@@ -6,7 +6,7 @@ interface Props {
   onClose(): void;
   returnFocus: HTMLElement | null;
 }
-// 全卓消去の確認。押し間違いで消さないよう、最初のフォーカスは「やめる」に置く
+// 全卓消去の確認。押し間違いで消さないよう、最初のフォーカスは「やめる」に置く。後ろを暗くして止めるのはこの確認だけ（No.107）
 export function ClearAllDialog({ unpaidTables, onConfirm, onClose, returnFocus }: Props) {
   const cancel = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -18,7 +18,7 @@ export function ClearAllDialog({ unpaidTables, onConfirm, onClose, returnFocus }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  return <div className="panel-backdrop popover-backdrop from-end" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return <div className="panel-backdrop popover-backdrop from-end dim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel alert popover" role="alertdialog" aria-modal="true" aria-labelledby="clear-all-title" aria-describedby="clear-all-message clear-all-warning">
       <h2 id="clear-all-title" className="panel-title">全卓を消去しますか？</h2>
       <p id="clear-all-message" className="confirm-message">すべての卓の案内・時刻・お会計の記録を消します。ほかの端末の画面からも消え、元に戻せません。</p>
