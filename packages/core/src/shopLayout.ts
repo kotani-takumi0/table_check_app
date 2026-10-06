@@ -17,9 +17,8 @@ export const DEFAULT_LAYOUT: ShopLayout = {
   seats: SEATS,
   labels: [{ text: 'カウンター', col: 1, colSpan: 4, row: 3, rowSpan: 4 }],
 };
-// 通知（L.O.・トイレ）を出す場所。卓やことばは置けない。
-// 横向きは2行目の右（App.css の .toasts）、縦向きは回したあとの6行目の左＝横向きの6列目（.portrait .toasts）
-export const NOTICE_AREAS = [{ col: 6, colSpan: 10, row: 2, rowSpan: 1 }, { col: 6, colSpan: 1, row: 2, rowSpan: 6 }] as const;
+// No.109 より前は、通知（L.O.・トイレ）を出す場所（2行目の列6〜15と、6列目の2〜7行目）に卓・ことばを置けなかった。
+// 通知はフロアの上のポップアップにしたので、どこにでも置ける。古い版はこの場所に置いた配置を壊れているとみなし、最初の配置を出す
 export const MAX_SEATS = 60;
 export const MAX_LABELS = 20;
 export const LABEL_MAX_LENGTH = 12;
@@ -58,7 +57,6 @@ export function layoutProblems(layout: ShopLayout): string[] {
     ...layout.labels.map(label => ({ name: `「${label.text}」`, box: label })),
   ];
   boxes.forEach((a, i) => {
-    if (NOTICE_AREAS.some(notice => overlaps(a.box, notice))) problems.push(`${a.name}が通知の場所に重なっています`);
     boxes.slice(i + 1).forEach(b => { if (overlaps(a.box, b.box)) problems.push(`${a.name}と${b.name}が重なっています`); });
   });
   return [...new Set(problems)];
@@ -79,18 +77,17 @@ export function parseShopLayout(data: unknown): ShopLayout | null {
   const layout = { seats, labels };
   return layoutProblems(layout).length === 0 ? layout : null;
 }
-// 卓・ことば・通知の場所を置いている、いちばん下の行（No.108）。縦向きはここまでを回して出し、何も置いていない下の行は出さない
+// 卓・ことばを置いている、いちばん下の行（No.108）。縦向きはここまでを回して出し、何も置いていない下の行は出さない
 export function usedRows(layout: ShopLayout): number {
-  return Math.max(...[...layout.seats, ...layout.labels, ...NOTICE_AREAS].map(box => box.row + box.rowSpan - 1));
+  return Math.max(1, ...[...layout.seats, ...layout.labels].map(box => box.row + box.rowSpan - 1));
 }
-// 縦向きの並び：置いてある行までを時計回りに90°回す。通知は縦向きの場所（NOTICE_AREAS の2つ目）を回した位置に出す
-export function portraitOf(layout: ShopLayout): { grid: { cols: number; rows: number }; seats: Seat[]; labels: LayoutLabel[]; notice: Box } {
+// 縦向きの並び：置いてある行までを時計回りに90°回す
+export function portraitOf(layout: ShopLayout): { grid: { cols: number; rows: number }; seats: Seat[]; labels: LayoutLabel[] } {
   const within = { rows: usedRows(layout) };
   return {
     grid: { cols: within.rows, rows: GRID.cols },
     seats: layout.seats.map(seat => rotateClockwise(seat, within)),
     labels: layout.labels.map(label => rotateClockwise(label, within)),
-    notice: rotateClockwise(NOTICE_AREAS[1], within),
   };
 }
 export interface ShopLayoutStore {

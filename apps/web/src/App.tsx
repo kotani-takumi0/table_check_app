@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { isVisible, occupantOf, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { GRID } from '@table-check/core/layout';
-import { DEFAULT_LAYOUT, NOTICE_AREAS, portraitOf, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
+import { DEFAULT_LAYOUT, portraitOf, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
 import { LayoutEditor } from './LayoutEditor';
 import { CourseEditor } from './CourseEditor';
 import { coursesInUse, newCourse, putCourse } from '@table-check/core/courseEditor';
@@ -17,7 +17,7 @@ import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
-import { useDismissed } from './useDismissed';
+import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { useAppUpdate } from './useAppUpdate';
 import { type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings, type ShopSettingsStore } from '@table-check/core/shopSettings';
@@ -96,16 +96,31 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   }, []);
   const closeShopTimer = useCallback(() => setShopTimerOpen(null), []);
   const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
-  const { isDismissed, dismiss } = useDismissed(account);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  // 「閉じる」はこの端末だけ
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).filter(notice => !isDismissed(notice.key)).map(notice => ({
+  // 通知（No.109）：L.O.とお店のタイマー。「済にする」などを押すまで残し、ポップアップを閉じてもヘッダーの「通知」から開き直せる
+  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
+    icon: notice.kind === 'shop_timer' ? <ShopTimerGlyph icon={shopSettings.shopTimers.find(timer => timer.id === notice.timerId)?.icon ?? ''} className="toast-glyph" />
+      : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
     action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? next(notice.session) : markShopTimerDone(notice.timerId) },
   }));
+  // 新しい通知が来たらポップアップを開き、その通知を出す。10秒でヘッダーの「通知」にしまう（Toasts の下の線が縮みきったとき）
+  const [noticesOpen, setNoticesOpen] = useState(false);
+  const [shownNotice, setShownNotice] = useState<string | null>(null);
+  const [noticeRun, setNoticeRun] = useState(0);
+  const openNotices = useCallback((key: string | null) => { setShownNotice(key); setNoticesOpen(true); setNoticeRun(run => run + 1); }, []);
+  const seenNotices = useRef<Set<string>>(new Set());
+  const noticeKeys = toasts.map(toast => toast.key).join('\n');
+  useEffect(() => {
+    const keys = noticeKeys === '' ? [] : noticeKeys.split('\n');
+    const fresh = keys.find(key => !seenNotices.current.has(key));
+    seenNotices.current = new Set(keys);
+    if (fresh !== undefined) openNotices(fresh);
+    else if (keys.length === 0) setNoticesOpen(false);
+  }, [noticeKeys, openNotices]);
   // 卓に今表示しているお客さん（同じ卓に複数あれば後から案内したほう）
   const requestSeat = (tableId: string) => {
     // 詳細パネルから押したときはパネルが閉じるので、パネルを開いた卓に戻す
@@ -171,13 +186,13 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const grid = turned?.grid ?? GRID;
   const seats = turned?.seats ?? layout.seats;
   const labels = turned?.labels ?? layout.labels;
-  const noticeArea = turned?.notice ?? NOTICE_AREAS[0];
   return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
     </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
-      timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload} />}
+      timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload}
+      noticeCount={toasts.length} noticesOpen={noticesOpen && screen === 'floor'} onOpenNotices={() => { if (screen !== 'floor') selectScreen('floor'); openNotices(shownNotice); }} />}
     {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time, shopSettings)).flatMap(s => s.tableIds))}
         onSave={async next => {
           const missing = [...new Set(sessions.filter(s => isVisible(s, now(), shopSettings)).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
@@ -210,11 +225,10 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
         <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
         {Array.from({ length: grid.cols * grid.rows }, (_, i) => <span key={`cell-${i}`} className="floor-cell" aria-hidden="true" style={{ gridColumn: i % grid.cols + 1, gridRow: Math.floor(i / grid.cols) + 1 }} />)}
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
-        {/* 正方形のマスでは通知の場所が1マスの高さしかないので、1件ずつ出して残りは「ほか N件」にまとめる（No.108。ポップアップにするのは No.109） */}
-        <Toasts toasts={toasts} onDismiss={dismiss} rows={1} area={noticeArea} />
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} settings={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} selected={(opened !== undefined && openFrom === position.id) || seating === position.id} />)}
         </section>
       </div>}
+    {noticesOpen && screen === 'floor' && <Toasts toasts={toasts} shownKey={shownNotice} run={noticeRun} onShow={key => openNotices(key)} onTuck={() => setNoticesOpen(false)} onAction={() => setNoticeRun(run => run + 1)} />}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} />}
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={back} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} />}

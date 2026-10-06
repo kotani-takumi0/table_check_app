@@ -190,7 +190,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
           <Floor sessions={sessions} time={time} editingIds={editingIds} settings={shopSettings} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
-            toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={portrait || mini ? 1 : 2} mini={mini} />} />
+            toasts={<Toasts toasts={toasts} onDismiss={dismiss} rows={1} mini={mini} />} />
         </View>}
       {/* メニュー：フロアの上に重ねる。外側のタップは後ろの透明な面で受けて閉じる */}
       {menuOpen && !pick && <>

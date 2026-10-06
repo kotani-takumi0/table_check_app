@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native
 import { occupantOf, type Session } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { GRID } from '@table-check/core/layout';
-import { NOTICE_AREAS, portraitOf, type ShopLayout } from '@table-check/core/shopLayout';
+import { portraitOf, type ShopLayout } from '@table-check/core/shopLayout';
 import { COLORS } from './theme';
 import { SeatCard } from './SeatCard';
 
@@ -18,18 +18,17 @@ interface Props {
   editingIds: Set<string>;   // ほかの端末で詳細を開いているお客さん（No.72）
   settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   layout: ShopLayout;      // 席の配置（No.75。編集は設定 → 席の配置）
-  toasts: ReactNode;   // 通知。フロア図の空き（横向きはカウンター上辺の右）に置く
+  toasts: ReactNode;   // 通知。フロア図の下の端に重ねる（No.109 で通知の場所をなくした。ポップアップにするのは No.111）
 }
 interface Area { col: number; row: number; colSpan: number; rowSpan: number }
 // フロア図：Web と同じ 15列×10行（縦向きは、置いてある行までを回した 7列×15行など）に卓を並べる。
-// 通知は core の NOTICE_AREAS（縦向きは回した位置）に置く。正方形のマスにするのは No.111
+// 正方形のマスと通知のポップアップにするのは No.111
 export function Floor({ sessions, time, editingIds, settings, layout, portrait, mini, picking, onSeat, onOpen, toasts }: Props) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const turned = portrait ? portraitOf(layout) : null;
   const grid = turned?.grid ?? GRID;
   const seats = turned?.seats ?? layout.seats;
   const labels = turned?.labels ?? layout.labels;
-  const toastArea = turned?.notice ?? NOTICE_AREAS[0];
   const gx = mini ? 4 : 6;
   const gy = mini ? 4 : portrait ? 6 : 12;
   const cellW = (size.width - gx * (grid.cols - 1)) / grid.cols;
@@ -50,8 +49,8 @@ export function Floor({ sessions, time, editingIds, settings, layout, portrait, 
             editing={(() => { const occupant = occupantOf(sessions, seat.id, time, settings); return occupant !== undefined && editingIds.has(occupant.id); })()}
             onSeat={onSeat} onOpen={onOpen} settings={settings} mini={mini} picking={picking} />
         ))}
-        <View pointerEvents="box-none" style={[styles.toasts, frame(toastArea)]}>{toasts}</View>
       </ScrollView>}
+      <View pointerEvents="box-none" style={styles.toasts}>{toasts}</View>
     </View>
   );
 }
@@ -59,5 +58,6 @@ const styles = StyleSheet.create({
   floor: { flex: 1 },
   counterLabel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   counterText: { color: COLORS.muted, fontSize: 14 },
-  toasts: { position: 'absolute', gap: 4 },
+  // 1件ずつ出す通知の高さ（Toasts は行数で高さを分けるので、高さを決めておく）
+  toasts: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 56, gap: 4 },
 });

@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { GRID, type SeatKind } from '@table-check/core/layout';
 import { cellAt, DRAG_THRESHOLD, dragBox, sameBox, type Cell, type DragKind } from '@table-check/core/layoutDrag';
-import { LABEL_MAX_LENGTH, NOTICE_AREAS, type ShopLayout } from '@table-check/core/shopLayout';
+import { LABEL_MAX_LENGTH, type ShopLayout } from '@table-check/core/shopLayout';
 import { LAYOUT_BLOCKS, useLayoutEditor } from '@table-check/core/useLayoutEditor';
 
 type Box = { col: number; colSpan: number; row: number; rowSpan: number };
@@ -107,7 +107,6 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
       <div className="layout-grid-frame">
       <div ref={grid} className="layout-grid" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
         {cells}
-        {NOTICE_AREAS.map((notice, i) => <div key={i} className="layout-notice" style={area(notice)} aria-hidden="true">{i === 0 ? '通知の場所' : '縦向きの通知'}</div>)}
         {draft.labels.map((l, i) => <button key={`label-${i}`} className={`layout-item label ${selected?.type === 'label' && selected.index === i ? 'selected' : ''} ${isDragged({ type: 'label', index: i }) ? 'dragging' : ''}`} style={area(l)}
           aria-label={`ことば「${l.text}」（押すと直す）`} onClick={() => press({ type: 'label', index: i })} {...dragProps({ type: 'label', index: i }, l, 'move')}>{l.text}</button>)}
         {draft.seats.map((s, i) => <button key={`seat-${i}`} className={`layout-item ${s.kind} ${selected?.type === 'seat' && selected.index === i ? 'selected' : ''} ${isOccupied(i) ? 'occupied' : ''} ${isDragged({ type: 'seat', index: i }) ? 'dragging' : ''}`} style={area(s)}

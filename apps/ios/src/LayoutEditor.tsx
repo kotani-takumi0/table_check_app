@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import { GRID, type SeatKind } from '@table-check/core/layout';
 import { cellAt, DRAG_THRESHOLD, dragBox, sameBox, type Cell, type DragKind } from '@table-check/core/layoutDrag';
-import { LABEL_MAX_LENGTH, NOTICE_AREAS, type ShopLayout } from '@table-check/core/shopLayout';
+import { LABEL_MAX_LENGTH, type ShopLayout } from '@table-check/core/shopLayout';
 import { LAYOUT_BLOCKS, useLayoutEditor } from '@table-check/core/useLayoutEditor';
 import { COLORS, FILL } from './theme';
 import { Glass } from './Glass';
@@ -133,9 +133,6 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
           <View style={styles.gridFrame} onLayout={event => setGridWidth(event.nativeEvent.layout.width - 16)}>
             {gridWidth > 0 && <View ref={gridView} collapsable={false} style={{ height: gridHeight }}>
               {cells}
-              {NOTICE_AREAS.map((notice, i) => <View key={i} pointerEvents="none" style={[styles.notice, frame(notice)]}>
-                <Text style={styles.noticeText} numberOfLines={1} adjustsFontSizeToFit>{i === 0 ? '通知の場所' : '縦'}</Text>
-              </View>)}
               {draft.labels.map((l, i) => {
                 const current = selected?.type === 'label' && selected.index === i;
                 const t: Target = { type: 'label', index: i };
@@ -220,8 +217,6 @@ const styles = StyleSheet.create({
   gridFrame: { padding: 8, borderRadius: 20, backgroundColor: COLORS.surface },
   cell: { borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.line, borderRadius: 6 },
   cellPressed: { backgroundColor: COLORS.actionBg },
-  notice: { alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: FILL },
-  noticeText: { fontSize: 12, color: COLORS.muted },
   item: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.lineStrong, borderRadius: 10, backgroundColor: COLORS.dialFace },
   labelItem: { borderStyle: 'dashed', backgroundColor: 'transparent' },
   labelText: { fontSize: 14, color: COLORS.muted },
