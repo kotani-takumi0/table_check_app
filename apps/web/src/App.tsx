@@ -103,7 +103,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // 通知（No.109）：L.O.とお店のタイマー。「済にする」などを押すまで残し、ポップアップを閉じてもヘッダーの「通知」から開き直せる
   const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
-    icon: notice.kind === 'shop_timer' ? <ShopTimerGlyph icon={shopSettings.shopTimers.find(timer => timer.id === notice.timerId)?.icon ?? ''} />
+    icon: notice.kind === 'shop_timer' ? <ShopTimerGlyph icon={shopSettings.shopTimers.find(timer => timer.id === notice.timerId)?.icon ?? ''} className="toast-glyph" />
       : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
     action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? next(notice.session) : markShopTimerDone(notice.timerId) },
   }));

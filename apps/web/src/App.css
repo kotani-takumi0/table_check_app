@@ -219,7 +219,7 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .toast { --tone-ink: var(--now-ink); --tone-wash: var(--now-wash); --tone-line: var(--now-line); position: relative; overflow: hidden; min-height: 64px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--tone-line); border-radius: 12px; background: var(--page); box-shadow: var(--float); color: var(--ink); animation: panel-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .toast.warning { --tone-ink: var(--soon-ink); --tone-wash: var(--soon-wash); --tone-line: var(--soon-line); }
 .toast-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--tone-wash); color: var(--tone-ink); }
-.toast-icon svg { width: 20px; height: 20px; }
+.toast-icon svg { width: 20px; height: 20px; color: inherit; }
 .toast-message { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1.35; }
 .toast-actions { display: flex; align-items: center; gap: 8px; }
 .toast-actions .panel-button.small { min-height: 36px; }
