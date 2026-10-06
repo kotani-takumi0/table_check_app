@@ -65,6 +65,7 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .brand-mark { display: inline-grid; grid-template-columns: repeat(2, 8px); gap: 2px; }
 .brand-mark i { width: 8px; height: 8px; border-radius: 2.5px; background: var(--key); }
 .brand-mark i:nth-child(2) { border-radius: 50%; background: #8fcfa3; }
+.brand-mark i:nth-child(4) { background: var(--now); }
 .toolbar-rule { flex: none; width: 1px; height: 24px; margin: 0 6px; background: var(--line); }
 .shop-timers { min-width: 0; flex: 0 1 auto; display: flex; align-items: center; gap: 6px; }
 /* タイマーが多くて入らないときは、チップの並びだけを横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない。時間制限なしの目印は外） */
