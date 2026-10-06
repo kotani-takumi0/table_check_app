@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import type { DrinkPlan } from '@table-check/core/domain';
 import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
 import { newShopTimerId, SHOP_TIMER_LIMITS, stepInterval, type ShopTimer, type ShopTimerId } from '@table-check/core/shopTimers';
@@ -7,13 +7,39 @@ import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
+const SETTINGS_SECTIONS = [
+  { id: 'time', label: '時間のルール' }, { id: 'course', label: 'コース' }, { id: 'timers', label: '店のタイマー' }, { id: 'shop', label: 'お店' }, { id: 'record', label: '記録' },
+] as const;
 // onEditCourse：コースを直す画面を開く（null は新しいコースを足す。No.89）
 // onExportCsv：その営業日のお客さんを CSV で書き出し、書き出した人数（組）を返す（No.34）
 export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today, onExportCsv, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; today: string; onExportCsv(day: string): Promise<number>; inert?: boolean }) {
-  return <section className="settings" aria-labelledby="settings-title" inert={inert}>
-    <h1 id="settings-title" className="settings-title">設定</h1>
-    <div className="settings-group glass">
-      <h2 className="settings-group-title">時間のルール</h2>
+  // 左の目次（No.107。デジタル庁のサイトと同じ形）：押すとその見出しへ動き、いま見ているまとまりを緑にする
+  const scroller = useRef<HTMLElement>(null);
+  const [active, setActive] = useState<string>(SETTINGS_SECTIONS[0].id);
+  const onScroll = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    // 下まで動かしたら、最後のまとまりが短くて上まで来なくても最後を選ぶ
+    const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+    const current = atEnd ? SETTINGS_SECTIONS[SETTINGS_SECTIONS.length - 1]
+      : [...SETTINGS_SECTIONS].reverse().find(section => (document.getElementById(`settings-${section.id}`)?.getBoundingClientRect().top ?? Infinity) - top <= 24) ?? SETTINGS_SECTIONS[0];
+    setActive(current.id);
+  };
+  return <section ref={scroller} className="settings has-toc" aria-labelledby="settings-title" inert={inert} onScroll={onScroll}>
+    <nav className="settings-toc" aria-label="設定の目次">
+      <ul>
+        {SETTINGS_SECTIONS.map(section => <li key={section.id}><a href={`#settings-${section.id}`} aria-current={active === section.id ? 'true' : undefined}
+          onClick={event => { event.preventDefault(); document.getElementById(`settings-${section.id}`)?.scrollIntoView({ block: 'start' }); setActive(section.id); }}>{section.label}</a></li>)}
+      </ul>
+    </nav>
+    <div className="settings-main">
+    <div className="settings-head">
+      <h1 id="settings-title" className="settings-title">設定</h1>
+      <p className="settings-help">変えると、すべての端末にすぐ反映されます。</p>
+    </div>
+    <div id="settings-time" className="settings-group sheet" role="group" aria-labelledby="settings-time-title">
+      <h2 id="settings-time-title" className="settings-group-title">時間のルール</h2>
       <SwitchRow id="time-limit-off" label="時間制限なし" checked={settings.timeLimitOff} onChange={timeLimitOff => onChange({ timeLimitOff })}
         help="空いている日などに、L.O.・お席の時間の通知と色を止めます。経過の時間とお通しの警告はそのまま出します。" />
       {/* No.14：店ごとに分を決める。L.O.・お席の時間は案内（コースはファーストドリンク）から数える */}
@@ -23,19 +49,18 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
         help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、お通し未提供の警告を出しません。" />
       {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
       <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
-      <p className="settings-note">変えると、すべての端末にすぐ反映されます。</p>
     </div>
-    <div className="settings-group glass">
-      <h2 className="settings-group-title">コース</h2>
+    <div id="settings-course" className="settings-group sheet" role="group" aria-labelledby="settings-course-title">
+      <h2 id="settings-course-title" className="settings-group-title">コース</h2>
       <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
       <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
     </div>
-    <div className="settings-group glass">
-      <h2 className="settings-group-title">店のタイマー</h2>
+    <div id="settings-timers" className="settings-group sheet" role="group" aria-labelledby="settings-timers-title">
+      <h2 id="settings-timers-title" className="settings-group-title">店のタイマー</h2>
       <ShopTimerRows timers={settings.shopTimers} onChange={shopTimers => onChange({ shopTimers })} />
     </div>
-    <div className="settings-group glass">
-      <h2 className="settings-group-title">お店</h2>
+    <div id="settings-shop" className="settings-group sheet" role="group" aria-labelledby="settings-shop-title">
+      <h2 id="settings-shop-title" className="settings-group-title">お店</h2>
       <ShopNameRow name={settings.shopName} onSave={shopName => onChange({ shopName })} />
       <div className="settings-row">
         <div className="settings-row-text">
@@ -45,9 +70,10 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
         <button className="panel-button" onClick={onOpenLayout}>変える</button>
       </div>
     </div>
-    <div className="settings-group glass">
-      <h2 className="settings-group-title">記録</h2>
+    <div id="settings-record" className="settings-group sheet" role="group" aria-labelledby="settings-record-title">
+      <h2 id="settings-record-title" className="settings-group-title">記録</h2>
       <ExportRow today={today} onExport={onExportCsv} />
+    </div>
     </div>
   </section>;
 }
