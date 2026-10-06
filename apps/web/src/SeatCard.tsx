@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, dishProgress, displayOf, sessionRules, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, drinkPlanName, sessionRules, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
-import { bandOf, dialLabel, dialOf, remainingLabel, remainingOf } from '@table-check/core/dial';
+import { bandOf, dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
-import { Dial } from './Dial';
+import { Ruler } from './Ruler';
 
 interface CardProps {
   seat: Seat;
@@ -15,10 +15,11 @@ interface CardProps {
   settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   mini: boolean;   // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean; // 移動先・追加先を選んでいる間：空席だけ押せる
+  selected?: boolean; // 詳細・ご案内を開いている卓（緑の枠で囲む。No.107）
 }
-// 卓カード。テーブルは文字盤（大きい卓は真ん中、低い卓・細い卓は横）と四隅の情報、カウンターは円の文字盤。
+// 卓カード（No.107）。卓番・人数・区分・大きな経過・120分の物差し（L.O.の目盛り付き）と、下に段階の帯。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, settings, onSeat, onOpen, mini, picking }: CardProps) {
+export function SeatCard({ seat, session, time, editing = false, settings, onSeat, onOpen, mini, picking, selected = false }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -62,7 +63,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
     // 詳細をこの卓のそばに出すため、App が位置を探す目印
     'data-seat': seat.id,
   };
-  const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''}`;
+  const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''} ${selected ? 'selected' : ''}`;
   if (!session) {
     return <button {...handlers} className={`card ${shape} empty ${modes}`} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>
       <span className="seat-number">{seat.id}</span>
@@ -77,7 +78,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
   const paid = session.paidAt !== null;
   // コースの「開始待ち」「ファーストドリンク提供済み」は通常と名前を変える（色は変えない）
   const display = displayOf(session.status, session.course, rules);
-  // 卓の色は警告の段階だけで決める（もうすぐ＝琥珀、いま対応＝朱）。ふだんは無彩色で、退店済は全体を薄くする
+  // 卓の色は警告の段階だけで決める（もうすぐ＝橙、いま対応＝赤）。ふだんは白と黒だけで、退店済は全体を薄くする
   const tone = alert.level !== 'none' ? `alert-${alert.level}` : exited ? 'exited' : '';
   // 団体：同じセッションの他の卓番を添える
   const others = session.tableIds.filter(id => id !== seat.id);
@@ -93,58 +94,53 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
   const meter = dialLabel(dial, remaining);
   const label = `${editing ? 'ほかの端末で編集中 ' : ''}${seat.id}番${group}${guests === undefined ? '' : guests === null ? ' 人数未入力' : ` ${guests}名`} ${STATUS_LABEL[display]} ${meter}${alert.reason ? ` ${REASON_LABEL[alert.reason]}` : ''}${paid ? ' お会計済み' : ''}`;
   const className = `card ${shape} occupied ${tone} ${modes} ${editing ? 'editing' : ''}`;
-  // 段階：警告のときは理由の札（塗り）、ふだんは段階名
-  const stage = alert.reason
-    ? <span className="badge">{REASON_LABEL[alert.reason]}</span>
-    : <strong className="status">{STATUS_SHORT[display]}</strong>;
   const number = <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}</span>;
 
-  if (mini) {
-    // スマホ：上に卓番（人数）、真ん中に文字盤（中に時:分）、下に段階。警告は淡い地の色と文字盤の色。
-    // カウンターのような低いマスは段階を省き、卓番と文字盤だけにする（CSS の @container）。
-    // カウンターは iPad と同じく L.O.の帯を出さない（No.73）
-    return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（押すと詳細）`} onClick={() => onOpen(session, seat.id)}>
-      {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
-      <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}
-        {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}</span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={seat.kind === 'table' && !rules.timeLimitOff ? bandOf(session, rules) : null} /></span>
-      <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
+  const ruler = <Ruler dial={dial} label={meter} lo={rules.timeLimitOff ? null : bandOf(session, rules).from} />;
+  const elapsed = <span className={`elapsed ${dial.elapsedMin === null ? 'waiting' : ''}`} aria-hidden="true">{dial.elapsedMin === null ? '開始前' : formatHourMinute(dial.elapsedMin)}</span>;
+  const tag = editing && <span className="editing-tag" aria-hidden="true">編集中</span>;
+  // 下の帯：左に段階（警告のときは理由）、右に残り時間。警告の卓は帯を赤・橙で塗る
+  const stageText = alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display];
+  const guestCount = guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>;
+  if (mini || seat.kind === 'counter') {
+    // スマホ・カウンター：上から卓番（人数）、経過、物差し、段階の帯。
+    // カウンターは押すと詳細（退店済はご案内）。押しただけで状態が進むと、押し間違いや複数人での同時操作で気づかずに進んでしまうため（No.70）
+    const onClick = mini ? () => onOpen(session, seat.id) : () => exited ? onSeat(seat.id) : onOpen(session, seat.id);
+    const hint = mini ? '押すと詳細' : exited ? '押すとご案内、長押しで詳細' : '押すと詳細';
+    return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${hint}）`} onClick={onClick}>
+      {tag}
+      <span className="card-body">
+        <span className="seat-number">{seat.id}{groupMark && <span className="group-mark">{groupMark}</span>}{paid && <span className="paid-inline" aria-hidden="true">¥✓</span>}
+          {mini && guestCount}</span>
+        {elapsed}
+        {ruler}
+      </span>
+      <strong className="card-status"><span className="stage">{stageText}</span></strong>
     </button>;
   }
-  if (seat.kind === 'counter') {
-    // カウンター：卓番は円の上、時間は円の中、段階は円の下。テーブルと同じくタップで詳細（退店済はご案内）。
-    // 押しただけで状態が進むと、押し間違いや複数人での同時操作で気づかずに進んでしまうため（No.70）
-    return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`} onClick={() => exited ? onSeat(seat.id) : onOpen(session, seat.id)}>
-      {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
-      {number}
-      <span className="dial-box"><Dial dial={dial} label={meter} band={null} />{paid && <span className="paid-mark" aria-hidden="true">¥✓</span>}</span>
-      <strong className="status">{alert.reason ? REASON_LABEL[alert.reason] : STATUS_SHORT[display]}</strong>
-    </button>;
-  }
-  // 右上：人数・コース（料理の進み）・会計済。低い卓・細い卓は1行に収まるよう「3/8」「¥✓」と短くする
+  // 2行目：飲み放題の区分（通常）・コースの料理の進み・会計済
   const full = shape === 'table full';
-  const meta = <span className="meta">
-    {guests !== undefined && <span className={`guest-count ${guests === null ? 'unknown' : ''}`}><span className="guest-num">{guests ?? '?'}</span>名</span>}
-    {session.course !== null && <span className="course-meta">{full || !progress ? 'コース' : ''}{progress && <span className="dish-progress">{full ? ' ' : ''}{progress.served}/{progress.total}</span>}</span>}
-    {paid && <span className="paid-meta">{full ? '会計済' : '¥✓'}</span>}
+  const sub = <span className="card-sub">
+    {session.course === null ? '通常' : drinkPlanName(settings.drinkPlans, session.course)}
+    {progress && <span className="dish-progress">・料理 {progress.served}/{progress.total}</span>}
+    {paid && <span className="paid-meta">・会計済</span>}
   </span>;
   return <button {...handlers} className={className} disabled={picking} aria-label={`${label}（${exited ? '押すとご案内、長押しで詳細' : '押すと詳細'}）`}
     onClick={() => exited ? onSeat(seat.id) : onOpen(session, seat.id)}>
-      {editing && <span className="editing-tag" aria-hidden="true">編集中</span>}
-    {full ? <>
-      <span className="corner tl">{number}</span>
-      <span className="corner tr">{meta}</span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={rules.timeLimitOff ? null : bandOf(session, rules)} /></span>
-      <span className="corner bl">{stage}</span>
-      <span className="corner br">{corner}</span>
-    </> : <>
-      {/* 低い卓・細い卓：左（細い卓は上）に卓番・段階・残り時間、右（下）に小さめの文字盤 */}
-      <span className="info">
-        <span className="info-head">{number}{meta}</span>
-        {stage}
-        <span className="remaining">{corner}</span>
-      </span>
-      <span className="dial-box"><Dial dial={dial} label={meter} band={rules.timeLimitOff ? null : bandOf(session, rules)} /></span>
-    </>}
+    {tag}
+    {full ? <span className="card-body">
+      {number}
+      {guestCount}
+      {sub}
+      {elapsed}
+      {ruler}
+    </span> : <span className="card-body">
+      {/* 低い卓・細い卓：卓番・人数と区分・経過を1行に、その下に物差し */}
+      {number}
+      <span className="who">{guestCount}{sub}</span>
+      {elapsed}
+      {ruler}
+    </span>}
+    <strong className="card-status"><span className="stage">{stageText}</span><span className="card-meta">{corner}</span></strong>
   </button>;
 }
