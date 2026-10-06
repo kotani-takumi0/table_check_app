@@ -58,7 +58,7 @@ describe('席の配置', () => {
   });
   it('ことばも卓と同じく縦向きに回す', () => {
     const label = DEFAULT_LAYOUT.labels[0];
-    const asSeat = rotateClockwise({ id: 'x', kind: 'table' as const, ...label }, { rows: 7 });
+    const asSeat = rotateClockwise({ id: 'x', kind: 'table' as const, ...label }, { rows: usedRows(DEFAULT_LAYOUT) });
     const { text: _, ...rotated } = portraitOf(DEFAULT_LAYOUT).labels[0];
     expect(rotated).toEqual({ col: asSeat.col, colSpan: asSeat.colSpan, row: asSeat.row, rowSpan: asSeat.rowSpan });
   });
@@ -66,13 +66,16 @@ describe('席の配置', () => {
     expect(layoutProblems({ seats: [table('11', 1, 9)], labels: [] })).toEqual([]);
     expect(layoutProblems({ seats: [table('11', 1, 10)], labels: [] })).toEqual(['11番がマス目からはみ出しています']);
   });
-  it('縦向きは置いてある行までを回す。今の配置は7行なので、縦向きは今までと同じ7列', () => {
-    expect(usedRows(DEFAULT_LAYOUT)).toBe(7);
+  it('縦向きは置いてある行までを回す。最初の配置は9行なので、縦向きは9列（No.112）', () => {
+    expect(usedRows(DEFAULT_LAYOUT)).toBe(9);
     const portrait = portraitOf(DEFAULT_LAYOUT);
-    expect(portrait.grid).toEqual({ cols: 7, rows: 15 });
-    const deeper = { seats: [...DEFAULT_LAYOUT.seats, table('15', 1, 8)], labels: DEFAULT_LAYOUT.labels };
-    expect(usedRows(deeper)).toBe(9);
-    expect(portraitOf(deeper).grid).toEqual({ cols: 9, rows: 15 });
+    expect(portrait.grid).toEqual({ cols: 9, rows: 15 });
+    const deeper = { seats: [...DEFAULT_LAYOUT.seats, table('15', 6, 9)], labels: DEFAULT_LAYOUT.labels };
+    expect(usedRows(deeper)).toBe(10);
+    expect(portraitOf(deeper).grid).toEqual({ cols: 10, rows: 15 });
+    const shallow = { seats: [table('11', 1, 1)], labels: [] };
+    expect(usedRows(shallow)).toBe(2);
+    expect(portraitOf(shallow).grid).toEqual({ cols: 2, rows: 15 });
   });
   it('メモリの保存先は保存した配置を購読者に渡す', async () => {
     const store = new MemoryShopLayoutStore();
