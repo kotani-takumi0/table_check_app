@@ -1,24 +1,33 @@
+import type { ReactNode } from 'react';
+
 export interface Toast {
   key: string;
   message: string;
   tone: 'warning' | 'danger';
-  action?: { label: string; onClick(): void };
+  icon: ReactNode;
+  action: { label: string; onClick(): void };
 }
-// 閉じるまで残す通知。フロア図の空き（core の NOTICE_AREAS。横向きは2行目の列6〜15）に置き、行の高さを変えない
-// 空きに入る行数（rows）を超えたら先頭だけ出して残りをまとめる（先頭を片付けると繰り上がる）
-// 1行しか入らない画面では、まとめを先頭の通知の中に「ほか N件」として出す
-export function Toasts({ toasts, onDismiss, rows, area }: { toasts: Toast[]; onDismiss(key: string): void; rows: 1 | 2; area: { col: number; colSpan: number; row: number; rowSpan: number } }) {
+// 通知のポップアップ（No.109）：フロアの上の右下（スマホはヘッダーのすぐ下）に1件ずつ出す。2件目からは「ほか N件」で切り替える。
+// 下の細い線が10秒で縮みきったら、ヘッダーの「通知」にしまう（onTuck）。マウスを乗せている間とキーボードで操作している間は線を止める。
+// 「閉じる」はしまうだけで、通知は「済にする」などを押すまで残る（見逃しても、ヘッダーの「通知」とタイマー・卓の色で気づける）
+// run：開き直すたびに変える数。線を最初から縮め直す
+export function Toasts({ toasts, shownKey, run, onShow, onTuck, onAction }: {
+  toasts: Toast[]; shownKey: string | null; run: number; onShow(key: string): void; onTuck(): void; onAction(): void;
+}) {
   if (toasts.length === 0) return null;
-  const shown = toasts.length > rows ? toasts.slice(0, 1) : toasts;
-  const rest = toasts.slice(shown.length);
-  return <div className={`toasts rows-${rows}`} role="status" style={{ gridColumn: `${area.col} / span ${area.colSpan}`, gridRow: `${area.row} / span ${area.rowSpan}` }}>
-    {shown.map(toast => <div key={toast.key} className={`toast ${toast.tone}`}>
-      <strong className="toast-message">{toast.message}{rows === 1 && rest.length > 0 && <span className="toast-more">ほか {rest.length}件</span>}</strong>
-      {toast.action && <button className="toast-button primary" onClick={toast.action.onClick}>{toast.action.label}</button>}
-      <button className="toast-button" onClick={() => onDismiss(toast.key)}>閉じる</button>
-    </div>)}
-    {rows === 2 && rest.length > 0 && <div className={`toast toast-rest ${rest.some(t => t.tone === 'danger') ? 'danger' : 'warning'}`}>
-      <strong className="toast-message">ほか {rest.length}件：{rest.map(t => t.message).join('／')}</strong>
-    </div>}
-  </div>;
+  const index = Math.max(0, toasts.findIndex(toast => toast.key === shownKey));
+  const toast = toasts[index];
+  const rest = toasts.length - 1;
+  return <section className="notice-popup" aria-label="通知">
+    <div key={`${toast.key}-${run}`} className={`toast ${toast.tone}`} role="status">
+      <span className="toast-icon" aria-hidden="true">{toast.icon}</span>
+      <strong className="toast-message">{toast.message}</strong>
+      <span className="toast-actions">
+        {rest > 0 && <button className="toast-next" aria-label={`ほか${rest}件（押すと次の通知）`} onClick={() => onShow(toasts[(index + 1) % toasts.length].key)}>ほか{rest}件</button>}
+        <button className="panel-button small primary" onClick={() => { toast.action.onClick(); onAction(); }}>{toast.action.label}</button>
+        <button className="text-button" onClick={onTuck}>閉じる</button>
+      </span>
+      <span className="toast-drain" aria-hidden="true" onAnimationEnd={onTuck} />
+    </div>
+  </section>;
 }

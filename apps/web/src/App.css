@@ -213,15 +213,32 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .pick-target { border: 2px dashed var(--key); background: var(--key-wash); color: var(--key); }
 .pick-disabled { opacity: 0.35; }
 
-/* 通知：フロア図の空きに置く白い札。急ぎ具合は左の印の色と文言で出す（ポップアップにするのは No.109） */
-.toasts { --toast-rows: 2; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--toast-rows), minmax(0, 1fr)); gap: 6px; z-index: 1; }
-.toasts.rows-1 { --toast-rows: 1; }
-.toast { --tone: var(--now); --tone-wash: var(--now-wash); --tone-line: var(--now-line); min-width: 0; min-height: 0; max-height: 56px; display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 12px; border: 1px solid var(--tone-line); border-radius: 10px; background: var(--page); box-shadow: var(--float); color: var(--ink); }
-.toast::before { content: ''; flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 0 5px var(--tone-wash); margin: 0 4px 0 2px; }
-.toast.warning { --tone: var(--soon); --tone-wash: var(--soon-wash); --tone-line: var(--soon-line); }
-.toast-message { flex: 1; min-width: 0; overflow: hidden; color: var(--ink); font-size: 15px; white-space: nowrap; text-overflow: ellipsis; }
-.toast-rest .toast-message { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
-.toast-more { margin-left: 8px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+/* 通知（No.109）：フロアの上の右下に1件ずつ出すポップアップ（スマホはヘッダーのすぐ下）。急ぎ具合は左の丸い印と枠の色で出す。
+   下の細い線が10秒で縮みきったら、ヘッダーの「通知」にしまう */
+.notice-popup { position: absolute; z-index: 6; right: 16px; bottom: 16px; width: min(560px, calc(100% - 32px)); }
+.toast { --tone-ink: var(--now-ink); --tone-wash: var(--now-wash); --tone-line: var(--now-line); position: relative; overflow: hidden; min-height: 64px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--tone-line); border-radius: 12px; background: var(--page); box-shadow: var(--float); color: var(--ink); animation: panel-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.toast.warning { --tone-ink: var(--soon-ink); --tone-wash: var(--soon-wash); --tone-line: var(--soon-line); }
+.toast-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--tone-wash); color: var(--tone-ink); }
+.toast-icon svg { width: 20px; height: 20px; }
+.toast-message { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1.35; }
+.toast-actions { display: flex; align-items: center; gap: 8px; }
+.toast-actions .panel-button.small { min-height: 36px; }
+.toast-actions .text-button { align-self: center; }
+.toast-next { height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--tile); color: var(--ink-2); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.toast-next:hover { background: #e8eeea; }
+.toast-drain { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--tone-line); transform-origin: left; animation: notice-drain 10s linear forwards; }
+/* タッチでは押したあとも :hover・フォーカスが残るので、マウスを乗せている間とキーボードで操作している間だけ止める */
+@media (hover: hover) { .notice-popup:hover .toast-drain { animation-play-state: paused; } }
+.notice-popup:has(:focus-visible) .toast-drain { animation-play-state: paused; }
+@keyframes notice-drain { to { transform: scaleX(0); } }
+/* 動きを減らす設定でも、しまうまでの10秒は数える（線は縮めない） */
+@keyframes notice-wait { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .toast-drain { animation: notice-wait 10s linear forwards !important; } }
+/* ヘッダーの「通知」：しまった通知の数。押すと開き直す */
+.notice-bell { flex: none; height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 10px; border: 1px solid var(--now); border-radius: 8px; background: var(--now-wash); color: var(--now-ink); font-size: 14px; font-weight: 700; animation: bell-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.notice-bell .toolbar-icon { width: 18px; height: 18px; }
+.notice-count { min-width: 22px; height: 22px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: var(--now); color: #fff; font-family: var(--num); font-size: 13px; }
+@keyframes bell-in { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } }
 .toast-button { height: min(36px, 100%); padding: 0 14px; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); font-size: 14px; font-weight: 700; white-space: nowrap; }
 .toast-button.primary { border-color: var(--key); background: var(--key); color: #fff; }
 
@@ -472,7 +489,6 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 }
 .layout-cell { min-width: 0; min-height: 0; border: 1px dashed #cfd8d2; border-radius: 6px; background: transparent; }
 .layout-cell:hover { background: var(--key-wash); }
-.layout-notice { z-index: 1; display: grid; place-items: center; border-radius: 8px; background: repeating-linear-gradient(135deg, rgb(22 33 27 / 0.05) 0 6px, transparent 6px 12px); color: var(--muted); font-size: 12px; pointer-events: none; }
 .layout-item { position: relative; z-index: 2; min-width: 0; min-height: 0; display: grid; place-items: center; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); box-shadow: var(--lift); color: var(--ink); font-family: var(--num); font-size: 17px; font-weight: 700; }
 .layout-item.label { border: 0; background: var(--area); box-shadow: inset 0 0 0 1px #e0e7e2; color: var(--ink-2); font-family: var(--sans); font-size: 13px; letter-spacing: 0.2em; }
 /* お客さんがいる卓は右上に緑の点 */
@@ -536,9 +552,13 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
   .card.mini.alert-now::after, .card.mini.alert-soon::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--now); }
   .card.mini.alert-soon::after { background: var(--soon); }
 }
-.mini .toast { padding: 0 2px 0 6px; gap: 4px; border-radius: 8px; }
-.mini .toast::before { width: 8px; height: 8px; box-shadow: none; margin: 0 2px; }
-.mini .toast-message { font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mini .notice-popup { top: 54px; bottom: auto; left: 8px; right: 8px; width: auto; }
+.mini .toast { min-height: 0; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 8px 10px 10px; }
+.mini .toast-icon { grid-row: 1 / 3; align-self: start; width: 30px; height: 30px; }
+.mini .toast-message { font-size: 14px; }
+.mini .toast-actions { justify-content: flex-end; }
+.mini .notice-bell { height: 32px; padding: 0 4px 0 6px; }
+.mini .notice-bell-label { display: none; }
 .mini .toast-button { height: 32px; padding: 0 8px; font-size: 12px; }
 /* 幅の狭いスマホでは時刻とトイレのチップを優先し、バージョンは出さない */
 @media (max-width: 419px) { .app-version { display: none; } }
