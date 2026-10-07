@@ -17,28 +17,13 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, top }
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title} accessibilityRole="header">設定</Text>
+      {/* No.114：時間のルール（分数）はほとんど変えないので最後に置く。空いている日に切り替える「時間制限なし」だけは「今日の営業」として上に出す */}
       <Glass tint={0.84} style={styles.group}>
-        <Text style={styles.groupTitle}>時間のルール</Text>
+        <Text style={styles.groupTitle}>今日の営業</Text>
         {/* No.80：空いているかは日によって違うので、自動では切り替えずにここでオン・オフする */}
         <SwitchRow label="時間制限なし" checked={settings.timeLimitOff} onChange={timeLimitOff => onChange({ timeLimitOff })}
           help="空いている日などに、L.O.・お席の時間の通知と色を止めます。経過の時間とお通しの警告はそのまま出します。" />
-        {/* No.14：店ごとに分を決める。L.O.・お席の時間は案内（コースはファーストドリンク）から数える */}
-        <MinutesRow settings={settings} field="lastOrderMin" label="L.O." help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
-        <MinutesRow settings={settings} field="seatLimitMin" label="お席の時間" help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
-        <SwitchRow label="お通しを出す" checked={settings.otoshi} onChange={otoshi => onChange({ otoshi })}
-          help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、お通し未提供の警告を出しません。" />
-        {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
-        <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
         <Text style={styles.note}>変えると、すべての端末にすぐ反映されます。</Text>
-      </Glass>
-      <Glass tint={0.84} style={styles.group}>
-        <Text style={styles.groupTitle}>コース</Text>
-        <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
-        <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
-      </Glass>
-      <Glass tint={0.84} style={styles.group}>
-        <Text style={styles.groupTitle}>店のタイマー</Text>
-        <ShopTimerRows timers={settings.shopTimers} onChange={shopTimers => onChange({ shopTimers })} />
       </Glass>
       <Glass tint={0.84} style={styles.group}>
         <Text style={styles.groupTitle}>お店</Text>
@@ -50,6 +35,25 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, top }
           </View>
           <PanelButton label="変える" onPress={() => { feedback.tap(); onOpenLayout(); }} style={styles.open} />
         </View>
+      </Glass>
+      <Glass tint={0.84} style={styles.group}>
+        <Text style={styles.groupTitle}>コース</Text>
+        <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
+        <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
+      </Glass>
+      <Glass tint={0.84} style={styles.group}>
+        <Text style={styles.groupTitle}>店のタイマー</Text>
+        <ShopTimerRows timers={settings.shopTimers} onChange={shopTimers => onChange({ shopTimers })} />
+      </Glass>
+      <Glass tint={0.84} style={styles.group}>
+        <Text style={styles.groupTitle}>時間のルール</Text>
+        {/* No.14：店ごとに分を決める。L.O.・お席の時間は案内（コースはファーストドリンク）から数える */}
+        <MinutesRow settings={settings} field="lastOrderMin" label="L.O." help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
+        <MinutesRow settings={settings} field="seatLimitMin" label="お席の時間" help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
+        <SwitchRow label="お通しを出す" checked={settings.otoshi} onChange={otoshi => onChange({ otoshi })}
+          help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、お通し未提供の警告を出しません。" />
+        {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
+        <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
       </Glass>
     </ScrollView>
   );

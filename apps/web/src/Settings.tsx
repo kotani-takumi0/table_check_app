@@ -7,8 +7,9 @@ import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
+// No.114：時間のルール（分数）はほとんど変えないので最後に置く。空いている日に切り替える「時間制限なし」だけは「今日の営業」として上に出す
 const SETTINGS_SECTIONS = [
-  { id: 'time', label: '時間のルール' }, { id: 'course', label: 'コース' }, { id: 'timers', label: '店のタイマー' }, { id: 'shop', label: 'お店' }, { id: 'record', label: '記録' },
+  { id: 'today', label: '今日の営業' }, { id: 'shop', label: 'お店' }, { id: 'course', label: 'コース' }, { id: 'timers', label: '店のタイマー' }, { id: 'record', label: '記録' }, { id: 'time', label: '時間のルール' },
 ] as const;
 // onEditCourse：コースを直す画面を開く（null は新しいコースを足す。No.89）
 // onExportCsv：その営業日のお客さんを CSV で書き出し、書き出した人数（組）を返す（No.34）
@@ -38,26 +39,10 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
       <h1 id="settings-title" className="settings-title">設定</h1>
       <p className="settings-help">変えると、すべての端末にすぐ反映されます。</p>
     </div>
-    <div id="settings-time" className="settings-group sheet" role="group" aria-labelledby="settings-time-title">
-      <h2 id="settings-time-title" className="settings-group-title">時間のルール</h2>
+    <div id="settings-today" className="settings-group sheet" role="group" aria-labelledby="settings-today-title">
+      <h2 id="settings-today-title" className="settings-group-title">今日の営業</h2>
       <SwitchRow id="time-limit-off" label="時間制限なし" checked={settings.timeLimitOff} onChange={timeLimitOff => onChange({ timeLimitOff })}
         help="空いている日などに、L.O.・お席の時間の通知と色を止めます。経過の時間とお通しの警告はそのまま出します。" />
-      {/* No.14：店ごとに分を決める。L.O.・お席の時間は案内（コースはファーストドリンク）から数える */}
-      <MinutesRow settings={settings} field="lastOrderMin" label="L.O." help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
-      <MinutesRow settings={settings} field="seatLimitMin" label="お席の時間" help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
-      <SwitchRow id="otoshi" label="お通しを出す" checked={settings.otoshi} onChange={otoshi => onChange({ otoshi })}
-        help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、お通し未提供の警告を出しません。" />
-      {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
-      <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
-    </div>
-    <div id="settings-course" className="settings-group sheet" role="group" aria-labelledby="settings-course-title">
-      <h2 id="settings-course-title" className="settings-group-title">コース</h2>
-      <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
-      <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
-    </div>
-    <div id="settings-timers" className="settings-group sheet" role="group" aria-labelledby="settings-timers-title">
-      <h2 id="settings-timers-title" className="settings-group-title">店のタイマー</h2>
-      <ShopTimerRows timers={settings.shopTimers} onChange={shopTimers => onChange({ shopTimers })} />
     </div>
     <div id="settings-shop" className="settings-group sheet" role="group" aria-labelledby="settings-shop-title">
       <h2 id="settings-shop-title" className="settings-group-title">お店</h2>
@@ -70,9 +55,28 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
         <button className="panel-button" onClick={onOpenLayout}>変える</button>
       </div>
     </div>
+    <div id="settings-course" className="settings-group sheet" role="group" aria-labelledby="settings-course-title">
+      <h2 id="settings-course-title" className="settings-group-title">コース</h2>
+      <DrinkPlanRows plans={settings.drinkPlans} onChange={drinkPlans => onChange({ drinkPlans })} />
+      <CourseRows menus={settings.courseMenus} onEdit={onEditCourse} />
+    </div>
+    <div id="settings-timers" className="settings-group sheet" role="group" aria-labelledby="settings-timers-title">
+      <h2 id="settings-timers-title" className="settings-group-title">店のタイマー</h2>
+      <ShopTimerRows timers={settings.shopTimers} onChange={shopTimers => onChange({ shopTimers })} />
+    </div>
     <div id="settings-record" className="settings-group sheet" role="group" aria-labelledby="settings-record-title">
       <h2 id="settings-record-title" className="settings-group-title">記録</h2>
       <ExportRow today={today} onExport={onExportCsv} />
+    </div>
+    <div id="settings-time" className="settings-group sheet" role="group" aria-labelledby="settings-time-title">
+      <h2 id="settings-time-title" className="settings-group-title">時間のルール</h2>
+      {/* No.14：店ごとに分を決める。L.O.・お席の時間は案内（コースはファーストドリンク）から数える */}
+      <MinutesRow settings={settings} field="lastOrderMin" label="L.O." help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
+      <MinutesRow settings={settings} field="seatLimitMin" label="お席の時間" help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
+      <SwitchRow id="otoshi" label="お通しを出す" checked={settings.otoshi} onChange={otoshi => onChange({ otoshi })}
+        help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、お通し未提供の警告を出しません。" />
+      {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
+      <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
     </div>
     </div>
   </section>;
