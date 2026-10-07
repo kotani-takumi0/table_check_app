@@ -236,6 +236,11 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .undo-bar { position: fixed; z-index: 30; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); min-height: 52px; overflow: hidden; display: flex; align-items: center; gap: 16px; padding: 8px 8px 8px 18px; border-radius: 10px; background: var(--ink); box-shadow: var(--float); color: #fff; font-size: 15px; font-weight: 700; animation: undo-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .undo-bar:not(:has(.undo-button)) { padding-right: 18px; }
 .undo-message { min-width: 0; }
+/* 新しい版のお知らせ（No.127）：元に戻すの帯と同じ場所・形。× で閉じるまで残す */
+.release-bar { padding-right: 6px; }
+.release-bar-close { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: #fff; }
+.release-bar-close svg { width: 18px; height: 18px; }
+.release-bar-close:hover { background: rgb(255 255 255 / 0.1); }
 .undo-button { flex: none; height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: none; color: #9fe0b5; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
 .undo-button:hover { background: rgb(255 255 255 / 0.1); }
 .undo-drain { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(255 255 255 / 0.35); transform-origin: left; animation: notice-drain linear forwards; }
@@ -456,6 +461,11 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .feedback-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-top: 4px; }
 .feedback-actions .settings-help { flex: 1; margin: 0; }
 .feedback-error { color: var(--now-ink); font-weight: 700; }
+/* 更新のお知らせ（No.127） */
+.release-head { display: flex; align-items: baseline; gap: 10px; }
+.release-current { padding: 2px 8px; border-radius: 999px; background: var(--key-wash); color: var(--key); font-size: 12px; font-weight: 700; }
+.release-date { margin-left: auto; color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.release-items { margin: 0; padding: 6px 0 2px 1.2em; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.6; }
 .export-row { flex-wrap: wrap; }
 .export-row .settings-row-text { flex-basis: 100%; }
 .export-row .field-select { flex: 1; max-width: 220px; }

@@ -4,10 +4,10 @@ import { COLORS } from './theme';
 import { Glass, useAppear } from './Glass';
 import { feedback } from './feedback';
 
-export type Screen = 'floor' | 'settings' | 'layout' | 'course' | 'feedback';
-export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況', settings: '設定', layout: '席の配置', course: 'コース', feedback: 'ご意見を送る' };
+export type Screen = 'floor' | 'settings' | 'layout' | 'course' | 'news' | 'feedback';
+export const SCREEN_LABEL: Record<Screen, string> = { floor: 'テーブル状況', settings: '設定', layout: '席の配置', course: 'コース', news: '更新のお知らせ', feedback: 'ご意見を送る' };
 // 席の配置は設定の中から開く（メニューには出さず、開いている間は「設定」を選んでいる印にする）
-const SCREENS: Screen[] = ['floor', 'settings', 'feedback'];
+const SCREENS: Screen[] = ['floor', 'settings', 'news', 'feedback'];
 const EASE_OUT = Easing.out(Easing.ease);
 // メニュー（Web の SideMenu と同じ）：ツールバー左の「メニュー」で左から出す。選ぶとその画面に切り替えて閉じる（No.77。全卓一覧はなくした）
 // account・onLeave：いまの店（ログインした店はメールアドレス）を出し、ログアウト・ログインし直すで最初の画面に戻る（No.88）
@@ -46,6 +46,8 @@ function MenuIcon({ screen, color }: { screen: Screen; color: string }) {
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" accessible={false}>
       {screen === 'floor'
         ? <><Rect x={3.5} y={4} width={7} height={7} rx={2} /><Rect x={13.5} y={4} width={7} height={7} rx={2} /><Rect x={3.5} y={14} width={7} height={6} rx={2} /><Circle cx={17} cy={17} r={3} /></>
+        : screen === 'news'
+        ? <Path d="M12 3.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.8l5-.7z" />
         : screen === 'feedback'
         ? <Path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5zM8 8.5h8M8 12h5" />
         : <><Circle cx={12} cy={12} r={3} /><Path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" /></>}

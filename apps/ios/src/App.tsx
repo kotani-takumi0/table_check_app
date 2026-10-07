@@ -31,6 +31,7 @@ import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
 import { FeedbackForm } from './FeedbackForm';
+import { ReleaseBar, ReleaseNotes, useReleaseAnnounce } from './ReleaseNotes';
 import { LayoutEditor } from './LayoutEditor';
 import { CourseEditor } from './CourseEditor';
 import { coursesInUse, newCourse, putCourse } from '@table-check/core/courseEditor';
@@ -124,6 +125,9 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   const [screen, setScreen] = useState<Screen>('floor');
   const [menuOpen, setMenuOpen] = useState(false);
   const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
+  // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。お知らせの画面を開いたら、もう出さない
+  const { announce, markSeen } = useReleaseAnnounce();
+  useEffect(() => { if (screen === 'news') markSeen(); }, [screen, markSeen]);
   // 直しているコース（No.89）。新しく足すときは、開いたときに作った下書き
   const [editingCourse, setEditingCourse] = useState<{ course: CourseMenu; isNew: boolean } | null>(null);
 
@@ -222,6 +226,8 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             setEditingCourse(course ? { course, isNew: false } : { course: newCourse(shopSettings.courseMenus, Date.now()), isNew: true });
             selectScreen('course');
           }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        : screen === 'news'
+        ? <ReleaseNotes top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : screen === 'feedback'
         ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
@@ -249,7 +255,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)} timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
       </View>
       {/* シートを開いている間は、シートの中に出す（下に出すとシートに隠れる） */}
-      {content === null && undoBar}
+      {content === null && (undoBar ?? (announce && !pick && <ReleaseBar onOpen={() => selectScreen('news')} onClose={markSeen} />))}
       {popover && <Popover key={popoverAt ? (seating !== null ? `seat-${seating}` : `detail-${openId}`) : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
       {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
