@@ -48,7 +48,8 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, settings, 
       role={exited ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="seat-dialog-title" aria-describedby={describedBy}>
       {sheet && <SheetGrip onClose={onClose} />}
       <h2 id="seat-dialog-title" className="panel-title">{tableId}番にご案内</h2>
-      {exited && <p id="seat-dialog-message" className="confirm-message">{tableId}番は退店済みです。ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</p>}
+      {/* No.120：灰色の1文だと見落とすので、退店済みであることを赤い太字で先に出す */}
+      {exited && <p id="seat-dialog-message" className="confirm-message"><strong className="seat-exited">{tableId}番は退店済みです。</strong>ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</p>}
       {exited && previousUnpaid && <p id="seat-dialog-warning" className="confirm-warning">前のお客さんはお会計済みになっていません</p>}
       <h3 id="seat-guests" className="field-label">人数</h3>
       <div className="guest-stepper" role="group" aria-labelledby="seat-guests">
