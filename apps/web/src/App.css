@@ -3,7 +3,7 @@
 :root {
   --page: #ffffff;        /* 面（ヘッダー・卓・パネル） */
   --tile: #f3f6f4;        /* 地（うっすら緑） */
-  --area: #ebf0ed;        /* カウンターなどのことばの場所 */
+  --area: #ebf0ed;        /* カウンターなどの目印の場所 */
   --ink: #16211b;
   --ink-2: #4b5a51;
   --muted: #627168;
@@ -112,7 +112,7 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
   min-height: 100%; padding: var(--pad-y) var(--pad-x); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell));
   gap: var(--gap); justify-content: center; align-content: center; isolation: isolate;
 }
-/* 何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする（卓・ことばはこの上に重ねる） */
+/* 何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする（卓・目印はこの上に重ねる） */
 .floor-cell { border-radius: 8px; background: #e9eeeb; pointer-events: none; }
 .floor-label { display: grid; place-items: center; border-radius: 10px; background: #e2e9e4; color: var(--ink-2); font-size: 13px; font-weight: 700; letter-spacing: 0.2em; pointer-events: none; }
 

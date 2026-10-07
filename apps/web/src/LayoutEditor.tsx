@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { GRID, type SeatKind } from '@table-check/core/layout';
 import { cellAt, DRAG_THRESHOLD, dragBox, sameBox, type Cell, type DragKind } from '@table-check/core/layoutDrag';
-import { LABEL_MAX_LENGTH, type ShopLayout } from '@table-check/core/shopLayout';
+import { LABEL_MAX_LENGTH, LANDMARK_KINDS, type LandmarkKind, type ShopLayout } from '@table-check/core/shopLayout';
 import { LAYOUT_BLOCKS, useLayoutEditor } from '@table-check/core/useLayoutEditor';
 
 type Box = { col: number; colSpan: number; row: number; rowSpan: number };
@@ -12,9 +12,9 @@ const area = (box: Box): CSSProperties => ({ gridColumn: `${box.col} / span ${bo
 
 // 席の配置を作り直す画面（No.75。設定から開く）。中身（下書き・確かめ・保存）は core の useLayoutEditor で、iOS と同じ
 export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { layout: ShopLayout; occupied: Set<string>; onSave(layout: ShopLayout): Promise<void>; onClose(): void; inert?: boolean }) {
-  const { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText,
+  const { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText, setLabelKind,
     conflict, reload, resetToDefault, changed, saving, canSave, save, status } = useLayoutEditor({ layout, occupied, onSave, onClose });
-  // ドラッグ（No.93）：置いた卓・ことばをつかんで動かし、選んでいるものは右下のつまみで大きさを変える。
+  // ドラッグ（No.93）：置いた卓・目印をつかんで動かし、選んでいるものは右下のつまみで大きさを変える。
   // 指を離すまでは下書きを変えず、行き先を影で見せる（置けない場所は朱）。少ししか動かさなければ、今までどおり押して選ぶ
   const grid = useRef<HTMLDivElement>(null);
   const drag = useRef<{ target: Target; kind: DragKind; item: Box; start: Cell; x: number; y: number; moved: boolean; box: Box } | null>(null);
@@ -64,7 +64,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
   return <section className="layout-editor" aria-labelledby="layout-title" inert={inert}>
     <div className="layout-head">
       <h1 id="layout-title" className="settings-title">席の配置</h1>
-      <p className="settings-help">左のブロックを選んでマス目を押すと置けます。置いた卓はつかんで動かせます。押すと、卓番・種類・大きさを変えられます。</p>
+      <p className="settings-help">左のブロックを選んでマス目を押すと置けます。置いた卓・目印はつかんで動かせます。押すと、卓番・種類・大きさを変えられます。入口・キッチンなどの目印も置いておくと、記録を見返すときに「入口から何マス」などが分かります。</p>
     </div>
     <div className="layout-body">
       <div className="layout-side sheet">
@@ -76,7 +76,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
             </button>)}
           </div>
         </> : <>
-          <h2 className="settings-group-title">{seat ? `${seat.id}番` : `「${label?.text}」`}を直す</h2>
+          <h2 className="settings-group-title">{seat ? `${seat.id}番` : `目印「${label?.text}」`}を直す</h2>
           {seat && <>
             <label className="field-label" htmlFor="layout-id">卓番</label>
             <input id="layout-id" className="field-select" inputMode="numeric" value={seat.id} disabled={locked}
@@ -88,8 +88,16 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
             {locked && <p className="settings-help">お客さんがいる卓なので、卓番を変えたり消したりできません（動かす・大きさを変えるのはできます）</p>}
           </>}
           {label && <>
-            <label className="field-label" htmlFor="layout-text">ことば</label>
-            <input id="layout-text" className="field-select" maxLength={LABEL_MAX_LENGTH} value={label.text} onChange={event => setLabelText(event.target.value)} />
+            {/* No.128：用意した種類から選ぶ。ほかの目印（喫煙所・階段など）は「そのほか」にして名前を入れる。同じ名前は同じ目印として数える */}
+            <label className="field-label" htmlFor="layout-landmark">目印の種類</label>
+            <select id="layout-landmark" className="field-select" value={label.kind} onChange={event => setLabelKind(event.target.value as LandmarkKind)}>
+              {LANDMARK_KINDS.map(item => <option key={item.kind} value={item.kind}>{item.name}</option>)}
+              <option value="custom">そのほか（名前を入れる）</option>
+            </select>
+            {label.kind === 'custom' && <>
+              <label className="field-label" htmlFor="layout-text">名前</label>
+              <input id="layout-text" className="field-select" maxLength={LABEL_MAX_LENGTH} placeholder="例：喫煙所・階段" value={label.text} onChange={event => setLabelText(event.target.value)} />
+            </>}
           </>}
           {/* No.75：テーブルの大きさを大きく・小さくできるように（ユーザーの希望） */}
           <div className="layout-size" role="group" aria-label="大きさ">
@@ -108,10 +116,10 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, inert }: { lay
       <div ref={grid} className="layout-grid" style={{ '--cols': GRID.cols, '--rows': GRID.rows } as CSSProperties}>
         {cells}
         {draft.labels.map((l, i) => <button key={`label-${i}`} className={`layout-item label ${selected?.type === 'label' && selected.index === i ? 'selected' : ''} ${isDragged({ type: 'label', index: i }) ? 'dragging' : ''}`} style={area(l)}
-          aria-label={`ことば「${l.text}」（押すと直す）`} onClick={() => press({ type: 'label', index: i })} {...dragProps({ type: 'label', index: i }, l, 'move')}>{l.text}</button>)}
+          aria-label={`目印「${l.text}」（押すと直す）`} onClick={() => press({ type: 'label', index: i })} {...dragProps({ type: 'label', index: i }, l, 'move')}>{l.text}</button>)}
         {draft.seats.map((s, i) => <button key={`seat-${i}`} className={`layout-item ${s.kind} ${selected?.type === 'seat' && selected.index === i ? 'selected' : ''} ${isOccupied(i) ? 'occupied' : ''} ${isDragged({ type: 'seat', index: i }) ? 'dragging' : ''}`} style={area(s)}
           aria-label={`${s.id}番 ${s.kind === 'table' ? 'テーブル' : 'カウンター席'}（押すと直す）`} onClick={() => press({ type: 'seat', index: i })} {...dragProps({ type: 'seat', index: i }, s, 'move')}>{s.id}</button>)}
-        {/* 大きさを変えるつまみ：選んでいる卓・ことばの右下の角。キーボードでは左の幅・高さの −／＋ を使う。
+        {/* 大きさを変えるつまみ：選んでいる卓・目印の右下の角。キーボードでは左の幅・高さの −／＋ を使う。
             つかんでいる間も消さない（消すと指を離したことが届かない） */}
         {selected && selectedBox && <div className={`layout-handle ${preview ? 'hidden' : ''}`} aria-hidden="true"
           style={area({ col: selectedBox.col + selectedBox.colSpan - 1, row: selectedBox.row + selectedBox.rowSpan - 1, colSpan: 1, rowSpan: 1 })}

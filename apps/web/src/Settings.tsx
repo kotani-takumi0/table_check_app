@@ -50,7 +50,7 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
       <div className="settings-row">
         <div className="settings-row-text">
           <strong>席の配置</strong>
-          <p className="settings-help">卓の場所・大きさ・卓番と、カウンターなどのことばを、マス目にブロックを置いて作り直します。すべての端末に反映されます。</p>
+          <p className="settings-help">卓の場所・大きさ・卓番と、入口・キッチンなどの目印を、マス目にブロックを置いて作り直します。すべての端末に反映されます。</p>
         </div>
         <button className="panel-button" onClick={onOpenLayout}>変える</button>
       </div>

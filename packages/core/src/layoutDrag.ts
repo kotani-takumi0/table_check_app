@@ -1,6 +1,6 @@
 import { GRID } from './layout';
 
-// 席の配置で、卓・ことばを指でつかんで動かす・角をつまんで大きさを変える（No.93）。
+// 席の配置で、卓・目印を指でつかんで動かす・角をつまんで大きさを変える（No.93）。
 // 指の位置からマスを求める計算と、ドラッグ中の行き先の計算。画面の部品は Web と iOS でそれぞれ作り、ここは共通
 export type Box = { col: number; colSpan: number; row: number; rowSpan: number };
 export type Cell = { col: number; row: number };
