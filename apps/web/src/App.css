@@ -430,6 +430,27 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .login-guest { display: flex; flex-direction: column; gap: 8px; }
 .login-guest .panel-button { min-height: 48px; }
 .login-guest .settings-help { text-align: center; }
+.login-form-title { margin: 0 0 4px; font-size: 17px; font-weight: 800; }
+.login-switch { margin: 4px 0 0; display: flex; justify-content: center; align-items: baseline; gap: 4px; font-size: 14px; color: var(--muted); }
+.link-button { padding: 8px 4px; border: 0; background: none; color: var(--key); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.link-button:disabled { opacity: 0.5; cursor: default; }
+/* 最初のページ（No.087）：テンプレートを選ぶ。カードを押すとそのまま使い始める */
+.first-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--tile); }
+.first-card { width: min(720px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 28px; border: 1px solid var(--line); border-radius: 12px; background: var(--page); box-shadow: var(--float); }
+.first-card h1 { margin: 0; font-size: 22px; font-weight: 800; }
+.first-card > p { margin: 0; }
+.template-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.template-choice { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--page); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.template-choice:hover:not(:disabled) { border-color: var(--key); background: var(--key-wash); }
+.template-choice:disabled { opacity: 0.6; cursor: default; }
+.template-choice strong { font-size: 16px; }
+.template-choice .settings-help { margin: 0; }
+.template-preview { display: grid; grid-template-columns: repeat(var(--cols), 1fr); grid-template-rows: repeat(var(--rows), 1fr); gap: 2px; aspect-ratio: 15 / 10; padding: 6px; border-radius: 8px; background: var(--tile); }
+.template-preview span { border-radius: 3px; background: var(--page); border: 1px solid var(--edge); }
+.template-preview span.counter { border-radius: 50%; }
+.template-preview span.label { background: var(--area); border-style: dashed; }
+.template-preview.blank { place-items: center; color: var(--muted); font-size: 28px; }
+.first-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* 設定の画面：左に見出しの目次、右に白いまとまり。まとまりの中は1pxの線で行を区切る */
 .settings { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 24px 40px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
