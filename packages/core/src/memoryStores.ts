@@ -37,4 +37,12 @@ export class MemoryShopTimerStore implements ShopTimerStore {
     this.done = mergeShopTimerDone(this.done, { [id]: at });
     this.subscribers.forEach(cb => cb(this.done));
   }
+  async undoDone(id: ShopTimerId, after: number, before: number | undefined): Promise<void> {
+    if (this.done[id] !== after) return;
+    const done = { ...this.done };
+    if (before === undefined) delete done[id];
+    else done[id] = before;
+    this.done = done;
+    this.subscribers.forEach(cb => cb(this.done));
+  }
 }

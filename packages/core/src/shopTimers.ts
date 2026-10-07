@@ -54,6 +54,8 @@ export function newShopTimerId(timers: ShopTimer[], now: number): string {
 export interface ShopTimerStore {
   subscribe(cb: (done: ShopTimerDone) => void): () => void;
   markDone(id: ShopTimerId, at: number): Promise<void>;
+  // 済にしたのを取り消す（No.102）。今の時刻が after のときだけ before に戻す（before が undefined なら未実施に戻す）
+  undoDone(id: ShopTimerId, after: number, before: number | undefined): Promise<void>;
   subscribeSync?(cb: (state: SyncState) => void): () => void;
 }
 // タイマーごとに新しいほうの時刻を残す（別タブの書き込みを消さない）

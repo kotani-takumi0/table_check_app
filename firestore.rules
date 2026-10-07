@@ -89,16 +89,29 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
     // タイマーは店が設定で決める（No.91）。id の形だけ確かめる（shopTimers.ts の isShopTimerId と同じ）
+    // prevDoneAt は済にする前の時刻（No.102 の元に戻す。前の版のアプリは書かない）
     function canWriteShopTimer(timerId) {
       return timerId.matches('^[a-z0-9_]{1,24}$')
-        && request.resource.data.keys().hasOnly(['doneAt','updatedAt'])
+        && request.resource.data.keys().hasOnly(['doneAt','prevDoneAt','updatedAt'])
         && request.resource.data.keys().hasAll(['doneAt','updatedAt'])
-        && isTime(request.resource.data.doneAt)
+        && isTimeOrNull(request.resource.data.get('prevDoneAt', null))
+        && request.resource.data.updatedAt == request.time
+        && (marksShopTimerDone() || undoesShopTimerDone());
+    }
+    function marksShopTimerDone() {
+      return isTime(request.resource.data.doneAt)
         // 時計が進んだ端末の未来の時刻を入れない（5分までのずれは許す）
         && request.resource.data.doneAt <= request.time.toMillis() + 5 * 60 * 1000
-        // オフラインで溜まった古い「済」が、あとから来て新しい「済」を上書きしないようにする
-        && (resource == null || request.resource.data.doneAt >= resource.data.doneAt)
-        && request.resource.data.updatedAt == request.time;
+        // オフラインで溜まった古い「済」が、あとから来て新しい「済」を上書きしないようにする（元に戻して未実施なら比べない）
+        && (resource == null || !isTime(resource.data.doneAt) || request.resource.data.doneAt >= resource.data.doneAt);
+    }
+    // 元に戻す（No.102）：済にする前の時刻（prevDoneAt）にだけ戻せる。一度も済にしていなかったなら null に戻す。
+    // そのあと別の端末が済にしていれば prevDoneAt が変わっているので、古い「元に戻す」は通らない
+    function undoesShopTimerDone() {
+      return resource != null
+        && isTimeOrNull(request.resource.data.doneAt)
+        && request.resource.data.doneAt == resource.data.get('prevDoneAt', null)
+        && request.resource.data.get('prevDoneAt', null) == null;
     }
     // 編集中の印（packages/core/src/editing.ts）。端末ごとの文書に、詳細を開いているお客さんを持つ。閉じたら消す
     function canWriteEditing(deviceId) {

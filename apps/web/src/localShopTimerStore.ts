@@ -48,4 +48,17 @@ export class LocalShopTimerStore implements ShopTimerStore {
     try { window.localStorage.setItem(PREFIX + id, String(done[id])); } catch { /* 保存できなくてもこのページでは保つ */ }
     this.subscribers.forEach(cb => cb(done));
   }
+  // 済にしたのを取り消す（No.102）。新しいほうを残す合わせ方（merge）を通さずに、前の時刻を書き戻す
+  async undoDone(id: ShopTimerId, after: number, before: number | undefined): Promise<void> {
+    const done = { ...this.sync() };
+    if (done[id] !== after) return;
+    if (before === undefined) delete done[id];
+    else done[id] = before;
+    this.current = done;
+    try {
+      if (before === undefined) window.localStorage.removeItem(PREFIX + id);
+      else window.localStorage.setItem(PREFIX + id, String(before));
+    } catch { /* 保存できなくてもこのページでは保つ */ }
+    this.subscribers.forEach(cb => cb(done));
+  }
 }
