@@ -232,6 +232,14 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 @media (hover: hover) { .notice-popup:hover .toast-drain { animation-play-state: paused; } }
 .notice-popup:has(:focus-visible) .toast-drain { animation-play-state: paused; }
 @keyframes notice-drain { to { transform: scaleX(0); } }
+/* 元に戻す（No.102・No.121）：画面の下のまん中に数秒だけ出す黒い帯。通知（右上）やパネルとぶつからないよう下に置き、パネルより前に出す */
+.undo-bar { position: fixed; z-index: 30; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); min-height: 52px; overflow: hidden; display: flex; align-items: center; gap: 16px; padding: 8px 8px 8px 18px; border-radius: 10px; background: var(--ink); box-shadow: var(--float); color: #fff; font-size: 15px; font-weight: 700; animation: undo-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.undo-bar:not(:has(.undo-button)) { padding-right: 18px; }
+.undo-message { min-width: 0; }
+.undo-button { flex: none; height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: none; color: #9fe0b5; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
+.undo-button:hover { background: rgb(255 255 255 / 0.1); }
+.undo-drain { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(255 255 255 / 0.35); transform-origin: left; animation: notice-drain linear forwards; }
+@keyframes undo-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 /* ヘッダーの「通知」：しまった通知の数。押すと開き直す */
 .notice-bell { flex: none; height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 10px; border: 1px solid var(--now); border-radius: 8px; background: var(--now-wash); color: var(--now-ink); font-size: 14px; font-weight: 700; animation: bell-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .notice-bell .toolbar-icon { width: 18px; height: 18px; }
@@ -583,3 +591,4 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 /* 動きを減らす設定でも、通知をしまうまでの10秒は数える（線は縮めない）。上の「動きを止める」決まりに負けないよう、その後ろに置く */
 @keyframes notice-wait { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .toast-drain { animation: notice-wait 10s linear forwards !important; } }
+@media (prefers-reduced-motion: reduce) { .undo-bar { animation: none; } .undo-drain { animation-name: notice-wait !important; } }

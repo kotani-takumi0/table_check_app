@@ -9,8 +9,8 @@ const randomId = () => crypto.randomUUID();
 export function useSessions(store: SessionStore, createId: () => string = randomId, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): {
   sessions: Session[];
   seat(tableId: string, guests?: number | null, course?: Course | null, menu?: string | null): void;
-  next(session: Session): void;
-  back(session: Session): void;
+  next(session: Session): Session;          // 進めたあとの中身を返す（元に戻すで使う。No.102）
+  back(session: Session): Session | null;   // 戻したあとの中身を返す。null は案内を取り消して記録を消した
   retime(session: Session, field: EditableTime, at: number): boolean;
   pay(session: Session): void;
   changeGuests(session: Session, guests: number | null): void;
@@ -29,11 +29,16 @@ export function useSessions(store: SessionStore, createId: () => string = random
   const seat = useCallback((tableId: string, guests: number | null = null, course: Course | null = null, menu: string | null = null) => {
     void store.put(newSession(createId(), tableId, now(), guests, course, menu));
   }, [store, createId]);
-  const next = useCallback((session: Session) => { void store.put(advance(session, now())); }, [store]);
+  const next = useCallback((session: Session) => {
+    const advanced = advance(session, now());
+    void store.put(advanced);
+    return advanced;
+  }, [store]);
   const back = useCallback((session: Session) => {
     const previous = revert(session);
     if (previous) void store.put(previous);
     else void store.remove(session.id);
+    return previous;
   }, [store]);
   const retime = useCallback((session: Session, field: EditableTime, at: number) => {
     const edited = editTime(session, field, at, now());

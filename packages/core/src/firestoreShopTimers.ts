@@ -60,6 +60,12 @@ export class FirestoreShopTimerStore implements ShopTimerStore {
   async markDone(id: ShopTimerId, at: number): Promise<void> {
     if (!await this.ready) return;
     // オフラインだと commit が終わらないので待たない。古い時刻の書き込みはルールで拒否され、画面はサーバの値に戻る
-    void setDoc(doc(this.db, shopPath(this.base, 'shopTimers'), id), { doneAt: at, updatedAt: serverTimestamp() }).catch(error => console.error(error));
+    // 前の時刻も残し、元に戻すときはルールがその値に戻すことだけを許す（No.102）
+    void setDoc(doc(this.db, shopPath(this.base, 'shopTimers'), id), { doneAt: at, prevDoneAt: this.done[id] ?? null, updatedAt: serverTimestamp() }).catch(error => console.error(error));
+  }
+  async undoDone(id: ShopTimerId, after: number, before: number | undefined): Promise<void> {
+    if (!await this.ready || this.done[id] !== after) return;
+    // 一度も済にしていなかったタイマーは doneAt: null にする（前の版のアプリは数字でない doneAt を未実施として読む）
+    void setDoc(doc(this.db, shopPath(this.base, 'shopTimers'), id), { doneAt: before ?? null, prevDoneAt: null, updatedAt: serverTimestamp() }).catch(error => console.error(error));
   }
 }
