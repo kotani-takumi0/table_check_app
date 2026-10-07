@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, type Auth, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, type Auth, type User } from 'firebase/auth';
 import { waitForPendingWrites, type Firestore } from 'firebase/firestore';
 
 // ログインしていればその利用者を、まだなら匿名でログインして返す
@@ -28,6 +28,18 @@ export async function signInAsGuest(auth: Auth): Promise<User> {
 export async function signInWithEmail(auth: Auth, email: string, password: string): Promise<User> {
   return (await signInWithEmailAndPassword(auth, email.trim(), password)).user;
 }
+// 新規登録（No.094）：メールとパスワードでアカウントを作り、そのままログインする
+export const PASSWORD_MIN = 6;
+export async function signUpWithEmail(auth: Auth, email: string, password: string): Promise<User> {
+  return (await createUserWithEmailAndPassword(auth, email.trim(), password)).user;
+}
+// 登録の前に手元で確かめる。直すことがあればお店の人が読める言葉で返す（無ければ空）
+export function signUpProblem(email: string, password: string, confirm: string): string {
+  if (email.trim() === '') return 'メールアドレスを入れてください';
+  if (password.length < PASSWORD_MIN) return `パスワードは${PASSWORD_MIN}文字以上にしてください`;
+  if (password !== confirm) return 'パスワードが確認用と違います';
+  return '';
+}
 // メールでログインしているアカウント（匿名やログインしていなければ null）
 export async function currentAccount(auth: Auth): Promise<User | null> {
   await auth.authStateReady();
@@ -49,6 +61,17 @@ export function loginErrorMessage(error: unknown): string {
     case 'auth/user-disabled': return 'このアカウントは使えなくなっています';
     case 'auth/operation-not-allowed': return 'メールでのログインがまだ使えません（Firebase の設定でオンにしてください）';
     default: return 'ログインできませんでした。もう一度ためしてください';
+  }
+}
+// アカウントを作れなかった理由（No.094）。ログインと同じ理由はログインの言葉を使う
+export function signUpErrorMessage(error: unknown): string {
+  const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as { code: unknown }).code) : '';
+  switch (code) {
+    case 'auth/email-already-in-use': return 'このメールアドレスのアカウントはもうあります。ログインしてください';
+    case 'auth/invalid-email': return 'メールアドレスの形が違います';
+    case 'auth/weak-password': return `パスワードは${PASSWORD_MIN}文字以上にしてください`;
+    case 'auth/too-many-requests': case 'auth/network-request-failed': case 'auth/operation-not-allowed': return loginErrorMessage(error);
+    default: return 'アカウントを作れませんでした。もう一度ためしてください';
   }
 }
 // 店を切り替える前に、送信待ちの書き込みを送り終える（No.88）。送信待ちはログイン中の利用者ごとに持たれるので、
