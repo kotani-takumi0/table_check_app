@@ -12,7 +12,7 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 | `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。Web と同じフロア図と操作を、iOS の部品（シート・時刻ピッカー・触覚フィードバック）で作る |
 | `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
 
-Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンはヘッダーの「Minopal」の横の印（緑の四角2つと淡い緑の丸、右下だけ赤の四角）と同じ絵で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。
+Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンはヘッダーの「Minopal」の横の印（緑の四角2つと淡い緑の丸、右下だけ赤の四角）と同じ絵で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。iOS 26 の Liquid Glass 用のアイコンは `apps/ios/assets/app.icon`（Apple の Icon Composer で開ける形式。中の `Assets` の SVG が印の絵）で、まだ `app.json` では使っていません（使うには Xcode 26 以降でのビルドが要ります）。
 
 ## 店のデータを守る（2026-10-03 時点）
 
