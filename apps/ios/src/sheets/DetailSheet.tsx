@@ -129,6 +129,11 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
       <Text style={[sheet.text, styles.payState, !paid && sheet.muted]}>{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</Text>
       <PanelButton label={paid ? '未払いに戻す' : 'お会計済みにする'} onPress={() => { feedback.tap(); onPay(session); }} style={styles.small} />
     </View>
+    {/* No.118：卓の追加（団体）はよく使うので、変更するにしまわずお会計と同じ形で出す。左に今の卓 */}
+    <View style={styles.quick}>
+      <Text style={[sheet.text, styles.payState]}>卓 {session.tableIds.join('・')}番</Text>
+      <PanelButton label="卓を追加（団体）" onPress={() => { feedback.tap(); onPick('add'); }} style={styles.small} />
+    </View>
     {session.course !== null && <View style={styles.section}>
       <Text style={styles.heading} accessibilityRole="header">料理{progress ? `  ${progress.served}/${progress.total}品` : ''}</Text>
       {progress ? <>
@@ -163,7 +168,7 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
         <SelectField label="料理" value={session.menu} options={menuOptions(settings.courseMenus, session.menu)} onChange={menu => onMenu(session, menu)} />
       </>}
     </View>}
-    {/* 変更する：人数・コース・時刻の修正・卓の移動と団体。ふだんは閉じておく */}
+    {/* 変更する：人数・コース・時刻の修正・卓の移動と団体から外す。ふだんは閉じておく */}
     <View style={styles.section}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: changing }} onPress={() => setChanging(!changing)} style={styles.toggle}>
         <Text style={styles.changeLabel}>{changing ? '▾' : '▸'} 変更する（人数・コース・時刻・卓）</Text>
@@ -193,7 +198,6 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
         </View>
         <View style={sheet.actions}>
           <PanelButton label={`${from}番を移動`} onPress={() => { feedback.tap(); onPick('move'); }} style={sheet.action} />
-          <PanelButton label="卓を追加（団体）" onPress={() => { feedback.tap(); onPick('add'); }} style={sheet.action} />
         </View>
       </View>}
     </View>
