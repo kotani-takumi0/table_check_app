@@ -1,5 +1,5 @@
 import type { User } from 'firebase/auth';
-import { collection, doc, getDocFromServer, getDocsFromServer, onSnapshot, serverTimestamp, writeBatch, type Firestore } from 'firebase/firestore';
+import { collection, doc, getDocFromServer, getDocsFromServer, onSnapshot, serverTimestamp, writeBatch, type Firestore, type WriteBatch } from 'firebase/firestore';
 import { now } from './clock';
 import { fromSessionDoc } from './firestoreMapping';
 import type { Rules } from './domain';
@@ -26,6 +26,12 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     });
     return () => { cancelled = true; unsubscribe?.(); };
   }
+  // 配置の移り変わり（No.113）：保存した時点の配置を layoutHistory に足す（配置と同じ書き込みにまとめる）
+  private addHistory(batch: WriteBatch, layout: ShopLayout): void {
+    batch.set(doc(collection(this.db, shopPath(this.base, 'layoutHistory'))), {
+      seats: layout.seats, labels: layout.labels, platform: this.app?.platform ?? null, appVersion: this.app?.version ?? null, savedAt: serverTimestamp(),
+    });
+  }
   async isSaved(): Promise<boolean | null> {
     if (!await this.ready) return null;
     // 最初のページ（No.087）を出すかの判断なので、手元のキャッシュではなくサーバーで確かめる
@@ -39,6 +45,7 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     const batch = writeBatch(this.db);
     batch.set(doc(this.db, shopPath(this.base, 'shopSettings'), 'main'), { ...settings, updatedAt: serverTimestamp() }, { merge: true });
     batch.set(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'), { seats: layout.seats, labels: layout.labels, seatIds: seatIdsOf(layout), updatedAt: serverTimestamp() });
+    this.addHistory(batch, layout);
     await Promise.race([batch.commit(), new Promise<void>(resolve => setTimeout(resolve, SAVE_WAIT_MS))]);
   }
   async save(layout: ShopLayout, rules?: Rules): Promise<void> {
@@ -70,9 +77,7 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     // 今の配置と同じ書き込みにまとめ、片方だけ残ることがないようにする
     const batch = writeBatch(this.db);
     batch.set(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'), { seats: layout.seats, labels: layout.labels, seatIds: seatIdsOf(layout), updatedAt: serverTimestamp() });
-    batch.set(doc(collection(this.db, shopPath(this.base, 'layoutHistory'))), {
-      seats: layout.seats, labels: layout.labels, platform: this.app?.platform ?? null, appVersion: this.app?.version ?? null, savedAt: serverTimestamp(),
-    });
+    this.addHistory(batch, layout);
     const write = batch.commit();
     await Promise.race([write, new Promise<void>(resolve => setTimeout(resolve, SAVE_WAIT_MS))]);
   }
