@@ -17,6 +17,7 @@ import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
+import { FeedbackForm } from './FeedbackForm';
 import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { useAppUpdate } from './useAppUpdate';
 import { type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
@@ -27,11 +28,12 @@ import { backUndo, checkUndo, nextUndo, shopTimerUndo, UNDO_MS, UNDO_REFUSED, us
 import { UndoBar } from './UndoBar';
 import { editingSessionIds, type EditingMark, type EditingStore } from '@table-check/core/editing';
 import { now } from '@table-check/core/clock';
+import type { FeedbackStore } from '@table-check/core/feedback';
 import { businessDayOf, businessDayRange, csvFileName, sessionsCsv } from '@table-check/core/history';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
 // account：ログインしている店のメールアドレス（今の店は null）。onLeave：ログアウト・ログインし直す（最初の画面に戻る。No.88）
-export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial = false, account = null, onLeave, leaveError = '' }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; trial?: boolean; account?: string | null; onLeave?(): void; leaveError?: string }) {
+export default function App({ store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, feedbackStore, trial = false, account = null, onLeave, leaveError = '' }: { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; feedbackStore: FeedbackStore; trial?: boolean; account?: string | null; onLeave?(): void; leaveError?: string }) {
   // 店全体の設定（時間のルール・飲み放題の区分・コースなど）。全端末で共有する
   const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
@@ -212,8 +214,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // 縦向きは手描きの配置図と同じ向き（時計回りに90°）。スマホは小さいカード＋タップで詳細
   const portrait = useMediaQuery('(orientation: portrait)');
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
-  // 新しい版（No.83）：詳細・ダイアログ・メニュー・卓選び・席の配置の途中では読み込み直さない
-  const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout' || screen === 'course', syncState);
+  // 新しい版（No.83）：詳細・ダイアログ・メニュー・卓選び・席の配置・ご意見を書いている途中では読み込み直さない
+  const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout' || screen === 'course' || screen === 'feedback', syncState);
   // 縦向きは、置いてある行までを回して出す（No.108。何も置いていない下の行は出さない）
   const turned = portrait ? portraitOf(layout) : null;
   const grid = turned?.grid ?? GRID;
@@ -253,6 +255,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             if (daySessions.length > 0) downloadText(csvFileName(day), sessionsCsv(daySessions, shopSettings), 'text/csv');
             return daySessions.length;
           }} inert={modal || menuOpen} />
+      : screen === 'feedback' ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />
       : <div className="floor-frame">
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
         <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
