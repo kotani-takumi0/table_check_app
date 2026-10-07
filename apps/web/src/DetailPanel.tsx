@@ -9,6 +9,7 @@ import { CloseButton } from './CloseButton';
 import { menuOf } from '@table-check/core/courseMenus';
 import { useBeside } from './placeBeside';
 import { SheetGrip } from './SheetGrip';
+import { useTapGuard } from '@table-check/core/tapGuard';
 
 
 interface Props {
@@ -82,6 +83,8 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
   // 長押しで開いた直後、指を離したときのクリックが指の下のボタンに届かないよう、
   // パネル内で押し始めたクリックだけを受け付ける（キーボード操作のクリックは detail が 0）
   const downInPanel = useRef(false);
+  // 次の状態へのボタンは、押した直後の 0.5秒はもう一度押しても進めない（No.122。急いで2回押すと2段進んでいた）
+  const guard = useTapGuard();
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
   // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
@@ -123,8 +126,8 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
         {session.leaveAt !== null && <span className="panel-leave">退店 {formatClock(session.leaveAt)}</span>}
         {alert.reason && <p className="panel-alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.01" /></svg>{REASON_LABEL[alert.reason]}</p>}
       </div>
-      {next ? <button className="panel-button primary panel-next" onClick={() => onNext(session)}>{STATUS_LABEL[displayOf(next, session.course, rules)]}</button>
-        : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => { onSeat(from); onClose(); }}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
+      {next ? <button className="panel-button primary panel-next" onClick={() => guard(() => onNext(session))}>{STATUS_LABEL[displayOf(next, session.course, rules)]}</button>
+        : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => guard(() => { onSeat(from); onClose(); })}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
       <div className="panel-quick">
         {/* お会計：今の状態を左に、押すと切り替える */}
         <span className="pay-state" id="panel-pay"><span className="pay-label">お会計</span><b className={paid ? '' : 'muted'}>{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</b></span>

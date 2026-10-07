@@ -95,7 +95,8 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
     offerUndo(backUndo(session, back(session), shopSettings));
     setUndoNote(null);
   }, [back, shopSettings, offerUndo]);
-  const confirmLastOrder = useCallback((session: Session) => {
+  // 進めたあと（詳細の大きいボタン・通知の「L.O.確認済みにする」）。No.122 で詳細のボタンにも出す
+  const nextWithUndo = useCallback((session: Session) => {
     offerUndo(nextUndo(session, next(session), shopSettings));
     setUndoNote(null);
   }, [next, shopSettings, offerUndo]);
@@ -166,7 +167,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   // 「閉じる」はこの端末だけ
   const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
-    action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') confirmLastOrder(notice.session); else markShopTimerDone(notice.timerId); } },
+    action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') nextWithUndo(notice.session); else markShopTimerDone(notice.timerId); } },
   }));
   const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
   const closeSheet = useCallback(() => { setSeating(null); setOpenId(null); setShopTimerOpen(null); setClearing(false); }, []);
@@ -180,7 +181,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSheet} />;
     if (!mini && seatAt) { popover = seatSheet; popoverAt = seatAt; } else content = seatSheet;
   } else if (opened) {
-    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={next} onSeat={tableId => requestSeat(tableId, openAt)} onBack={backWithUndo} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={nextWithUndo} onSeat={tableId => requestSeat(tableId, openAt)} onBack={backWithUndo} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }

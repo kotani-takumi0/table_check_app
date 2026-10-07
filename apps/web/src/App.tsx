@@ -107,7 +107,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     offerUndo(backUndo(session, back(session), shopSettings));
     setUndoNote(null);
   }, [back, shopSettings, offerUndo]);
-  const confirmLastOrder = useCallback((session: Session) => {
+  // 進めたあと（詳細の大きいボタン・通知の「L.O.確認済みにする」）。No.122 で詳細のボタンにも出す
+  const nextWithUndo = useCallback((session: Session) => {
     offerUndo(nextUndo(session, next(session), shopSettings));
     setUndoNote(null);
   }, [next, shopSettings, offerUndo]);
@@ -137,7 +138,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     key: notice.key, tone: notice.tone, message: notice.message,
     icon: notice.kind === 'shop_timer' ? <ShopTimerGlyph icon={shopSettings.shopTimers.find(timer => timer.id === notice.timerId)?.icon ?? ''} className="toast-glyph" />
       : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
-    action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? confirmLastOrder(notice.session) : markShopTimerDone(notice.timerId) },
+    action: { label: NOTICE_ACTION[notice.kind], onClick: () => notice.kind === 'last_order' ? nextWithUndo(notice.session) : markShopTimerDone(notice.timerId) },
   }));
   // 新しい通知が来たらポップアップを開き、その通知を出す。10秒でヘッダーの「通知」にしまう（Toasts の下の線が縮みきったとき）
   const [noticesOpen, setNoticesOpen] = useState(false);
@@ -263,7 +264,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {noticesOpen && screen === 'floor' && <Toasts toasts={toasts} shownKey={shownNotice} run={noticeRun} onShow={key => openNotices(key)} onTuck={() => setNoticesOpen(false)} onAction={() => setNoticeRun(run => run + 1)} />}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} />}
-    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={next} onSeat={requestSeat} onBack={backWithUndo} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} sheet={mini} />}
+    {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={nextWithUndo} onSeat={requestSeat} onBack={backWithUndo} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} sheet={mini} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} anchor={seatingAnchor} sheet={mini} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {undo ? <UndoBar message={undo.message} runKey={undo.key} onUndo={applyUndo} /> : undoNote && <UndoBar message={undoNote.message} runKey={undoNote.key} />}

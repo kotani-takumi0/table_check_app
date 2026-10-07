@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { displayOf, RULES, STATUS_LABEL, type Rules, type Session } from './domain';
 import type { ShopTimerDone, ShopTimerId } from './shopTimers';
 
-// 押し間違えを数秒のうちだけ戻せるようにする（No.102・No.121）。「案内を取り消す」「1つ戻す」「L.O.確認済みにする」「済にする」が対象。
+// 押し間違えを数秒のうちだけ戻せるようにする（No.102・No.121）。「案内を取り消す」「1つ戻す」「L.O.確認済みにする」「済にする」と、詳細の次の状態へのボタン（No.122）が対象。
 // 確認ダイアログを出すより速く、営業中の手を止めない。戻すときは前の中身（ID・時刻）をそのまま書き戻す
 export type Undo =
   // after が null は、お客さんの記録を消した（案内を取り消した）
@@ -31,7 +31,7 @@ export function backUndo(before: Session, after: Session | null, rules: Rules = 
     : `${tables(before)}を「${STATUS_LABEL[displayOf(after.status, after.course, rules)]}」に戻しました`;
   return { kind: 'session', message, before, after };
 }
-// 通知の「L.O.確認済みにする」のあと
+// 詳細の次の状態へのボタン・通知の「L.O.確認済みにする」のあと
 export function nextUndo(before: Session, after: Session, rules: Rules = RULES): Undo {
   return { kind: 'session', message: `${tables(before)}を「${STATUS_LABEL[displayOf(after.status, after.course, rules)]}」にしました`, before, after };
 }

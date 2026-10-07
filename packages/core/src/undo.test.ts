@@ -54,3 +54,10 @@ it('メモリのタイマーは、済にする前の時刻（一度もなけれ�
   await store.undoDone('toilet_check', 40 * minute, 10 * minute);
   expect(done.toilet_check).toBe(10 * minute);
 });
+it('詳細の大きいボタンで退店済みにしたのも戻せる（No.122）', () => {
+  const lo = advance(advance(seated, 10 * minute), 60 * minute);
+  const exited = advance(lo, 90 * minute);
+  const undo = nextUndo(lo, exited);
+  expect(undo.message).toBe('5番を「退店済み」にしました');
+  expect(checkUndo(undo, [exited], {})).toBe('ok');
+});
