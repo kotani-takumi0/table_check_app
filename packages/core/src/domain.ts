@@ -49,7 +49,12 @@ export interface Session {
   menu: string | null;     // どのコースか（courseMenus の id）。コースのときだけ。null は未選択
   dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
   leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
+  clearedAt: number | null;  // 全卓消去した時刻（No.113）。記録は消さずに残し、画面からだけ消す
+  tableLog: TableMove[];     // 卓の動き（No.113）。移動・卓を足す・卓を外すを、した順にすべて残す
 }
+// 卓の動き（No.113）。move は from → to、add は to を足した、remove は from を外した
+export interface TableMove { at: number; kind: 'move' | 'add' | 'remove'; from: string | null; to: string | null }
+export const TABLE_LOG_MAX = 200;
 // 店ごとに決める時間のルール（No.14。設定の「時間のルール」で変え、全端末で共有する）。RULES はふだんの値
 export interface Rules {
   otoshiWarnMin: number;   // お通し未提供の警告（案内から）
@@ -75,7 +80,7 @@ export const REASON_LABEL: Record<Exclude<AlertReason, null>, string> = { otoshi
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
   return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course,
-    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, leaveAt: null };
+    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, leaveAt: null, clearedAt: null, tableLog: [] };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -193,24 +198,31 @@ export function lastOrderDue(sessions: Session[], now: number, rules: Rules | ((
     .sort((a, b) => a.start - b.start)
     .map(({ s }) => s);
 }
-// 卓の付け替え・追加・外す。卓番は数値順に並べる（どの端末でも同じ表示にする）
+// 卓の付け替え・追加・外す。卓番は数値順に並べる（どの端末でも同じ表示にする）。した時刻と卓を tableLog に足す（No.113）
 const byNumber = (ids: string[]) => [...new Set(ids)].sort((a, b) => Number(a) - Number(b));
-export function moveTable(session: Session, from: string, to: string): Session | null {
+const logged = (session: Session, move: TableMove): TableMove[] => [...session.tableLog, move].slice(-TABLE_LOG_MAX);
+export function moveTable(session: Session, from: string, to: string, at: number): Session | null {
   if (!session.tableIds.includes(from) || session.tableIds.includes(to)) return null;
-  return { ...session, tableIds: byNumber(session.tableIds.map(id => id === from ? to : id)) };
+  return { ...session, tableIds: byNumber(session.tableIds.map(id => id === from ? to : id)), tableLog: logged(session, { at, kind: 'move', from, to }) };
 }
-export function addTable(session: Session, tableId: string): Session | null {
+export function addTable(session: Session, tableId: string, at: number): Session | null {
   if (session.tableIds.includes(tableId)) return null;
-  return { ...session, tableIds: byNumber([...session.tableIds, tableId]) };
+  return { ...session, tableIds: byNumber([...session.tableIds, tableId]), tableLog: logged(session, { at, kind: 'add', from: null, to: tableId }) };
 }
-export function removeTable(session: Session, tableId: string): Session | null {
+export function removeTable(session: Session, tableId: string, at: number): Session | null {
   if (!session.tableIds.includes(tableId) || session.tableIds.length <= 1) return null;
-  return { ...session, tableIds: session.tableIds.filter(id => id !== tableId) };
+  return { ...session, tableIds: session.tableIds.filter(id => id !== tableId), tableLog: logged(session, { at, kind: 'remove', from: tableId, to: null }) };
+}
+// 全卓消去（No.113）：記録を消さずに、消した時刻を付ける
+export function clearSession(session: Session, at: number): Session {
+  return session.clearedAt === null ? { ...session, clearedAt: at } : session;
 }
 export function togglePaid(session: Session, at: number): Session {
   return { ...session, paidAt: session.paidAt === null ? at : null };
 }
+// 全卓消去したお客さんは出さない（記録は残す。No.113）
 export function isVisible(session: Session, now: number, rules: Rules = RULES): boolean {
+  if (session.clearedAt !== null) return false;
   return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < rules.exitedKeepMin * MINUTE);
 }
 // 卓に出すお客さん：その卓を含む表示中のセッションのうち、最後に案内したもの

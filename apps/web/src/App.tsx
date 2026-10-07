@@ -278,7 +278,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {undo ? <UndoBar message={undo.message} runKey={undo.key} onUndo={applyUndo} /> : undoNote ? <UndoBar message={undoNote.message} runKey={undoNote.key} />
       : announce && !pick && <ReleaseBar onOpen={() => selectScreen('news')} onClose={markSeen} />}
-    {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
+    {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={() => clearAll(shopSettings)} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
 }
 // 文字のファイルをこの端末に保存する（履歴の CSV。No.34）

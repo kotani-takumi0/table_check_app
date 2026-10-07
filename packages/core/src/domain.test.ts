@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -8,7 +8,7 @@ const exited = advance(loDone, 40_000);
 const minute = 60_000;
 describe('状態遷移', () => {
   it('初期状態と各状態の時刻を記録し、引数を変更しない', () => {
-    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null, menu: null, dishesServed: 0, leaveAt: null });
+    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null, menu: null, dishesServed: 0, leaveAt: null, clearedAt: null, tableLog: [] });
     expect(otoshi).toEqual({ ...seated, status: 'otoshi', otoshiAt: 20_000 });
     expect(loDone).toEqual({ ...otoshi, status: 'lo_done', loDoneAt: 30_000 });
     expect(exited).toEqual({ ...loDone, status: 'exited', exitedAt: 40_000 });
@@ -102,23 +102,46 @@ it('お会計は状態とは独立に切り替えられ、進める・戻すで�
 });
 describe('卓の移動・団体', () => {
   const group = { ...otoshi, tableIds: ['11', '12'] };
+  const T = 100_000;
   it('移動は指定した卓だけ付け替え、状態・時刻・会計は引き継ぐ', () => {
-    expect(moveTable(otoshi, '31', '15')).toEqual({ ...otoshi, tableIds: ['15'] });
-    expect(moveTable(group, '12', '21')).toEqual({ ...group, tableIds: ['11', '21'] });
-    expect(moveTable(group, '11', '3')).toEqual({ ...group, tableIds: ['3', '12'] });
+    expect(moveTable(otoshi, '31', '15', T)).toEqual({ ...otoshi, tableIds: ['15'], tableLog: [{ at: T, kind: 'move', from: '31', to: '15' }] });
+    expect(moveTable(group, '12', '21', T)?.tableIds).toEqual(['11', '21']);
+    expect(moveTable(group, '11', '3', T)?.tableIds).toEqual(['3', '12']);
   });
   it('持っていない卓からの移動・すでに持っている卓への移動はしない', () => {
-    expect(moveTable(group, '13', '14')).toBeNull();
-    expect(moveTable(group, '11', '12')).toBeNull();
+    expect(moveTable(group, '13', '14', T)).toBeNull();
+    expect(moveTable(group, '11', '12', T)).toBeNull();
   });
   it('追加は数値順に並べ、重複は追加しない', () => {
-    expect(addTable(otoshi, '5')).toEqual({ ...otoshi, tableIds: ['5', '31'] });
-    expect(addTable(group, '12')).toBeNull();
+    expect(addTable(otoshi, '5', T)).toEqual({ ...otoshi, tableIds: ['5', '31'], tableLog: [{ at: T, kind: 'add', from: null, to: '5' }] });
+    expect(addTable(group, '12', T)).toBeNull();
   });
   it('外すのは2卓以上のときだけ', () => {
-    expect(removeTable(group, '11')).toEqual({ ...group, tableIds: ['12'] });
-    expect(removeTable(otoshi, '31')).toBeNull();
-    expect(removeTable(group, '13')).toBeNull();
+    expect(removeTable(group, '11', T)).toEqual({ ...group, tableIds: ['12'], tableLog: [{ at: T, kind: 'remove', from: '11', to: null }] });
+    expect(removeTable(otoshi, '31', T)).toBeNull();
+    expect(removeTable(group, '13', T)).toBeNull();
+  });
+  it('卓の動きは、した順にすべて残す（No.113）', () => {
+    const moved = moveTable(otoshi, '31', '15', T)!;
+    const added = addTable(moved, '16', T + 1)!;
+    const removed = removeTable(added, '15', T + 2)!;
+    expect(removed.tableLog.map(move => move.kind)).toEqual(['move', 'add', 'remove']);
+    expect(removed.tableIds).toEqual(['16']);
+  });
+});
+describe('全卓消去（No.113）', () => {
+  it('記録は残して消した時刻を付け、卓には出さない', () => {
+    const cleared = clearSession(otoshi, 200_000);
+    expect(cleared).toEqual({ ...otoshi, clearedAt: 200_000 });
+    expect(isVisible(otoshi, 200_000)).toBe(true);
+    expect(isVisible(cleared, 200_000)).toBe(false);
+    expect(occupantOf([cleared], '31', 200_000)).toBeUndefined();
+  });
+  it('2回消しても最初の時刻のまま', () => {
+    expect(clearSession(clearSession(otoshi, 200_000), 300_000).clearedAt).toBe(200_000);
+  });
+  it('消したお客さんは未払いの卓に数えない', () => {
+    expect(unpaidTableCount([clearSession(otoshi, 200_000)], 200_000)).toBe(0);
   });
 });
 describe('人数', () => {
@@ -145,8 +168,8 @@ describe('人数', () => {
     const four = { ...otoshi, guests: 4 };
     expect(advance(four, 90_000).guests).toBe(4);
     expect(revert(four)?.guests).toBe(4);
-    expect(moveTable(four, '31', '12')?.guests).toBe(4);
-    expect(addTable(four, '12')?.guests).toBe(4);
+    expect(moveTable(four, '31', '12', 1)?.guests).toBe(4);
+    expect(addTable(four, '12', 1)?.guests).toBe(4);
   });
 });
 describe('コースの料理', () => {
@@ -197,7 +220,7 @@ describe('コースの料理', () => {
   it('料理の進みは状態の進み・戻し・卓の移動で変わらない', () => {
     const served = serveDish(casual)!;
     expect(advance(served, 10 * 60_000).dishesServed).toBe(1);
-    expect(moveTable(served, '12', '13')?.dishesServed).toBe(1);
+    expect(moveTable(served, '12', '13', 1)?.dishesServed).toBe(1);
   });
 });
 describe('コース', () => {
@@ -259,7 +282,7 @@ describe('コース', () => {
   });
   it('コースは状態の進み・戻し・卓の移動で変わらない', () => {
     expect(revert(started)).toEqual(waiting);
-    expect(moveTable(started, '12', '13')?.course).toBe('drinks');
+    expect(moveTable(started, '12', '13', 1)?.course).toBe('drinks');
     expect(togglePaid(started, 30 * minute).course).toBe('drinks');
   });
 });

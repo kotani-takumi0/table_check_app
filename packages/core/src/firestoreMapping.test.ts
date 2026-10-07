@@ -19,6 +19,16 @@ describe('Firestore document mapping', () => {
   ])('不正な形を拒否する: %j', value => {
     expect(fromSessionDoc('session', value)).toBeNull();
   });
+  it('全卓消去・卓の動き（No.113）を書いて読み戻す。無い古い文書は消していない・動かしていないとして読む', () => {
+    const recorded = { ...seated, clearedAt: 90_000, tableLog: [{ at: 50_000, kind: 'move' as const, from: '31', to: '32' }] };
+    expect(fromSessionDoc('session', toSessionDoc(recorded))).toEqual(recorded);
+    expect(fromSessionDoc('session', data)).toMatchObject({ clearedAt: null, tableLog: [] });
+    expect(fromSessionDoc('session', { ...data, clearedAt: 'x' })).toBeNull();
+  });
+  it('卓の動きの壊れた項目は落として読む', () => {
+    const tableLog = [{ at: 1, kind: 'move', from: '1', to: '2' }, { at: 'x', kind: 'move' }, { at: 2, kind: 'jump', from: null, to: null }, null];
+    expect(fromSessionDoc('session', { ...data, tableLog })?.tableLog).toEqual([{ at: 1, kind: 'move', from: '1', to: '2' }]);
+  });
   it('paidAt が無い古い文書は未払いとして読み、不正な paidAt は拒否する', () => {
     expect(fromSessionDoc('session', data)?.paidAt).toBeNull();
     expect(fromSessionDoc('session', { ...data, paidAt: 50_000 })?.paidAt).toBe(50_000);

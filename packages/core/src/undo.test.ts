@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { advance, newSession, revert } from './domain';
+import { advance, clearSession, newSession, revert } from './domain';
 import { MemoryShopTimerStore } from './memoryStores';
 import type { ShopTimerDone } from './shopTimers';
 import { backUndo, checkUndo, nextUndo, shopTimerUndo } from './undo';
@@ -60,4 +60,9 @@ it('詳細の大きいボタンで退店済みにしたのも戻せる（No.122�
   const undo = nextUndo(lo, exited);
   expect(undo.message).toBe('5番を「退店済み」にしました');
   expect(checkUndo(undo, [exited], {})).toBe('ok');
+});
+it('全卓消去したあとは戻さない。消したお客さんは卓を取っていないとみなす（No.113）', () => {
+  const next = advance(seated, minute);
+  expect(checkUndo(nextUndo(seated, next), [clearSession(next, 2 * minute)], {})).toBe('changed');
+  expect(checkUndo(backUndo(seated, null), [clearSession(newSession('b', '5', minute), 2 * minute)], {})).toBe('ok');
 });
