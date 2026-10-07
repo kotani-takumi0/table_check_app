@@ -18,6 +18,8 @@ import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
 import { FeedbackForm } from './FeedbackForm';
+import { ReleaseBar, ReleaseNotes } from './ReleaseNotes';
+import { useReleaseAnnounce } from './useReleaseAnnounce';
 import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { useAppUpdate } from './useAppUpdate';
 import { type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
@@ -46,6 +48,9 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const [screen, setScreen] = useState<Screen>('floor');
   const [menuOpen, setMenuOpen] = useState(false);
   const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
+  // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。お知らせの画面を開いたら、もう出さない
+  const { announce, markSeen } = useReleaseAnnounce();
+  useEffect(() => { if (screen === 'news') markSeen(); }, [screen, markSeen]);
   // 直しているコース（No.89）。新しく足すときは、開いたときに作った下書き
   const [editingCourse, setEditingCourse] = useState<{ course: CourseMenu; isNew: boolean } | null>(null);
   const timeLimitOff = shopSettings.timeLimitOff;
@@ -255,6 +260,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             if (daySessions.length > 0) downloadText(csvFileName(day), sessionsCsv(daySessions, shopSettings), 'text/csv');
             return daySessions.length;
           }} inert={modal || menuOpen} />
+      : screen === 'news' ? <ReleaseNotes inert={modal || menuOpen} />
       : screen === 'feedback' ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />
       : <div className="floor-frame">
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
@@ -270,7 +276,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={nextWithUndo} onSeat={requestSeat} onBack={backWithUndo} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} sheet={mini} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} anchor={seatingAnchor} sheet={mini} />}
     {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
-    {undo ? <UndoBar message={undo.message} runKey={undo.key} onUndo={applyUndo} /> : undoNote && <UndoBar message={undoNote.message} runKey={undoNote.key} />}
+    {undo ? <UndoBar message={undo.message} runKey={undo.key} onUndo={applyUndo} /> : undoNote ? <UndoBar message={undoNote.message} runKey={undoNote.key} />
+      : announce && !pick && <ReleaseBar onOpen={() => selectScreen('news')} onClose={markSeen} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={clearAll} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
 }
