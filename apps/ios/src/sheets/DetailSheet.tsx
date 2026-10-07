@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextActionLabel, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
@@ -121,9 +121,10 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
         <Text style={[styles.badgeLabel, { color: alert.level === 'soon' ? COLORS.onSoon : COLORS.onNow }]}>{REASON_LABEL[alert.reason]}</Text>
       </View>}
     </View>
+    {/* 大きいボタンは押すと何が起きるかを「〜にする」で出す（No.123。Web と同じ） */}
     {next
-      ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course, rules)]} tone="primary" onPress={() => guard(() => { feedback.step(); onNext(session); })} style={styles.next} />
-      : session.status === 'exited' && <PanelButton label={session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'} tone="primary" onPress={() => guard(() => { feedback.tap(); onSeat(from); })} style={styles.next} />}
+      ? <PanelButton label={nextActionLabel(session, from, rules)} tone="primary" onPress={() => guard(() => { feedback.step(); onNext(session); })} style={styles.next} />
+      : session.status === 'exited' && <PanelButton label={nextActionLabel(session, from, rules)} tone="primary" onPress={() => guard(() => { feedback.tap(); onSeat(from); })} style={styles.next} />}
     <View style={styles.quick}>
       <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onBack(session); }} style={({ pressed }) => [styles.textButton, pressed && { opacity: 0.6 }]}>
         <Text style={styles.textButtonLabel}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</Text>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, drinkPlanName, formatClock, formatElapsed, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, drinkPlanName, formatClock, formatElapsed, nextActionLabel, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
@@ -126,8 +126,9 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
         {session.leaveAt !== null && <span className="panel-leave">退店 {formatClock(session.leaveAt)}</span>}
         {alert.reason && <p className="panel-alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.01" /></svg>{REASON_LABEL[alert.reason]}</p>}
       </div>
-      {next ? <button className="panel-button primary panel-next" onClick={() => guard(() => onNext(session))}>{STATUS_LABEL[displayOf(next, session.course, rules)]}</button>
-        : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => guard(() => { onSeat(from); onClose(); })}>{session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'}</button>}
+      {/* 大きいボタンは押すと何が起きるかを「〜にする」で出す（No.123。見出しの今の状態と読み違えないように） */}
+      {next ? <button className="panel-button primary panel-next" onClick={() => guard(() => onNext(session))}>{nextActionLabel(session, from, rules)}</button>
+        : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => guard(() => { onSeat(from); onClose(); })}>{nextActionLabel(session, from, rules)}</button>}
       <div className="panel-quick">
         {/* お会計：今の状態を左に、押すと切り替える */}
         <span className="pay-state" id="panel-pay"><span className="pay-label">お会計</span><b className={paid ? '' : 'muted'}>{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</b></span>
