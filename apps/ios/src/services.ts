@@ -5,6 +5,7 @@ import { LOGIN_MODE_KEY, parseLoginMode, type LoginMode } from '@table-check/cor
 import { isStoreProject, STORE_PROJECT_ID } from '@table-check/core/firebaseProjects';
 import type { ShopStores } from '@table-check/core/firestoreServices';
 import { NoEditingStore } from '@table-check/core/editing';
+import { NoFeedbackStore } from '@table-check/core/feedback';
 import { MemorySessionStore, MemoryShopTimerStore } from '@table-check/core/memoryStores';
 import { MemoryShopSettingsStore } from '@table-check/core/shopSettings';
 import { MemoryShopLayoutStore } from '@table-check/core/shopLayout';
@@ -15,7 +16,7 @@ import { firebaseConfigFromEnv, initFirebase } from './firebase';
 // leaveError：送信待ちが残っていて店を切り替えられなかったときの知らせ
 export interface Services extends ShopStores { trial: boolean; account: string | null; onLeave?(): void; leaveError?: string }
 export function memoryStores(): ShopStores {
-  return { store: new MemorySessionStore(), shopTimerStore: new MemoryShopTimerStore(), editingStore: new NoEditingStore(), shopSettingsStore: new MemoryShopSettingsStore(), shopLayoutStore: new MemoryShopLayoutStore() };
+  return { store: new MemorySessionStore(), shopTimerStore: new MemoryShopTimerStore(), editingStore: new NoEditingStore(), shopSettingsStore: new MemoryShopSettingsStore(), shopLayoutStore: new MemoryShopLayoutStore(), feedbackStore: new NoFeedbackStore() };
 }
 // Firebase の設定があればつなぐ（どの店のデータを使うかは最初の画面で選ぶ）。
 // 店が使っているプロジェクトのときは、「ログインせずに使う」を端末の中だけで動かす（ログインした店 shops/{uid}/ は店のデータと別なので、つないで試せる）

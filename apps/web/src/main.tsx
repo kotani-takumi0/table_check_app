@@ -7,13 +7,14 @@ import { firebaseConfigFromEnv, guestOnDevice, initFirebase } from './firebase';
 import { LocalSessionStore } from './localSessionStore';
 import { LocalShopTimerStore } from './localShopTimerStore';
 import { NoEditingStore } from '@table-check/core/editing';
+import { NoFeedbackStore } from '@table-check/core/feedback';
 import { LocalShopSettingsStore } from './localShopSettingsStore';
 import { LocalShopLayoutStore } from './localShopLayoutStore';
 import './App.css';
 // Firebase につながず、このブラウザの中だけで動く保存先（開発中の試し）
 const localStores = (): ShopStores => ({
   store: new LocalSessionStore(), shopTimerStore: new LocalShopTimerStore(), editingStore: new NoEditingStore(),
-  shopSettingsStore: new LocalShopSettingsStore(), shopLayoutStore: new LocalShopLayoutStore(),
+  shopSettingsStore: new LocalShopSettingsStore(), shopLayoutStore: new LocalShopLayoutStore(), feedbackStore: new NoFeedbackStore(),
 });
 const config = firebaseConfigFromEnv();
 const root = createRoot(document.getElementById('root')!);
