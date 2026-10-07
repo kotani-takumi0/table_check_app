@@ -1,6 +1,8 @@
 import type { User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import type { EditingStore } from './editing';
+import type { FeedbackStore } from './feedback';
+import { FirestoreFeedbackStore } from './firestoreFeedback';
 import { FirestoreEditingStore } from './firestoreEditing';
 import { FirestoreShopLayoutStore } from './firestoreShopLayout';
 import { FirestoreShopSettingsStore } from './firestoreShopSettings';
@@ -12,8 +14,8 @@ import type { ShopSettingsStore } from './shopSettings';
 import type { ShopTimerStore } from './shopTimers';
 import type { SessionStore } from './store';
 
-// 1つの店のデータの保存先（案内・タイマー・編集中の印・設定・席の配置）
-export interface ShopStores { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore }
+// 1つの店のデータの保存先（案内・タイマー・編集中の印・設定・席の配置）と、ご意見の送り先（No.125）
+export interface ShopStores { store: SessionStore; shopTimerStore: ShopTimerStore; editingStore: EditingStore; shopSettingsStore: ShopSettingsStore; shopLayoutStore: ShopLayoutStore; feedbackStore: FeedbackStore }
 // base の店（今の店はいちばん上、ログインした店は shops/{uid}/）を Firestore で読み書きする（No.88）
 export function firestoreStores(db: Firestore, userReady: Promise<User>, base: ShopBase, deviceId: string): ShopStores {
   return {
@@ -22,5 +24,6 @@ export function firestoreStores(db: Firestore, userReady: Promise<User>, base: S
     editingStore: new FirestoreEditingStore(db, userReady, deviceId, base),
     shopSettingsStore: new FirestoreShopSettingsStore(db, userReady, base),
     shopLayoutStore: new FirestoreShopLayoutStore(db, userReady, base),
+    feedbackStore: new FirestoreFeedbackStore(db, userReady, base),
   };
 }

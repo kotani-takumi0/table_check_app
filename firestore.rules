@@ -211,6 +211,23 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
+    // ご意見（No.125、packages/core/src/feedback.ts）。店ごとに分けず1か所に集める。アプリからは送るだけで、読むのは Firebase コンソールから。
+    // shop はログインした店ならそのアカウントの uid（ほかの店の名で送れないようにする）、今の店は null
+    function canSendFeedback() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['message','version','platform','shopName','shop','createdAt'])
+        && d.keys().hasAll(['message','version','platform','shopName','shop','createdAt'])
+        && d.message is string && d.message.size() >= 1 && d.message.size() <= 1000
+        && d.version is string && d.version.size() <= 20
+        && d.platform in ['web','ios']
+        && d.shopName is string && d.shopName.size() <= 30
+        && (d.shop == null || d.shop == request.auth.uid)
+        && d.createdAt == request.time;
+    }
+    match /feedback/{id} {
+      allow create: if signedIn() && canSendFeedback();
+      allow read, update, delete: if false;
+    }
     match /clockProbes/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }

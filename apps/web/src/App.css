@@ -446,6 +446,16 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .settings-row-text { flex: 1; min-width: 0; font-size: 16px; }
 .settings-row-text strong { font-weight: 700; }
 .settings-help { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+/* ご意見を送る（No.125） */
+.feedback-group { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; }
+.feedback-label { font-size: 16px; }
+.feedback-text { min-height: 168px; padding: 12px; line-height: 1.6; resize: vertical; }
+.feedback-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.feedback-foot .settings-help { margin: 0; }
+.feedback-count { flex: none; color: var(--ink-2); font-family: var(--num); font-size: 13px; }
+.feedback-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-top: 4px; }
+.feedback-actions .settings-help { flex: 1; margin: 0; }
+.feedback-error { color: var(--now-ink); font-weight: 700; }
 .export-row { flex-wrap: wrap; }
 .export-row .settings-row-text { flex-basis: 100%; }
 .export-row .field-select { flex: 1; max-width: 220px; }
