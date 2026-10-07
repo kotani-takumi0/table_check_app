@@ -7,13 +7,17 @@ import { TOOLBAR_HEIGHT } from './Header';
 // iOS 26 のアラート・ポップオーバー：押したボタンのそば（ツールバーの下）から出す。後ろは暗くせず、外側を押すと閉じる。
 // anchor は出す側（start＝左のトイレ、end＝右の消去）。「視差効果を減らす」がオンなら膨らむ動きをやめる。
 // ガラス（GlassView）は自分や親の opacity を 0 にすると描かれなくなるので、ガラスの面は Glass の appear で出し、中身だけ opacity を動かす
-// at を渡すと、その場所（押した卓）のそばに出す（No.71 の詳細）。右に入らなければ左に出し、縦は中身の高さを測って画面に収める
+// at を渡すと、その場所（押した卓）のそばに出す（No.71 の詳細）。右に入らなければ左に出し、縦は開いたときの中身の高さを測って画面に収める
 export function Popover({ anchor, at, mini, onClose, children }: { anchor: 'start' | 'end'; at?: { x: number; y: number }; mini: boolean; onClose(): void; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   // Web の .popover と同じ 0.2 秒・少し行き過ぎて戻る曲線
   const grow = useAppear(200, POP);
-  const [contentHeight, setContentHeight] = useState(0);
+  // 位置を決める高さは開いたときの中身の高さで止める。コースを選ぶ・変更するを開くなどで中身が増えても、
+  // 測り直すとポップオーバーが跳んで次のタップが別のボタンに当たるため（No.124。Web と同じ）。押した場所や画面の大きさが変わったときだけ測り直す
+  const placeKey = `${at?.x},${at?.y},${width},${height}`;
+  const [opened, setOpened] = useState<{ key: string; height: number } | null>(null);
+  const contentHeight = opened?.key === placeKey ? opened.height : 0;
   const side = mini ? 8 : 16;
   const toolbarBottom = insets.top + 4 + (mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 8;
   const popWidth = Math.min(at ? 360 : 380, width - side * 2);
@@ -33,7 +37,7 @@ export function Popover({ anchor, at, mini, onClose, children }: { anchor: 'star
         <Glass tint={0.84} appear={0.2} style={styles.card}>
           {/* 文字を大きくしていてもボタンまで届くよう、画面に入らなければ中をスクロールする */}
           {/* 位置を決める高さは、画面の高さで切られる前の中身の高さで測る */}
-          <ScrollView bounces={false} onContentSizeChange={(_width, contentH) => setContentHeight(contentH)}>
+          <ScrollView bounces={false} onContentSizeChange={(_width, contentH) => { if (contentH > 0) setOpened(current => current?.key === placeKey ? current : { key: placeKey, height: contentH }); }}>
             <Animated.View style={[styles.content, { opacity: grow }]}>{children}</Animated.View>
           </ScrollView>
         </Glass>

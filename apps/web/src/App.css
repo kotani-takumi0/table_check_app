@@ -373,6 +373,8 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .seat-panel .panel-title { font-size: 22px; }
 .seat-panel h3.field-label { margin-top: 4px; }
 .seat-go { min-height: 56px; margin-top: 6px; font-size: 18px; }
+/* No.124：パネルは中身が増えても動かさず中をスクロールさせるので、ご案内のボタンは下に貼り付けていつでも押せるようにする。後ろを通る中身は白い帯で隠す */
+.seat-go { position: sticky; bottom: 0; z-index: 1; box-shadow: 0 24px 0 var(--page), 0 -10px 0 var(--page); }
 .guest-stepper { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; align-items: center; gap: 12px; }
 .stepper-button { width: 56px; height: 56px; padding: 0; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); color: var(--ink); font-size: 26px; font-weight: 500; line-height: 1; }
 .stepper-button:hover:not(:disabled) { background: var(--tile); }

@@ -7,7 +7,7 @@ import { GuestPicker } from './GuestPicker';
 import { remainingLabel, remainingOf } from '@table-check/core/dial';
 import { CloseButton } from './CloseButton';
 import { menuOf } from '@table-check/core/courseMenus';
-import { useBeside } from './placeBeside';
+import { useBeside, useSheetHold } from './placeBeside';
 import { SheetGrip } from './SheetGrip';
 import { useTapGuard } from '@table-check/core/tapGuard';
 
@@ -104,12 +104,13 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
   const alert = alertOf(session, time, rules);
   const remaining = remainingOf(session, time, rules);
   const paid = session.paidAt !== null;
-  // 押した卓のそばに出す（中身の高さで位置を決め直す）。スマホは下から出すシート
+  // 押した卓のそばに出す。スマホは下から出すシート。どちらも開いたときの高さで止め、中身が増えたら中をスクロールする（No.124）
   const place = useBeside(panel, sheet ? null : anchor);
+  const hold = useSheetHold(panel, sheet);
   return <div className={`panel-backdrop ${place ? 'beside' : sheet ? 'sheet' : ''}`}
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
-    <section ref={panel} tabIndex={-1} className={`panel detail-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel}
+    <section ref={panel} tabIndex={-1} className={`panel detail-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel ?? hold}
       onPointerDownCapture={() => { downInPanel.current = true; }}
       onClickCapture={event => { if (!downInPanel.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); } downInPanel.current = false; }}
       role="dialog" aria-modal="true" aria-labelledby="panel-seat panel-title">

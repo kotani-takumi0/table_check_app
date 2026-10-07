@@ -3,7 +3,7 @@ import { drinkPlanName, QUICK_GUESTS, stepGuests, type Course } from '@table-che
 import { priceLabel } from '@table-check/core/courseMenus';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { CloseButton } from './CloseButton';
-import { useBeside } from './placeBeside';
+import { useBeside, useSheetHold } from './placeBeside';
 import { SheetGrip } from './SheetGrip';
 
 interface Props {
@@ -38,13 +38,14 @@ export function SeatDialog({ tableId, exited, previousUnpaid, onSeat, settings, 
   // 背景で押し始めたときだけ閉じる（パネルの中から外へ指をずらしたときに閉じない）
   const downOnBackdrop = useRef(false);
   const place = useBeside(panel, sheet ? null : anchor);
+  const hold = useSheetHold(panel, sheet);
   const seat = () => { onSeat(guests, course, course === null ? null : menu); onClose(); };
   const describedBy = [exited && 'seat-dialog-message', exited && previousUnpaid && 'seat-dialog-warning'].filter(Boolean).join(' ') || undefined;
   const plans: { id: Course | null; name: string }[] = [{ id: null, name: '通常' }, ...settings.drinkPlans.map(plan => ({ id: plan.id, name: drinkPlanName(settings.drinkPlans, plan.id) }))];
   return <div className={`panel-backdrop ${place ? 'beside' : sheet ? 'sheet' : ''}`}
     onPointerDown={event => { downOnBackdrop.current = event.target === event.currentTarget; }}
     onClick={event => { if (downOnBackdrop.current && event.target === event.currentTarget) onClose(); downOnBackdrop.current = false; }}>
-    <section ref={panel} tabIndex={-1} className={`panel seat-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel}
+    <section ref={panel} tabIndex={-1} className={`panel seat-panel ${place ? `beside-${place.side}` : ''}`} style={place?.panel ?? hold}
       role={exited ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="seat-dialog-title" aria-describedby={describedBy}>
       {sheet && <SheetGrip onClose={onClose} />}
       <h2 id="seat-dialog-title" className="panel-title">{tableId}番にご案内</h2>
