@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LAYOUT, layoutProblems, MemoryShopLayoutStore, nextSeatId, occupiedSeatIds, parseShopLayout, portraitOf, seatIdsOf, usedRows, type ShopLayout } from './shopLayout';
+import { DEFAULT_LAYOUT, isLandmarkKind, landmarkName, LANDMARK_KINDS, layoutProblems, MemoryShopLayoutStore, nextSeatId, occupiedSeatIds, parseShopLayout, portraitOf, seatIdsOf, usedRows, type ShopLayout } from './shopLayout';
 import { rotateClockwise } from './layout';
 import { newSession } from './domain';
 
@@ -50,16 +50,33 @@ describe('席の配置', () => {
     expect(parseShopLayout({ seats: [table('11', 1, 1), table('12', 1, 1)], labels: [] })).toBeNull();
     expect(parseShopLayout(undefined)).toBeNull();
   });
+  it('目印（No.128）：種類を読み、種類の無い前の「ことば」は店が足した目印として読む', () => {
+    const box = { col: 5, colSpan: 2, row: 10, rowSpan: 1 };
+    const layout = parseShopLayout({ seats: [table('11', 1, 1)], labels: [{ text: 'カウンター', col: 1, colSpan: 2, row: 9, rowSpan: 1 }, { kind: 'entrance', text: '入口', ...box }, { kind: 'warp', text: '階段', col: 8, colSpan: 1, row: 10, rowSpan: 1 }] });
+    expect(layout?.labels.map(l => [l.kind, l.text])).toEqual([['custom', 'カウンター'], ['entrance', '入口'], ['custom', '階段']]);
+    expect(DEFAULT_LAYOUT.labels[0].kind).toBe('custom');
+  });
+  it('目印の種類は入口・キッチン・ドリンク場・トイレ・レジと、店が足すもの', () => {
+    expect(LANDMARK_KINDS.map(item => item.name)).toEqual(['入口', 'キッチン', 'ドリンク場', 'トイレ', 'レジ']);
+    expect(landmarkName('kitchen')).toBe('キッチン');
+    expect(landmarkName('custom')).toBeNull();
+    expect(isLandmarkKind('custom')).toBe(true);
+    expect(isLandmarkKind('stairs')).toBe(false);
+  });
+  it('店が足す目印は名前が要る', () => {
+    expect(layoutProblems({ seats: [table('11', 1, 1)], labels: [{ kind: 'custom', text: ' ', col: 5, colSpan: 1, row: 5, rowSpan: 1 }] }))
+      .toContain('目印の名前は1〜12文字にしてください');
+  });
   it('新しい卓の番号は、使っていないいちばん小さい番号（カウンター1〜、テーブル11〜）', () => {
     expect(nextSeatId(DEFAULT_LAYOUT, 'counter')).toBe('15');
     expect(nextSeatId({ seats: [], labels: [] }, 'counter')).toBe('1');
     expect(nextSeatId(DEFAULT_LAYOUT, 'table')).toBe('15');
     expect(seatIdsOf({ seats: [table('12', 1, 3), table('3', 7, 3)], labels: [] })).toEqual(['3', '12']);
   });
-  it('ことばも卓と同じく縦向きに回す', () => {
-    const label = DEFAULT_LAYOUT.labels[0];
-    const asSeat = rotateClockwise({ id: 'x', kind: 'table' as const, ...label }, { rows: usedRows(DEFAULT_LAYOUT) });
-    const { text: _, ...rotated } = portraitOf(DEFAULT_LAYOUT).labels[0];
+  it('目印も卓と同じく縦向きに回す', () => {
+    const { kind: _kind, text: _text, ...box } = DEFAULT_LAYOUT.labels[0];
+    const asSeat = rotateClockwise({ id: 'x', kind: 'table' as const, ...box }, { rows: usedRows(DEFAULT_LAYOUT) });
+    const { text: _, kind: __, ...rotated } = portraitOf(DEFAULT_LAYOUT).labels[0];
     expect(rotated).toEqual({ col: asSeat.col, colSpan: asSeat.colSpan, row: asSeat.row, rowSpan: asSeat.rowSpan });
   });
   it('マス目は15×10。8〜10行目にも置ける（No.108）', () => {
