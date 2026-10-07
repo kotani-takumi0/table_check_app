@@ -214,9 +214,9 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .pick-target { border: 2px dashed var(--key); background: var(--key-wash); color: var(--key); }
 .pick-disabled { opacity: 0.35; }
 
-/* 通知（No.109）：フロアの上の右下に1件ずつ出すポップアップ（スマホはヘッダーのすぐ下）。急ぎ具合は左の丸い印と枠の色で出す。
-   下の細い線が10秒で縮みきったら、ヘッダーの「通知」にしまう */
-.notice-popup { position: absolute; z-index: 6; right: 16px; bottom: 16px; width: min(560px, calc(100% - 32px)); }
+/* 通知（No.109）：フロアの上の右上に1件ずつ出すポップアップ（スマホはヘッダーのすぐ下）。急ぎ具合は左の丸い印と枠の色で出す。
+   No.119：右下だと手元の卓の上に出て邪魔なので、右上（36・38番のあたり）に重ねる（ヘッダーの高さ 56px の下）。下の細い線が10秒で縮みきったら、ヘッダーの「通知」にしまう */
+.notice-popup { position: absolute; z-index: 6; top: calc(56px + 12px); right: 16px; width: min(560px, calc(100% - 32px)); }
 .toast { --tone-ink: var(--now-ink); --tone-wash: var(--now-wash); --tone-line: var(--now-line); position: relative; overflow: hidden; min-height: 64px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--tone-line); border-radius: 12px; background: var(--page); box-shadow: var(--float); color: var(--ink); animation: panel-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .toast.warning { --tone-ink: var(--soon-ink); --tone-wash: var(--soon-wash); --tone-line: var(--soon-line); }
 .toast-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--tone-wash); color: var(--tone-ink); }
