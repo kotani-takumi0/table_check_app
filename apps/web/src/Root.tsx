@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { currentAccount, flushPendingWrites, LOGIN_MODE_KEY, loginErrorMessage, PENDING_WRITES_MESSAGE, parseLoginMode, signInAsGuest, signInWithEmail, signOutAccount, type LoginMode } from '@table-check/core/auth';
+import { currentAccount, flushPendingWrites, LOGIN_MODE_KEY, loginErrorMessage, PENDING_WRITES_MESSAGE, parseLoginMode, signInAsGuest, signInWithEmail, signOutAccount, signUpErrorMessage, signUpWithEmail, type LoginMode } from '@table-check/core/auth';
 import { firestoreStores, type ShopStores } from '@table-check/core/firestoreServices';
 import { newDeviceId } from '@table-check/core/firestoreEditing';
 import { startServerClock, type KeyValueStorage } from '@table-check/core/serverClock';
@@ -10,6 +10,8 @@ import { accountBase, GUEST_BASE } from '@table-check/core/shopPath';
 import App from './App';
 import { APP_INFO } from './version';
 import { LoginScreen } from './LoginScreen';
+import { FirstPage } from './FirstPage';
+import { BLANK_SETTINGS } from '@table-check/core/shopTemplates';
 
 // localStorage は使えない環境だと触っただけで例外になるので、読み書きのたびに取りに行く（例外は startServerClock が受け止める）
 const browserStorage: KeyValueStorage = {
@@ -22,7 +24,9 @@ function readMode(): LoginMode | null {
 function writeMode(mode: LoginMode | null): void {
   try { if (mode) window.localStorage.setItem(LOGIN_MODE_KEY, mode); else window.localStorage.removeItem(LOGIN_MODE_KEY); } catch { /* 覚えられなくても、このページでは使える */ }
 }
-type Phase = { kind: 'loading' } | { kind: 'choose' } | { kind: 'ready'; stores: ShopStores; userReady: Promise<User> | null; account: User | null; trial: boolean };
+// first：ログインした店で席の配置をまだ保存していないので、最初のページ（テンプレートを選ぶ。No.087）を出す
+type Phase = { kind: 'loading' } | { kind: 'choose' } | { kind: 'first'; stores: ShopStores; account: User }
+  | { kind: 'ready'; stores: ShopStores; userReady: Promise<User> | null; account: User | null; trial: boolean };
 
 // どの店のデータを使うかを決めてから App を出す（No.88）。最初は「ログイン」か「ログインせずに使う」を選び、端末で覚える。
 // guestStores：ログインせずに使うときに、Firebase につながず端末の中だけで動かす保存先（開発中に店のデータを変えないため）
@@ -39,11 +43,16 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
     const userReady = signInAsGuest(auth);
     setPhase({ kind: 'ready', stores: firestoreStores(db, userReady, GUEST_BASE, newDeviceId(), APP_INFO), userReady, account: null, trial: false });
   }, [auth, db, guestStores]);
+  // ログインした店：席の配置をまだ保存していなければ最初のページを出す。確かめられない（オフラインなど）ときはそのまま使う
   const startAccount = useCallback((user: User) => {
     writeMode('account');
     setError('');
     const userReady = Promise.resolve(user);
-    setPhase({ kind: 'ready', stores: firestoreStores(db, userReady, accountBase(user.uid), newDeviceId(), APP_INFO), userReady, account: user, trial: false });
+    const stores = firestoreStores(db, userReady, accountBase(user.uid), newDeviceId(), APP_INFO);
+    setPhase({ kind: 'loading' });
+    void (stores.shopLayoutStore.isSaved?.() ?? Promise.resolve(null)).then(saved => {
+      setPhase(saved === false ? { kind: 'first', stores, account: user } : { kind: 'ready', stores, userReady, account: user, trial: false });
+    });
   }, [db]);
   // 開いたとき：覚えている使い方で始める。ログインした店は、ログインが残っていればそのまま入る
   const started = useRef(false);
@@ -57,7 +66,7 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
   }, [auth, startGuest, startAccount]);
   // ほかのタブでログアウト・別のアカウントでログインしたら、この画面を閉じて最初の画面に戻る。
   // ログインした店はアカウントが変わったとき、今の店はログインが外れたとき（一度ログインできたあと）
-  const account = phase.kind === 'ready' ? phase.account : null;
+  const account = phase.kind === 'ready' || phase.kind === 'first' ? phase.account : null;
   const guestReady = phase.kind === 'ready' && !phase.account && !phase.trial ? phase.userReady : null;
   useEffect(() => {
     if (account) return onAuthStateChanged(auth, user => { if (user?.uid !== account.uid) setPhase({ kind: 'choose' }); });
@@ -84,10 +93,19 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
       return signInWithEmail(auth, email, password).then(startAccount, (reason: unknown) => setError(loginErrorMessage(reason)));
     }).finally(() => setBusy(false));
   };
+  // 新規登録（No.094）：アカウントを作ってそのままログインし、最初のページに進む
+  const signUp = (email: string, password: string) => {
+    setBusy(true);
+    setError('');
+    flushPendingWrites(db).then(flushed => {
+      if (!flushed) { setError(PENDING_WRITES_MESSAGE); return; }
+      return signUpWithEmail(auth, email, password).then(startAccount, (reason: unknown) => setError(signUpErrorMessage(reason)));
+    }).finally(() => setBusy(false));
+  };
   // ログアウト・ログインし直す：送信待ちを送り終えてから、覚えた使い方を消して最初の画面に戻る
   const leave = useCallback(() => {
-    if (phase.kind !== 'ready') return;
-    const { account, trial } = phase;
+    if (phase.kind !== 'ready' && phase.kind !== 'first') return;
+    const { account } = phase, trial = phase.kind === 'ready' && phase.trial;
     setLeaveError('');
     void (trial ? Promise.resolve(true) : flushPendingWrites(db)).then(flushed => {
       if (!flushed) { setLeaveError(PENDING_WRITES_MESSAGE); return; }
@@ -97,6 +115,14 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
     });
   }, [auth, db, phase]);
   if (phase.kind === 'loading') return <main className="login" aria-busy="true" />;
-  if (phase.kind === 'choose') return <LoginScreen busy={busy} error={error} onLogin={login} onGuest={startGuest} />;
+  if (phase.kind === 'choose') return <LoginScreen busy={busy} error={error} onLogin={login} onSignUp={signUp} onGuest={startGuest} />;
+  if (phase.kind === 'first') {
+    const { stores, account: user } = phase;
+    const begin = () => setPhase({ kind: 'ready', stores, userReady: Promise.resolve(user), account: user, trial: false });
+    // 設定を先に書き、配置を最後に保存する（配置があれば「始めた店」とみなす）
+    return <FirstPage account={user.email ?? ''} onLeave={leave}
+      onTemplate={async template => { await stores.shopSettingsStore.update(template.settings); await stores.shopLayoutStore.save(template.layout); begin(); }}
+      onBlank={async layout => { await stores.shopSettingsStore.update(BLANK_SETTINGS); await stores.shopLayoutStore.save(layout); begin(); }} />;
+  }
   return <App key={phase.account?.uid ?? 'guest'} {...phase.stores} trial={phase.trial} account={phase.account?.email ?? null} onLeave={leave} leaveError={leaveError} />;
 }
