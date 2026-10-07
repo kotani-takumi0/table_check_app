@@ -124,6 +124,14 @@ export function unserveDish(session: Session, menus: CourseMenu[] = DEFAULT_COUR
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;
 }
+// 詳細の大きいボタンの言葉（No.123）。見出しの「ご案内済み」と同じ形だと今の状態と読み違えるので、
+// 押すと何が起きるかが分かる「〜にする」にする（お会計の「お会計済みにする」とそろえる）。退店済みは次のお客さんを案内する。
+// from はパネルを開いた卓（団体のときはその卓に案内する）
+export function nextActionLabel(session: Session, from: string, rules: Rules = RULES): string {
+  const next = nextStatus(session.status);
+  if (next) return `${STATUS_LABEL[displayOf(next, session.course, rules)]}にする`;
+  return session.tableIds.length > 1 ? `${from}番にご案内する` : 'ご案内する';
+}
 export function advance(session: Session, at: number): Session {
   switch (session.status) {
     case 'seated': return { ...session, status: 'otoshi', otoshiAt: at };

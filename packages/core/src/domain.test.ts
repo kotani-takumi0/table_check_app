@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -274,4 +274,18 @@ it('卓には、その卓を含む表示中のお客さんのうち最後に案�
   const gone = { ...advance(advance(advance(late, 11 * minute), 12 * minute), 13 * minute) };
   expect(gone.status).toBe('exited');
   expect(occupantOf([early, gone], '11', 13 * minute + 5 * minute)?.id).toBe('a');
+});
+
+it('詳細の大きいボタンは、押すと何になるかを「〜にする」で出す（No.123）', () => {
+  const seated = newSession('a', '5', 0);
+  expect(nextActionLabel(seated, '5')).toBe('お通し提供済みにする');
+  const otoshi = advance(seated, 1);
+  expect(nextActionLabel(otoshi, '5')).toBe('L.O.確認済みにする');
+  const lo = advance(otoshi, 2);
+  expect(nextActionLabel(lo, '5')).toBe('退店済みにする');
+  const exited = advance(lo, 3);
+  expect(nextActionLabel(exited, '5')).toBe('ご案内する');
+  expect(nextActionLabel({ ...exited, tableIds: ['11', '12'] }, '12')).toBe('12番にご案内する');
+  // コースは開始待ちのあとファーストドリンク
+  expect(nextActionLabel(setCourse(seated, 'drinks')!, '5')).toBe('ファーストドリンク提供済みにする');
 });
