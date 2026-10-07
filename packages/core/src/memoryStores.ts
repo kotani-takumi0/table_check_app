@@ -1,4 +1,5 @@
 import type { Session } from './domain';
+import type { RecordedSession } from './sessionRecord';
 import { mergeShopTimerDone, type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from './shopTimers';
 import type { SessionStore } from './store';
 
@@ -21,8 +22,8 @@ export class MemorySessionStore implements SessionStore {
   async remove(id: string): Promise<void> {
     this.write(this.sessions.filter(s => s.id !== id));
   }
-  async fetchSeatedBetween(start: number, end: number): Promise<Session[]> {
-    return this.sessions.filter(s => s.seatedAt >= start && s.seatedAt < end);
+  async fetchSeatedBetween(start: number, end: number): Promise<RecordedSession[]> {
+    return this.sessions.filter(s => s.seatedAt >= start && s.seatedAt < end).map(s => ({ ...s, record: {} }));
   }
 }
 export class MemoryShopTimerStore implements ShopTimerStore {

@@ -8,6 +8,10 @@ import { startServerClock } from '@table-check/core/serverClock';
 import { accountBase, GUEST_BASE } from '@table-check/core/shopPath';
 import { firebase, memoryStores, readMode, writeMode, type Services } from './services';
 import { LoginScreen } from './LoginScreen';
+import { version } from '../../../package.json';
+
+// 記録に写す端末の種類と版（No.113）
+const APP_INFO = { platform: 'ios', version } as const;
 
 type Phase = { kind: 'loading' } | { kind: 'choose' } | { kind: 'ready'; stores: ShopStores; userReady: Promise<User> | null; account: User | null; trial: boolean };
 
@@ -24,14 +28,14 @@ export function Root({ children }: { children(services: Services): ReactNode }) 
     setError('');
     if (firebase.guestOnDevice) { setPhase({ kind: 'ready', stores: memoryStores(), userReady: null, account: null, trial: true }); return; }
     const userReady = signInAsGuest(firebase.auth);
-    setPhase({ kind: 'ready', stores: firestoreStores(firebase.db, userReady, GUEST_BASE, newDeviceId()), userReady, account: null, trial: false });
+    setPhase({ kind: 'ready', stores: firestoreStores(firebase.db, userReady, GUEST_BASE, newDeviceId(), APP_INFO), userReady, account: null, trial: false });
   }, []);
   const startAccount = useCallback((user: User) => {
     if (!firebase) return;
     writeMode('account');
     setError('');
     const userReady = Promise.resolve(user);
-    setPhase({ kind: 'ready', stores: firestoreStores(firebase.db, userReady, accountBase(user.uid), newDeviceId()), userReady, account: user, trial: false });
+    setPhase({ kind: 'ready', stores: firestoreStores(firebase.db, userReady, accountBase(user.uid), newDeviceId(), APP_INFO), userReady, account: user, trial: false });
   }, []);
   // 開いたとき：覚えている使い方で始める。ログインした店は、ログインが残っていればそのまま入る
   const started = useRef(false);

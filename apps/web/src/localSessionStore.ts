@@ -2,6 +2,7 @@ import { isMenuId } from '@table-check/core/courseMenus';
 import { isCourse, isGuestCount, type Session } from '@table-check/core/domain';
 import { withDefaults } from '@table-check/core/firestoreMapping';
 import type { SessionStore } from '@table-check/core/store';
+import type { RecordedSession } from '@table-check/core/sessionRecord';
 
 // Firebase の設定が無いときに使う、この端末のブラウザだけの保存先
 const KEY = 'table-check:sessions';
@@ -20,6 +21,7 @@ function validSession(value: unknown): value is Session {
     && (s.menu === undefined || s.menu === null || isMenuId(s.menu))
     && (s.dishesServed === undefined || (Number.isInteger(s.dishesServed) && (s.dishesServed as number) >= 0))
     && (s.leaveAt === undefined || s.leaveAt === null || timestamp(s.leaveAt))
+    && (s.clearedAt === undefined || s.clearedAt === null || timestamp(s.clearedAt))
     && (s.status === 'seated' || timestamp(s.otoshiAt))
     && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt))
     && (s.status !== 'exited' || timestamp(s.exitedAt));
@@ -59,7 +61,7 @@ export class LocalSessionStore implements SessionStore {
   async remove(id: string): Promise<void> {
     this.write(this.read().filter(s => s.id !== id));
   }
-  async fetchSeatedBetween(start: number, end: number): Promise<Session[]> {
-    return this.read().filter(s => s.seatedAt >= start && s.seatedAt < end);
+  async fetchSeatedBetween(start: number, end: number): Promise<RecordedSession[]> {
+    return this.read().filter(s => s.seatedAt >= start && s.seatedAt < end).map(s => ({ ...s, record: {} }));
   }
 }
