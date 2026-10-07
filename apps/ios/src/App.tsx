@@ -12,6 +12,8 @@ import { DEFAULT_SHOP_SETTINGS, type ShopSettings } from '@table-check/core/shop
 import { DEFAULT_LAYOUT, type ShopLayout } from '@table-check/core/shopLayout';
 import { worstSyncState, type SyncState } from '@table-check/core/store';
 import { useSessions } from '@table-check/core/useSessions';
+import { backUndo, checkUndo, nextUndo, shopTimerUndo, UNDO_MS, UNDO_REFUSED, useUndo } from '@table-check/core/undo';
+import { UndoBar } from './UndoBar';
 import { editingSessionIds, type EditingMark } from '@table-check/core/editing';
 import type { Services } from './services';
 import { Root } from './Root';
@@ -74,7 +76,38 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   useEffect(() => shopLayoutStore.subscribe(setLayout), [shopLayoutStore]);
   const [shopTimers, setShopTimers] = useState<ShopTimerDone>({});
   useEffect(() => shopTimerStore.subscribe(setShopTimers), [shopTimerStore]);
-  const markShopTimerDone = useCallback((id: ShopTimerId) => { void shopTimerStore.markDone(id, now()); }, [shopTimerStore]);
+  // 押し間違えを数秒のうちだけ戻せるようにする（No.102・No.121。Web と同じ）。戻せなかったときは理由だけを同じ場所に出す
+  const { undo, offer: offerUndo, clear: clearUndo } = useUndo();
+  const [undoNote, setUndoNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (undoNote === null) return;
+    const timer = setTimeout(() => setUndoNote(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undoNote]);
+  const markShopTimerDone = useCallback((id: ShopTimerId) => {
+    const at = now();
+    void shopTimerStore.markDone(id, at);
+    const label = shopSettings.shopTimers.find(timer => timer.id === id)?.label ?? 'タイマー';
+    offerUndo(shopTimerUndo(id, label, shopTimers[id], at));
+    setUndoNote(null);
+  }, [shopTimerStore, shopSettings.shopTimers, shopTimers, offerUndo]);
+  const backWithUndo = useCallback((session: Session) => {
+    offerUndo(backUndo(session, back(session), shopSettings));
+    setUndoNote(null);
+  }, [back, shopSettings, offerUndo]);
+  const confirmLastOrder = useCallback((session: Session) => {
+    offerUndo(nextUndo(session, next(session), shopSettings));
+    setUndoNote(null);
+  }, [next, shopSettings, offerUndo]);
+  const applyUndo = () => {
+    if (!undo) return;
+    const check = checkUndo(undo, sessions, shopTimers);
+    clearUndo();
+    if (check !== 'ok') { feedback.warn(); setUndoNote(UNDO_REFUSED[check]); return; }
+    if (undo.kind === 'session') void store.put(undo.before);
+    else void shopTimerStore.undoDone(undo.id, undo.after, undo.before);
+  };
+  const undoBar = undo ? <UndoBar message={undo.message} onUndo={applyUndo} /> : undoNote !== null ? <UndoBar message={undoNote} /> : null;
   const { isDismissed, dismiss } = useDismissed(account);
 
   const [openId, setOpenId] = useState<string | null>(null);
@@ -133,7 +166,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   // 「閉じる」はこの端末だけ
   const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).filter(notice => !isDismissed(notice.key)).map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
-    action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') next(notice.session); else markShopTimerDone(notice.timerId); } },
+    action: { label: NOTICE_ACTION[notice.kind], onPress: () => { feedback.step(); if (notice.kind === 'last_order') confirmLastOrder(notice.session); else markShopTimerDone(notice.timerId); } },
   }));
   const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
   const closeSheet = useCallback(() => { setSeating(null); setOpenId(null); setShopTimerOpen(null); setClearing(false); }, []);
@@ -147,7 +180,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
       onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSheet} />;
     if (!mini && seatAt) { popover = seatSheet; popoverAt = seatAt; } else content = seatSheet;
   } else if (opened) {
-    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={next} onSeat={tableId => requestSeat(tableId, openAt)} onBack={back} onRetime={retime}
+    const detail = <DetailSheet key={`detail-${opened.id}`} session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closeSheet} onNext={next} onSeat={tableId => requestSeat(tableId, openAt)} onBack={backWithUndo} onRetime={retime}
       onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} />;
     if (!mini && openAt) { popover = detail; popoverAt = openAt; } else content = detail;
   }
@@ -211,12 +244,17 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={() => setClearing(true)} mini={mini}
             menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)} timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
       </View>
+      {/* シートを開いている間は、シートの中に出す（下に出すとシートに隠れる） */}
+      {content === null && undoBar}
       {popover && <Popover key={popoverAt ? (seating !== null ? `seat-${seating}` : `detail-${openId}`) : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
       {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>
-        <ScrollView style={[styles.sheet, LIQUID_GLASS && styles.glassSheet]} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
-          {content ?? lastContent.current}
-        </ScrollView>
+        <View style={styles.sheetWrap}>
+          <ScrollView style={[styles.sheet, LIQUID_GLASS && styles.glassSheet]} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
+            {content ?? lastContent.current}
+          </ScrollView>
+          {content !== null && undoBar}
+        </View>
       </Modal>
     </View>
   );
@@ -225,6 +263,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   hall: { flex: 1, paddingHorizontal: 16, paddingBottom: 12 },
+  sheetWrap: { flex: 1 },
   miniHall: { paddingHorizontal: 8, paddingBottom: 8 },
   floorArea: { flex: 1 },
   // ツールバー・移動先を選ぶ帯を浮かべる層（hall の左右の余白に合わせる）
