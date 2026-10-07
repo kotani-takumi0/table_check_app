@@ -30,6 +30,7 @@ import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
+import { FeedbackForm } from './FeedbackForm';
 import { LayoutEditor } from './LayoutEditor';
 import { CourseEditor } from './CourseEditor';
 import { coursesInUse, newCourse, putCourse } from '@table-check/core/courseEditor';
@@ -52,7 +53,7 @@ export default function App() {
 }
 
 // Web の App と同じ画面：フロア図・ヘッダー・通知と、案内・詳細・トイレ・全卓消去のシート
-function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, trial, account, onLeave, leaveError = '' } }: { services: Services }) {
+function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsStore, shopLayoutStore, feedbackStore, trial, account, onLeave, leaveError = '' } }: { services: Services }) {
   // 営業中に画面が暗くならないようにする
   useKeepAwake();
   // 店全体の設定（時間のルール・飲み放題の区分・コースなど）。全端末で共有する
@@ -221,6 +222,8 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             setEditingCourse(course ? { course, isNew: false } : { course: newCourse(shopSettings.courseMenus, Date.now()), isNew: true });
             selectScreen('course');
           }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        : screen === 'feedback'
+        ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
           <Floor sessions={sessions} time={time} editingIds={editingIds} settings={shopSettings} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
