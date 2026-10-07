@@ -38,7 +38,7 @@ function tableLogText(log: TableMove[]): string {
   return log.map(move => `${formatClock(move.at)} ${move.kind === 'move' ? `${move.from}→${move.to}番に移動` : move.kind === 'add' ? `${move.to}番を足す` : `${move.from}番を外す`}`).join(' / ');
 }
 // 期間のお客さんを案内の順に1行ずつ。Excel で文字化けしないよう、先頭に BOM を付ける。
-// 区分・コースは今の設定の名前で出し、設定で消したものは記録に写しておいた名前（No.113）で出す
+// 区分・コースは記録に写しておいたそのときの名前（No.113）で出し、写していない古い記録は今の設定の名前で出す（値段は写さないので今の値段）
 export function sessionsCsv(sessions: (Session & { record?: Partial<SessionRecord> })[], settings: Pick<ShopSettings, 'drinkPlans' | 'courseMenus'>): string {
   const clock = (at: number | null) => at === null ? '' : formatClock(at);
   const rows = [...sessions].sort((a, b) => a.seatedAt - b.seatedAt).map(session => {
@@ -49,8 +49,8 @@ export function sessionsCsv(sessions: (Session & { record?: Partial<SessionRecor
       record.businessDay ?? businessDayOf(session.seatedAt),
       session.tableIds.join('・'),
       session.guests ?? '',
-      session.course === null ? '通常' : plan?.name ?? record.drinkPlanName ?? '消した区分',
-      session.course === null ? '' : menu ? `${priceLabel(menu)} ${menu.name}` : session.menu === null ? '未定' : record.courseName ?? '消したコース',
+      session.course === null ? '通常' : record.drinkPlanName ?? plan?.name ?? '消した区分',
+      session.course === null ? '' : menu ? `${priceLabel(menu)} ${record.courseName ?? menu.name}` : session.menu === null ? '未定' : record.courseName ?? '消したコース',
       clock(session.seatedAt),
       clock(session.otoshiAt),
       clock(session.loDoneAt),

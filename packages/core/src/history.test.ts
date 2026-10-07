@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_COURSE_MENUS } from './courseMenus';
+import { DEFAULT_COURSE_MENUS, priceLabel } from './courseMenus';
 import { DEFAULT_DRINK_PLANS, newSession, type Session } from './domain';
 import { businessDayOf, businessDayRange, businessDaysRange, csvFileName, CSV_HEADER, sessionsCsv } from './history';
 
@@ -56,6 +56,12 @@ describe('CSV', () => {
     const moved: Session = { ...plain, clearedAt: at(3, 23, 0), tableLog: [{ at: at(3, 18, 30), kind: 'move', from: '12', to: '13' }, { at: at(3, 19, 0), kind: 'add', from: null, to: '14' }] };
     const cells = lines(sessionsCsv([moved], settings))[1].split(',');
     expect(cells.slice(-2)).toEqual(['23:00', '18:30 12→13番に移動 / 19:00 14番を足す']);
+  });
+  it('名前を変えた区分・コースも、記録に写したそのときの名前で出す（No.113）', () => {
+    const recorded = { ...course, record: { drinkPlanName: '前の名前', courseName: '前のコース名' } };
+    const cells = lines(sessionsCsv([recorded], settings))[1].split(',');
+    expect(cells[3]).toBe('前の名前');
+    expect(lines(sessionsCsv([recorded], settings))[1]).toContain(`"${priceLabel(DEFAULT_COURSE_MENUS[1])} 前のコース名"`);
   });
   it('設定で消した区分・コースは、記録に写した名前で出す（No.113）', () => {
     const recorded = { ...course, record: { drinkPlanName: '昔の飲み放題', courseName: '昔のコース' } };
