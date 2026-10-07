@@ -7,6 +7,7 @@ import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
 import { CloseButton, PanelButton } from '../ui';
 import { menuOf } from '@table-check/core/courseMenus';
+import { useTapGuard } from '@table-check/core/tapGuard';
 import { SelectField } from './SelectField';
 import { courseOptions, guestOptions, menuOptions } from './pickers';
 import { remainingLabel, remainingOf } from '@table-check/core/dial';
@@ -85,6 +86,8 @@ function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; 
 export function DetailSheet({ session, time, othersEditing = false, settings, onClose, onNext, onSeat, onBack, onRetime, onPay, onGuests, onLeaveAt, onCourse, onMenu, onServe, onUnserve, from, onPick, onRelease }: Props) {
   const [changing, setChanging] = useState(false);
   const [showDishes, setShowDishes] = useState(false);
+  // 次の状態へのボタンは、押した直後の 0.5秒はもう一度押しても進めない（No.122。Web と同じ）
+  const guard = useTapGuard();
   const timer = timerOf(session, time);
   const next = nextStatus(session.status);
   // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
@@ -119,8 +122,8 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
       </View>}
     </View>
     {next
-      ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course, rules)]} tone="primary" onPress={() => { feedback.step(); onNext(session); }} style={styles.next} />
-      : session.status === 'exited' && <PanelButton label={session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'} tone="primary" onPress={() => { feedback.tap(); onSeat(from); }} style={styles.next} />}
+      ? <PanelButton label={STATUS_LABEL[displayOf(next, session.course, rules)]} tone="primary" onPress={() => guard(() => { feedback.step(); onNext(session); })} style={styles.next} />
+      : session.status === 'exited' && <PanelButton label={session.tableIds.length > 1 ? `${from}番にご案内` : 'ご案内'} tone="primary" onPress={() => guard(() => { feedback.tap(); onSeat(from); })} style={styles.next} />}
     <View style={styles.quick}>
       <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onBack(session); }} style={({ pressed }) => [styles.textButton, pressed && { opacity: 0.6 }]}>
         <Text style={styles.textButtonLabel}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</Text>
