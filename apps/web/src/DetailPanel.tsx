@@ -130,6 +130,11 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
         <span className="pay-state" id="panel-pay"><span className="pay-label">お会計</span><b className={paid ? '' : 'muted'}>{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</b></span>
         <button className="panel-button small line" aria-pressed={paid} aria-describedby="panel-pay" onClick={() => onPay(session)}>{paid ? '未払いに戻す' : 'お会計済みにする'}</button>
       </div>
+      {/* No.118：卓の追加（団体）はよく使うので、変更するにしまわずお会計と同じ形で出す。左に今の卓 */}
+      <div className="panel-quick">
+        <span className="pay-state" id="panel-joined"><span className="pay-label">卓</span><b>{session.tableIds.join('・')}番</b></span>
+        <button className="panel-button small line" aria-describedby="panel-joined" onClick={() => onPick('add')}>卓を追加（団体）</button>
+      </div>
       <button className="text-button panel-back" onClick={() => onBack(session)}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</button>
       {session.course !== null && <section className="panel-section" aria-labelledby="panel-dishes">
         <h3 id="panel-dishes" className="panel-heading">料理{progress && <span className="panel-heading-sub">{progress.served}/{progress.total}品</span>}</h3>
@@ -160,7 +165,7 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
           </div>
         </>}
       </section>}
-      {/* 変更する：人数・コース・時刻の修正・卓の移動と団体。ふだんは閉じておく */}
+      {/* 変更する：人数・コース・時刻の修正・卓の移動と団体から外す。ふだんは閉じておく */}
       <details className="panel-change">
         <summary className="panel-heading">変更する（人数・コース・時刻・卓）</summary>
         <div className="change-body">
@@ -189,7 +194,6 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
           </div>
           <div className="panel-actions">
             <button className="panel-button" onClick={() => onPick('move')}>{from}番を移動</button>
-            <button className="panel-button" onClick={() => onPick('add')}>卓を追加（団体）</button>
           </div>
         </div>
       </details>
