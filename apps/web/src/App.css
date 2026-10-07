@@ -468,7 +468,9 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .release-items { margin: 0; padding: 6px 0 2px 1.2em; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.6; }
 .export-row { flex-wrap: wrap; }
 .export-row .settings-row-text { flex-basis: 100%; }
-.export-row .field-select { flex: 1; max-width: 220px; }
+.export-range { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; }
+.export-range .field-select { flex: 1; min-width: 0; max-width: 200px; }
+@media (max-width: 600px) { .export-range { flex-basis: 100%; } .export-range .field-select { max-width: none; } .export-row > .panel-button { flex: 1; } }
 .minutes-stepper { flex-shrink: 0; display: grid; grid-template-columns: 36px 72px 36px; align-items: center; gap: 6px; }
 .minutes-stepper strong { text-align: center; font-size: 17px; font-weight: 600; }
 .minutes-stepper .panel-button.small { min-height: 36px; padding: 0; font-size: 18px; font-weight: 500; }

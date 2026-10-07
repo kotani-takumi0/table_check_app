@@ -31,7 +31,7 @@ import { UndoBar } from './UndoBar';
 import { editingSessionIds, type EditingMark, type EditingStore } from '@table-check/core/editing';
 import { now } from '@table-check/core/clock';
 import type { FeedbackStore } from '@table-check/core/feedback';
-import { businessDayOf, businessDayRange, csvFileName, sessionsCsv } from '@table-check/core/history';
+import { businessDayOf, businessDaysRange, csvFileName, sessionsCsv } from '@table-check/core/history';
 
 // trial：Firebase につながず、この端末の中だけで動いている（開発中の試し）
 // account：ログインしている店のメールアドレス（今の店は null）。onLeave：ログアウト・ログインし直す（最初の画面に戻る。No.88）
@@ -253,12 +253,12 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             const course = id === null ? null : shopSettings.courseMenus.find(menu => menu.id === id);
             setEditingCourse(course ? { course, isNew: false } : { course: newCourse(shopSettings.courseMenus, Date.now()), isNew: true });
             selectScreen('course');
-          }} today={businessDayOf(time)} onExportCsv={async day => {
-            const range = businessDayRange(day);
-            if (!range) throw new Error('日付を選んでください');
-            const daySessions = await store.fetchSeatedBetween(range.start, range.end);
-            if (daySessions.length > 0) downloadText(csvFileName(day), sessionsCsv(daySessions, shopSettings), 'text/csv');
-            return daySessions.length;
+          }} today={businessDayOf(time)} onExportCsv={async (from, to) => {
+            const range = businessDaysRange(from, to);
+            if (!range) throw new Error('はじめの日をおわりの日より前にしてください');
+            const recorded = await store.fetchSeatedBetween(range.start, range.end);
+            if (recorded.length > 0) downloadText(csvFileName(from, to), sessionsCsv(recorded, shopSettings), 'text/csv');
+            return recorded.length;
           }} inert={modal || menuOpen} />
       : screen === 'news' ? <ReleaseNotes inert={modal || menuOpen} />
       : screen === 'feedback' ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />

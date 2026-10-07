@@ -12,8 +12,8 @@ const SETTINGS_SECTIONS = [
   { id: 'today', label: '今日の営業' }, { id: 'shop', label: 'お店' }, { id: 'course', label: 'コース' }, { id: 'timers', label: '店のタイマー' }, { id: 'record', label: '記録' }, { id: 'time', label: '時間のルール' },
 ] as const;
 // onEditCourse：コースを直す画面を開く（null は新しいコースを足す。No.89）
-// onExportCsv：その営業日のお客さんを CSV で書き出し、書き出した人数（組）を返す（No.34）
-export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today, onExportCsv, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; today: string; onExportCsv(day: string): Promise<number>; inert?: boolean }) {
+// onExportCsv：期間（はじめ〜おわりの営業日）のお客さんを CSV で書き出し、書き出した人数（組）を返す（No.34・No.113）
+export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today, onExportCsv, inert }: { settings: ShopSettings; onChange(change: Partial<ShopSettings>): void; onOpenLayout(): void; onEditCourse(id: string | null): void; today: string; onExportCsv(from: string, to: string): Promise<number>; inert?: boolean }) {
   // 左の目次（No.107。デジタル庁のサイトと同じ形）：押すとその見出しへ動き、いま見ているまとまりを緑にする
   const scroller = useRef<HTMLElement>(null);
   const [active, setActive] = useState<string>(SETTINGS_SECTIONS[0].id);
@@ -82,24 +82,30 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
   </section>;
 }
 // その日のお客さんを CSV で書き出す（No.34）。営業のあとに表計算や AI に渡して見返す。日は朝4時で区切る
-function ExportRow({ today, onExport }: { today: string; onExport(day: string): Promise<number> }) {
-  const [day, setDay] = useState(today);
+function ExportRow({ today, onExport }: { today: string; onExport(from: string, to: string): Promise<number> }) {
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const run = () => {
     setBusy(true);
     setMessage('');
-    onExport(day).then(count => setMessage(count === 0 ? 'この日のお客さんはいませんでした' : `${count}組を書き出しました`),
+    onExport(from, to).then(count => setMessage(count === 0 ? 'この期間のお客さんはいませんでした' : `${count}組を書き出しました`),
       (error: unknown) => setMessage(`書き出せませんでした（${error instanceof Error ? error.message : '理由が分かりません'}）`)).finally(() => setBusy(false));
   };
+  // No.113：期間を選んでまとめて書き出す。1日だけなら、はじめとおわりを同じ日にする
   return <div className="settings-row export-row">
     <div className="settings-row-text">
-      <label htmlFor="export-day"><strong>その日のお客さんを CSV で書き出す</strong></label>
-      <p id="export-help" className="settings-help">卓・人数・コース・時刻・お会計を1組1行で書き出します。日は朝4時で区切ります（0時を過ぎたお客さんも前の日に入ります）。全卓消去したお客さんは入りません。</p>
+      <strong id="export-title">お客さんを CSV で書き出す</strong>
+      <p id="export-help" className="settings-help">選んだ期間のお客さんを、卓・人数・コース・時刻・お会計・卓の動きと一緒に1組1行で書き出します。日は朝4時で区切ります（0時を過ぎたお客さんも前の日に入ります）。全卓消去したお客さんも、消した時刻と一緒に入ります。</p>
       {message && <p className="settings-help" role="status">{message}</p>}
     </div>
-    <input id="export-day" type="date" className="field-select" value={day} max={today} aria-describedby="export-help" onChange={event => setDay(event.target.value)} />
-    <button className="panel-button" disabled={busy || day === ''} onClick={run}>{busy ? '書き出しています…' : '書き出す'}</button>
+    <div className="export-range" role="group" aria-labelledby="export-title" aria-describedby="export-help">
+      <input id="export-from" aria-label="はじめの日" type="date" className="field-select" value={from} max={today} onChange={event => { setFrom(event.target.value); if (event.target.value > to) setTo(event.target.value); }} />
+      <span aria-hidden="true">〜</span>
+      <input id="export-to" aria-label="おわりの日" type="date" className="field-select" value={to} min={from} max={today} onChange={event => setTo(event.target.value)} />
+    </div>
+    <button className="panel-button" disabled={busy || from === '' || to === '' || from > to} onClick={run}>{busy ? '書き出しています…' : '書き出す'}</button>
   </div>;
 }
 function SwitchRow({ id, label, help, checked, onChange }: { id: string; label: string; help: string; checked: boolean; onChange(checked: boolean): void }) {
