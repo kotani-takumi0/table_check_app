@@ -38,7 +38,9 @@ export function SeatSheet({ tableId, exited, previousUnpaid, onSeat, settings, o
   const plans: { id: Course | null; name: string }[] = [{ id: null, name: '通常' }, ...settings.drinkPlans.map(plan => ({ id: plan.id, name: drinkPlanName(settings.drinkPlans, plan.id) }))];
   return <>
     <Text style={sheet.title} accessibilityRole="header">{tableId}番にご案内</Text>
-    {exited && <Text style={sheet.message}>{tableId}番は退店済みです。ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</Text>}
+    {/* No.120：灰色の1文だと見落とすので、退店済みであることを赤い太字で先に出す */}
+    {exited && <Text style={sheet.exited}>{tableId}番は退店済みです。</Text>}
+    {exited && <Text style={sheet.message}>ご案内すると、前のお客さんの表示は新しいお客さんに置き換わります。</Text>}
     {exited && previousUnpaid && <Text style={sheet.warning}>前のお客さんはお会計済みになっていません</Text>}
     <Text style={styles.label} accessibilityRole="header">人数</Text>
     <View style={styles.stepper}>
