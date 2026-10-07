@@ -2,6 +2,7 @@ import { GRID, rotateClockwise, SEATS, type Seat, type SeatKind } from './layout
 import { isVisible, RULES, type Rules, type Session } from './domain';
 import { resolveSessions } from './firestoreMapping';
 import type { SyncState } from './store';
+import type { ShopSettings } from './shopSettings';
 
 // 卓とセッションの参照が一致し、退店後の表示時間も含めてお客さんが見えている卓
 // rules：退店済みを残す時間（No.14）を店の設定に合わせる
@@ -110,6 +111,8 @@ export interface ShopLayoutStore {
   save(layout: ShopLayout, rules?: Rules): Promise<void>;
   // 席の配置を一度でも保存したか（最初のページを出すかを決める。No.087）。分からない（オフラインなど）ときは null
   isSaved?(): Promise<boolean | null>;
+  // 店を始める（No.087）：設定と配置をまとめて入れる
+  start?(layout: ShopLayout, settings: Partial<ShopSettings>): Promise<void>;
 }
 // Firebase につながずに試すときの保存先。アプリを開いている間だけ覚える
 export class MemoryShopLayoutStore implements ShopLayoutStore {

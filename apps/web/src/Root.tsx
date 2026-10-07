@@ -11,7 +11,8 @@ import App from './App';
 import { APP_INFO } from './version';
 import { LoginScreen } from './LoginScreen';
 import { FirstPage } from './FirstPage';
-import { BLANK_SETTINGS } from '@table-check/core/shopTemplates';
+import { BLANK_SETTINGS, type TemplateSettings } from '@table-check/core/shopTemplates';
+import type { ShopLayout } from '@table-check/core/shopLayout';
 
 // localStorage は使えない環境だと触っただけで例外になるので、読み書きのたびに取りに行く（例外は startServerClock が受け止める）
 const browserStorage: KeyValueStorage = {
@@ -119,10 +120,13 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
   if (phase.kind === 'first') {
     const { stores, account: user } = phase;
     const begin = () => setPhase({ kind: 'ready', stores, userReady: Promise.resolve(user), account: user, trial: false });
-    // 設定を先に書き、配置を最後に保存する（配置があれば「始めた店」とみなす）
-    return <FirstPage account={user.email ?? ''} onLeave={leave}
-      onTemplate={async template => { await stores.shopSettingsStore.update(template.settings); await stores.shopLayoutStore.save(template.layout); begin(); }}
-      onBlank={async layout => { await stores.shopSettingsStore.update(BLANK_SETTINGS); await stores.shopLayoutStore.save(layout); begin(); }} />;
+    // 設定と配置を同じ書き込みで入れる（配置があれば「始めた店」とみなすので、設定だけ届かないことがないように）
+    const start = async (layout: ShopLayout, settings: TemplateSettings) => {
+      if (stores.shopLayoutStore.start) await stores.shopLayoutStore.start(layout, settings);
+      else { await stores.shopSettingsStore.update(settings); await stores.shopLayoutStore.save(layout); }
+      begin();
+    };
+    return <FirstPage account={user.email ?? ''} onLeave={leave} onTemplate={template => start(template.layout, template.settings)} onBlank={layout => start(layout, BLANK_SETTINGS)} />;
   }
   return <App key={phase.account?.uid ?? 'guest'} {...phase.stores} trial={phase.trial} account={phase.account?.email ?? null} onLeave={leave} leaveError={leaveError} />;
 }

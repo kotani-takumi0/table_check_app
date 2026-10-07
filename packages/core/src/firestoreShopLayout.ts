@@ -6,6 +6,7 @@ import type { Rules } from './domain';
 import { DEFAULT_LAYOUT, occupiedSeatIds, parseShopLayout, seatIdsOf, type ShopLayout, type ShopLayoutStore } from './shopLayout';
 import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
 import type { AppInfo } from './sessionRecord';
+import type { ShopSettings } from './shopSettings';
 
 // shopLayout/main に席の配置を持ち、全端末で共有する。まだ無い・壊れているときは今までの配置（DEFAULT_LAYOUT）を使う
 const SAVE_WAIT_MS = 4000;
@@ -30,6 +31,15 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     // 最初のページ（No.087）を出すかの判断なので、手元のキャッシュではなくサーバーで確かめる
     try { return (await getDocFromServer(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'))).exists(); }
     catch { return null; }
+  }
+  // 最初のページ（No.087）：設定と配置を同じ書き込みで入れる（配置があれば始めた店とみなすので、設定だけ届かないことがないように）。
+  // ルールに拒否されたら失敗を返す。オフラインだと終わらないので、少し待って返事が無ければ送信待ちとして成功にする（両方まとめて届く）
+  async start(layout: ShopLayout, settings: Partial<ShopSettings>): Promise<void> {
+    if (!await this.ready) throw new Error('ログインできていないので保存できません');
+    const batch = writeBatch(this.db);
+    batch.set(doc(this.db, shopPath(this.base, 'shopSettings'), 'main'), { ...settings, updatedAt: serverTimestamp() }, { merge: true });
+    batch.set(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'), { seats: layout.seats, labels: layout.labels, seatIds: seatIdsOf(layout), updatedAt: serverTimestamp() });
+    await Promise.race([batch.commit(), new Promise<void>(resolve => setTimeout(resolve, SAVE_WAIT_MS))]);
   }
   async save(layout: ShopLayout, rules?: Rules): Promise<void> {
     if (!await this.ready) throw new Error('ログインできていないので保存できません');
