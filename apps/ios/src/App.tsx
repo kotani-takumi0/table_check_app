@@ -193,7 +193,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   if (content === null && popover === null && openedShopTimer) {
     popover = <ShopTimerSheet label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeSheet} />;
   } else if (content === null && popover === null && clearing) {
-    popover = <ClearAllSheet unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={clearAll} onClose={closeSheet} />;
+    popover = <ClearAllSheet unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={() => clearAll(shopSettings)} onClose={closeSheet} />;
   }
   // シートが下がっていく間も、閉じる前の中身を出しておく
   const lastContent = useRef<ReactNode>(null);

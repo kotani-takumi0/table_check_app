@@ -19,10 +19,10 @@ export const UNDO_REFUSED: Record<Exclude<UndoCheck, 'ok'>, string> = {
 };
 
 const tables = (session: Session) => `${session.tableIds.join('・')}番`;
-// 段階と時刻・卓が同じなら、そのあと誰も触っていないとみなす
+// 段階と時刻・卓が同じなら、そのあと誰も触っていないとみなす（全卓消去したあとは戻さない。No.113）
 function sameStep(a: Session, b: Session): boolean {
   return a.status === b.status && a.seatedAt === b.seatedAt && a.otoshiAt === b.otoshiAt && a.loDoneAt === b.loDoneAt && a.exitedAt === b.exitedAt
-    && a.tableIds.join(',') === b.tableIds.join(',');
+    && a.tableIds.join(',') === b.tableIds.join(',') && a.clearedAt === b.clearedAt;
 }
 
 // 「案内を取り消す」「1つ戻す」のあと（after は revert の結果。null は記録を消した）
@@ -46,7 +46,7 @@ export function checkUndo(undo: Undo, sessions: Session[], done: ShopTimerDone):
   if (undo.after === null) {
     if (current) return 'changed';
     // 取り消した卓に、そのあと案内したお客さんがいれば戻さない（戻すと卓を取り返してしまう）。退店済みの表示だけなら置き換えてよい
-    const taken = sessions.some(s => s.status !== 'exited' && s.tableIds.some(id => undo.before.tableIds.includes(id)));
+    const taken = sessions.some(s => s.status !== 'exited' && s.clearedAt === null && s.tableIds.some(id => undo.before.tableIds.includes(id)));
     return taken ? 'taken' : 'ok';
   }
   return current && sameStep(current, undo.after) ? 'ok' : 'changed';

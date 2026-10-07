@@ -1,16 +1,18 @@
 import type { User } from 'firebase/auth';
-import { collection, doc, getDocFromServer, getDocsFromServer, onSnapshot, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
+import { collection, doc, getDocFromServer, getDocsFromServer, onSnapshot, serverTimestamp, writeBatch, type Firestore } from 'firebase/firestore';
 import { now } from './clock';
 import { fromSessionDoc } from './firestoreMapping';
 import type { Rules } from './domain';
 import { DEFAULT_LAYOUT, occupiedSeatIds, parseShopLayout, seatIdsOf, type ShopLayout, type ShopLayoutStore } from './shopLayout';
 import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
+import type { AppInfo } from './sessionRecord';
 
 // shopLayout/main に席の配置を持ち、全端末で共有する。まだ無い・壊れているときは今までの配置（DEFAULT_LAYOUT）を使う
 const SAVE_WAIT_MS = 4000;
 export class FirestoreShopLayoutStore implements ShopLayoutStore {
   private ready: Promise<boolean>;
-  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE) {
+  // app：配置の移り変わり（No.113）に、保存した端末の種類と版を残す
+  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE, private app: AppInfo | null = null) {
     this.ready = userReady.then(() => true, () => false);
   }
   subscribe(cb: (layout: ShopLayout) => void): () => void {
@@ -48,7 +50,14 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     if (missing.length) throw new Error(`${missing.join('・')}番にお客さんがいます`);
     // seatIds はルールが「案内できる卓か」を確かめるのに使う。
     // ルールに拒否されたら失敗を返す（編集画面は下書きを残す）。オフラインだと終わらないので、少し待って返事が無ければ送信待ちとして成功にする
-    const write = setDoc(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'), { seats: layout.seats, labels: layout.labels, seatIds: seatIdsOf(layout), updatedAt: serverTimestamp() });
+    // 配置の移り変わり（No.113）：保存するたびにその時点の配置を layoutHistory に足す（分析で、その日の卓の場所が分かるように）。
+    // 今の配置と同じ書き込みにまとめ、片方だけ残ることがないようにする
+    const batch = writeBatch(this.db);
+    batch.set(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'), { seats: layout.seats, labels: layout.labels, seatIds: seatIdsOf(layout), updatedAt: serverTimestamp() });
+    batch.set(doc(collection(this.db, shopPath(this.base, 'layoutHistory'))), {
+      seats: layout.seats, labels: layout.labels, platform: this.app?.platform ?? null, appVersion: this.app?.version ?? null, savedAt: serverTimestamp(),
+    });
+    const write = batch.commit();
     await Promise.race([write, new Promise<void>(resolve => setTimeout(resolve, SAVE_WAIT_MS))]);
   }
 }

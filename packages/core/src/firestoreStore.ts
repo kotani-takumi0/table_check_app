@@ -5,6 +5,11 @@ import type { Session } from './domain';
 import { fromSessionDoc, resolveSessions, tablesToWrite, toSessionDoc } from './firestoreMapping';
 import type { SessionStore, SyncState } from './store';
 import { GUEST_BASE, shopPath, type ShopBase } from './shopPath';
+import { recordFromDoc, sessionRecord, type AppInfo, type RecordedSession } from './sessionRecord';
+import { DEFAULT_SHOP_SETTINGS, type ShopSettings, type ShopSettingsStore } from './shopSettings';
+
+// 記録に写すもの（No.113）：店の設定（区分・コースの名前と時間のルール）と、書いた端末の種類・版
+export interface RecordSource { settings: ShopSettingsStore; app: AppInfo }
 
 export class FirestoreSessionStore implements SessionStore {
   private tables: Record<string, string | null> = {};
@@ -14,8 +19,9 @@ export class FirestoreSessionStore implements SessionStore {
   private metadata: [SnapshotMetadata | null, SnapshotMetadata | null] = [null, null];
   private stop: (() => void) | null = null;
   private ready: Promise<boolean>;
+  private settings: ShopSettings = DEFAULT_SHOP_SETTINGS;
 
-  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE) {
+  constructor(private db: Firestore, userReady: Promise<User>, private base: ShopBase = GUEST_BASE, private recordSource: RecordSource | null = null) {
     this.ready = userReady.then(() => true, error => { console.error(error); return false; });
   }
   private syncState(): SyncState {
@@ -36,6 +42,8 @@ export class FirestoreSessionStore implements SessionStore {
     const unsubscribes: (() => void)[] = [];
     this.metadata = [null, null];
     this.stop = () => { cancelled = true; unsubscribes.forEach(unsubscribe => unsubscribe()); };
+    // 記録に写す設定は、お客さんを読んでいる間だけ追う
+    if (this.recordSource) unsubscribes.push(this.recordSource.settings.subscribe(settings => { this.settings = settings; }));
     void this.ready.then(ready => {
       if (!ready || cancelled) return;
       const cutoff = now() - 12 * 60 * 60_000;
@@ -72,17 +80,22 @@ export class FirestoreSessionStore implements SessionStore {
   async put(session: Session): Promise<void> {
     if (!await this.ready) return;
     const batch = writeBatch(this.db);
-    batch.set(doc(this.db, shopPath(this.base, 'sessions'), session.id), { ...toSessionDoc(session), updatedAt: serverTimestamp() });
+    // 記録（No.113）は名前が分からない項目を書かずに前の値を残すので merge で書く（お客さんの項目は毎回すべて書く）
+    const record = this.recordSource ? sessionRecord(session, this.settings, this.recordSource.app) : {};
+    batch.set(doc(this.db, shopPath(this.base, 'sessions'), session.id), { ...toSessionDoc(session), ...record, updatedAt: serverTimestamp() }, { merge: true });
     for (const tableId of tablesToWrite(session)) {
       batch.set(doc(this.db, shopPath(this.base, 'tables'), tableId), { sessionId: session.id, updatedAt: serverTimestamp() });
     }
     void batch.commit().catch(error => console.error(error));
   }
-  async fetchSeatedBetween(start: number, end: number): Promise<Session[]> {
+  async fetchSeatedBetween(start: number, end: number): Promise<RecordedSession[]> {
     if (!await this.ready) throw new Error('ログインできていません');
     // 電波が無ければキャッシュにある分だけになる
     const snapshot = await getDocs(query(collection(this.db, shopPath(this.base, 'sessions')), where('seatedAt', '>=', start), where('seatedAt', '<', end)));
-    return snapshot.docs.map(item => fromSessionDoc(item.id, item.data())).filter((s): s is Session => s !== null);
+    return snapshot.docs.flatMap(item => {
+      const session = fromSessionDoc(item.id, item.data());
+      return session ? [{ ...session, record: recordFromDoc(item.data()) }] : [];
+    });
   }
   async remove(id: string): Promise<void> {
     if (!await this.ready) return;

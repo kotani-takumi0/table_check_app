@@ -8,6 +8,7 @@ import { newDeviceId } from '@table-check/core/firestoreEditing';
 import { startServerClock, type KeyValueStorage } from '@table-check/core/serverClock';
 import { accountBase, GUEST_BASE } from '@table-check/core/shopPath';
 import App from './App';
+import { APP_INFO } from './version';
 import { LoginScreen } from './LoginScreen';
 
 // localStorage は使えない環境だと触っただけで例外になるので、読み書きのたびに取りに行く（例外は startServerClock が受け止める）
@@ -36,13 +37,13 @@ export function Root({ db, auth, guestStores }: { db: Firestore; auth: Auth; gue
     setError('');
     if (guestStores) { setPhase({ kind: 'ready', stores: guestStores(), userReady: null, account: null, trial: true }); return; }
     const userReady = signInAsGuest(auth);
-    setPhase({ kind: 'ready', stores: firestoreStores(db, userReady, GUEST_BASE, newDeviceId()), userReady, account: null, trial: false });
+    setPhase({ kind: 'ready', stores: firestoreStores(db, userReady, GUEST_BASE, newDeviceId(), APP_INFO), userReady, account: null, trial: false });
   }, [auth, db, guestStores]);
   const startAccount = useCallback((user: User) => {
     writeMode('account');
     setError('');
     const userReady = Promise.resolve(user);
-    setPhase({ kind: 'ready', stores: firestoreStores(db, userReady, accountBase(user.uid), newDeviceId()), userReady, account: user, trial: false });
+    setPhase({ kind: 'ready', stores: firestoreStores(db, userReady, accountBase(user.uid), newDeviceId(), APP_INFO), userReady, account: user, trial: false });
   }, [db]);
   // 開いたとき：覚えている使い方で始める。ログインした店は、ログインが残っていればそのまま入る
   const started = useRef(false);

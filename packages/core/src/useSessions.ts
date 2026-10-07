@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { addTable, advance, editTime, moveTable, newSession, removeTable, revert, serveDish, setCourse, setGuests, setLeaveAt, setMenu, togglePaid, unserveDish, type Course, type EditableTime, type Session } from './domain';
+import { addTable, advance, clearSession, editTime, isVisible, moveTable, newSession, removeTable, revert, serveDish, setCourse, setGuests, setLeaveAt, setMenu, togglePaid, unserveDish, type Course, type EditableTime, type Rules, type Session } from './domain';
 import type { SessionStore } from './store';
 import { DEFAULT_COURSE_MENUS, type CourseMenu } from './courseMenus';
 import { now } from './clock';
@@ -22,10 +22,11 @@ export function useSessions(store: SessionStore, createId: () => string = random
   moveTo(session: Session, from: string, to: string): void;
   addTo(session: Session, tableId: string): void;
   release(session: Session, tableId: string): void;
-  clearAll(): void;
+  clearAll(rules: Rules): void;   // rules：退店済みを卓に残す時間（今卓に出ているお客さんだけを消す）
 } {
   const [sessions, setSessions] = useState<Session[]>([]);
-  useEffect(() => store.subscribe(setSessions), [store]);
+  // 全卓消去したお客さん（No.113）は記録に残すだけで、画面・通知には渡さない
+  useEffect(() => store.subscribe(all => setSessions(all.filter(session => session.clearedAt === null))), [store]);
   const seat = useCallback((tableId: string, guests: number | null = null, course: Course | null = null, menu: string | null = null) => {
     void store.put(newSession(createId(), tableId, now(), guests, course, menu));
   }, [store, createId]);
@@ -72,20 +73,21 @@ export function useSessions(store: SessionStore, createId: () => string = random
     if (reverted) void store.put(reverted);
   }, [store, menus]);
   const moveTo = useCallback((session: Session, from: string, to: string) => {
-    const moved = moveTable(session, from, to);
+    const moved = moveTable(session, from, to, now());
     if (moved) void store.put(moved);
   }, [store]);
   const addTo = useCallback((session: Session, tableId: string) => {
-    const added = addTable(session, tableId);
+    const added = addTable(session, tableId, now());
     if (added) void store.put(added);
   }, [store]);
   const release = useCallback((session: Session, tableId: string) => {
-    const removed = removeTable(session, tableId);
+    const removed = removeTable(session, tableId, now());
     if (removed) void store.put(removed);
   }, [store]);
-  // 全卓消去：今ある客をすべて消す（全端末の画面から消える）
-  const clearAll = useCallback(() => {
-    for (const session of sessions) void store.remove(session.id);
+  // 全卓消去：今卓に出ているお客さんを全端末の画面から消す。記録は消さずに、消した時刻を付けて残す（No.113）
+  const clearAll = useCallback((rules: Rules) => {
+    const at = now();
+    for (const session of sessions) if (isVisible(session, at, rules)) void store.put(clearSession(session, at));
   }, [store, sessions]);
   return { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll };
 }

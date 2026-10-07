@@ -24,9 +24,24 @@ service cloud.firestore {
     // 店が設定で作ったコース（No.89）の id は courseMenu に入れる（courseMenus.ts の isMenuId と同じ形）
     function isCourseMenuOrNull(v) { return v == null || (v is string && v.matches('^[a-z0-9_]{1,24}$')); }
     function isDishesServed(v) { return v is int && v >= 0 && v <= 30; }
+    // 店の毎日の記録（No.113、packages/core/src/sessionRecord.ts）。書くたびに写す営業日・名前・時間のルール・書いた端末
+    function isNameOrNull(v) { return v == null || (v is string && v.size() <= 30); }
+    function isTimeRulesOrNull(v) {
+      return v == null || (v is map && v.keys().hasOnly(['lastOrderMin','seatLimitMin','timeLimitOff'])
+        && v.lastOrderMin is int && v.seatLimitMin is int && v.timeLimitOff is bool);
+    }
+    function validRecord(d) {
+      return (d.get('businessDay', null) == null || (d.businessDay is string && d.businessDay.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && isNameOrNull(d.get('drinkPlanName', null)) && isNameOrNull(d.get('courseName', null))
+        && isTimeRulesOrNull(d.get('timeRules', null))
+        && (d.get('platform', null) == null || d.platform in ['web','ios'])
+        && (d.get('appVersion', null) == null || (d.appVersion is string && d.appVersion.size() <= 20));
+    }
     function validSession(d, shop) {
       // paidAt・guests・course・menu・dishesServed・leaveAt はお会計・人数・コース・料理・退店時刻の追加前のアプリが書かないので必須にしない
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','courseMenu','dishesServed','leaveAt','updatedAt'])
+      // clearedAt（全卓消去）・tableLog（卓の動き）と記録の項目（No.113）も同じく、前の版のアプリは書かない
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','courseMenu','dishesServed','leaveAt',
+          'clearedAt','tableLog','businessDay','drinkPlanName','courseName','timeRules','platform','appVersion','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 60
         && seatIds(shop).hasAll(d.tableIds)
@@ -40,6 +55,9 @@ service cloud.firestore {
         && isCourseMenuOrNull(d.get('courseMenu', null))
         && isDishesServed(d.get('dishesServed', 0))
         && isTimeOrNull(d.get('leaveAt', null))
+        && isTimeOrNull(d.get('clearedAt', null))
+        && d.get('tableLog', []) is list && d.get('tableLog', []).size() <= 200
+        && validRecord(d)
         && d.updatedAt == request.time;
     }
     // お会計の追加前のアプリは paidAt を書かずに文書ごと上書きするので、会計済みの記録を消させない
@@ -78,9 +96,20 @@ service cloud.firestore {
       return resource == null || resource.data.get('leaveAt', null) == null
         || request.resource.data.keys().hasAny(['leaveAt']);
     }
+    // 全卓消去したお客さん（No.113）を、前の版のアプリの上書きで画面に戻させない（新しいアプリは消していなくても clearedAt: null を書く）
+    function keepsCleared() {
+      return resource == null || resource.data.get('clearedAt', null) == null
+        || request.resource.data.keys().hasAny(['clearedAt']);
+    }
+    // 卓の動き（No.113）も同じく、前の版のアプリの上書きで消させない
+    function keepsTableLog() {
+      return resource == null || resource.data.get('tableLog', []).size() == 0
+        || request.resource.data.keys().hasAny(['tableLog']);
+    }
     // 書き込みの確かめ（今の店とログインした店で同じものを使う）
     function canWriteSession(shop) {
-      return validSession(request.resource.data, shop) && keepsPaid() && keepsGuests() && keepsCourse() && keepsDrinkPlan() && keepsCourseMenu() && keepsMenu() && keepsLeaveAt();
+      return validSession(request.resource.data, shop) && keepsPaid() && keepsGuests() && keepsCourse() && keepsDrinkPlan() && keepsCourseMenu() && keepsMenu() && keepsLeaveAt()
+        && keepsCleared() && keepsTableLog();
     }
     function canWriteTable(shop, tableId) {
       return tableId in seatIds(shop)
@@ -151,6 +180,17 @@ service cloud.firestore {
         && request.resource.data.seatIds is list && request.resource.data.seatIds.size() == request.resource.data.seats.size()
         && request.resource.data.updatedAt == request.time;
     }
+    // 配置の移り変わり（No.113、packages/core/src/firestoreShopLayout.ts）。配置を保存するたびに足すだけで、直さない・消さない
+    function canAddLayoutHistory() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['seats','labels','platform','appVersion','savedAt'])
+        && d.keys().hasAll(['seats','labels','savedAt'])
+        && d.seats is list && d.seats.size() >= 1 && d.seats.size() <= 60
+        && d.labels is list && d.labels.size() <= 20
+        && (d.get('platform', null) == null || d.platform in ['web','ios'])
+        && (d.get('appVersion', null) == null || (d.appVersion is string && d.appVersion.size() <= 20))
+        && d.savedAt == request.time;
+    }
     // 今の店（ログインなし）
     match /sessions/{id} {
       allow read, delete: if signedIn();
@@ -179,6 +219,11 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update: if signedIn() && canWriteLayout(id);
       allow delete: if false;
+    }
+    match /layoutHistory/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && canAddLayoutHistory();
+      allow update, delete: if false;
     }
     // ログインした店（No.88）。shops/{uid}/ の下に今の店と同じ形で持ち、その店のアカウントだけが読み書きできる
     match /shops/{shop} {
@@ -209,6 +254,11 @@ service cloud.firestore {
         allow read: if ownsShop(shop);
         allow create, update: if ownsShop(shop) && canWriteLayout(id);
         allow delete: if false;
+      }
+      match /layoutHistory/{id} {
+        allow read: if ownsShop(shop);
+        allow create: if ownsShop(shop) && canAddLayoutHistory();
+        allow update, delete: if false;
       }
     }
     // ご意見（No.125、packages/core/src/feedback.ts）。店ごとに分けず1か所に集める。アプリからは送るだけで、読むのは Firebase コンソールから。
