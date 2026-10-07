@@ -25,6 +25,12 @@ export class FirestoreShopLayoutStore implements ShopLayoutStore {
     });
     return () => { cancelled = true; unsubscribe?.(); };
   }
+  async isSaved(): Promise<boolean | null> {
+    if (!await this.ready) return null;
+    // 最初のページ（No.087）を出すかの判断なので、手元のキャッシュではなくサーバーで確かめる
+    try { return (await getDocFromServer(doc(this.db, shopPath(this.base, 'shopLayout'), 'main'))).exists(); }
+    catch { return null; }
+  }
   async save(layout: ShopLayout, rules?: Rules): Promise<void> {
     if (!await this.ready) throw new Error('ログインできていないので保存できません');
     let occupied = new Set<string>();

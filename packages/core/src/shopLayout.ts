@@ -108,6 +108,8 @@ export interface ShopLayoutStore {
   subscribe(cb: (layout: ShopLayout) => void): () => void;
   // rules：お客さんがいる卓を確かめるときの店の時間のルール（退店済みを残す時間）
   save(layout: ShopLayout, rules?: Rules): Promise<void>;
+  // 席の配置を一度でも保存したか（最初のページを出すかを決める。No.087）。分からない（オフラインなど）ときは null
+  isSaved?(): Promise<boolean | null>;
 }
 // Firebase につながずに試すときの保存先。アプリを開いている間だけ覚える
 export class MemoryShopLayoutStore implements ShopLayoutStore {
