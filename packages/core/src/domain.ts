@@ -189,12 +189,12 @@ export function setLeaveAt(session: Session, at: number | null): Session | null 
 // L.O. の時間を過ぎても L.O.確認済みにしていないセッション（数え始めが古い順）
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
 // （コースはファーストドリンクから数えるので、開始待ちの卓はそもそも時間が来ない）
-// 店全体で時間制限を切っているときは出さない
+// 店全体で時間制限を切っているときは出さない。全卓消去したお客さん（No.113）も出さない
 // rules は卓ごとに変えられる（コースごとの L.O.。sessionRules を渡す）
 export function lastOrderDue(sessions: Session[], now: number, rules: Rules | ((session: Session) => Rules) = RULES): Session[] {
   const rulesOf = typeof rules === 'function' ? rules : () => rules;
   return sessions
-    .flatMap(s => { const r = rulesOf(s); if (r.timeLimitOff) return []; const start = startOf(s); const limits = limitsOf(s, r); return s.status === 'otoshi' && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
+    .flatMap(s => { const r = rulesOf(s); if (r.timeLimitOff) return []; const start = startOf(s); const limits = limitsOf(s, r); return s.status === 'otoshi' && s.clearedAt === null && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
     .sort((a, b) => a.start - b.start)
     .map(({ s }) => s);
 }

@@ -140,6 +140,11 @@ describe('全卓消去（No.113）', () => {
   it('2回消しても最初の時刻のまま', () => {
     expect(clearSession(clearSession(otoshi, 200_000), 300_000).clearedAt).toBe(200_000);
   });
+  it('消したお客さんには L.O. を知らせない', () => {
+    const late = 200 * minute;
+    expect(lastOrderDue([otoshi], late)).toEqual([otoshi]);
+    expect(lastOrderDue([clearSession(otoshi, late)], late)).toEqual([]);
+  });
   it('消したお客さんは未払いの卓に数えない', () => {
     expect(unpaidTableCount([clearSession(otoshi, 200_000)], 200_000)).toBe(0);
   });

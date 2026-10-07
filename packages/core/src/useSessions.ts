@@ -25,7 +25,8 @@ export function useSessions(store: SessionStore, createId: () => string = random
   clearAll(rules: Rules): void;   // rules：退店済みを卓に残す時間（今卓に出ているお客さんだけを消す）
 } {
   const [sessions, setSessions] = useState<Session[]>([]);
-  useEffect(() => store.subscribe(setSessions), [store]);
+  // 全卓消去したお客さん（No.113）は記録に残すだけで、画面・通知には渡さない
+  useEffect(() => store.subscribe(all => setSessions(all.filter(session => session.clearedAt === null))), [store]);
   const seat = useCallback((tableId: string, guests: number | null = null, course: Course | null = null, menu: string | null = null) => {
     void store.put(newSession(createId(), tableId, now(), guests, course, menu));
   }, [store, createId]);
