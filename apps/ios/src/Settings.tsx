@@ -31,7 +31,7 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, top }
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>席の配置</Text>
-            <Text style={styles.help}>卓の場所・大きさ・卓番と、カウンターなどのことばを、マス目にブロックを置いて作り直します。すべての端末に反映されます。</Text>
+            <Text style={styles.help}>卓の場所・大きさ・卓番と、入口・キッチンなどの目印を、マス目にブロックを置いて作り直します。すべての端末に反映されます。</Text>
           </View>
           <PanelButton label="変える" onPress={() => { feedback.tap(); onOpenLayout(); }} style={styles.open} />
         </View>

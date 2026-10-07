@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GRID, type Seat, type SeatKind } from './layout';
-import { DEFAULT_LAYOUT, layoutProblems, nextSeatId, overlaps, type LayoutLabel, type ShopLayout } from './shopLayout';
+import { DEFAULT_LAYOUT, landmarkName, layoutProblems, nextSeatId, overlaps, type LandmarkKind, type LayoutLabel, type ShopLayout } from './shopLayout';
 
 // 席の配置を作り直す画面（No.75）の中身。Web と iOS（No.86）で同じものを使い、見た目だけそれぞれで作る
 // 左に並べるブロック。選んでからマス目の空いているところを押すと置く。大きさはあとで幅・高さを変えられる
@@ -9,7 +9,7 @@ export const LAYOUT_BLOCKS = [
   { key: 'long', name: '細長いテーブル', kind: 'table', colSpan: 3, rowSpan: 1 },
   { key: 'small', name: '小さいテーブル', kind: 'table', colSpan: 1, rowSpan: 1 },
   { key: 'counter', name: 'カウンター席', kind: 'counter', colSpan: 1, rowSpan: 1 },
-  { key: 'label', name: 'ことば（カウンターなど）', kind: 'label', colSpan: 4, rowSpan: 1 },
+  { key: 'label', name: '目印（入口・キッチンなど）', kind: 'label', colSpan: 2, rowSpan: 1 },
 ] as const;
 export type BlockKey = typeof LAYOUT_BLOCKS[number]['key'];
 export type LayoutSelected = { type: 'seat' | 'label'; index: number } | null;
@@ -56,7 +56,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
   const changed = JSON.stringify(draft) !== JSON.stringify(baseline);
   const seat = selected?.type === 'seat' ? draft.seats[selected.index] : undefined;
   const label = selected?.type === 'label' ? draft.labels[selected.index] : undefined;
-  // ほかの卓・ことばと重ならず、マス目に収まるか（動かす・大きさを変えるものは自分を除いて調べる）
+  // ほかの卓・目印と重ならず、マス目に収まるか（動かす・大きさを変えるものは自分を除いて調べる）
   const free = (box: Box, except?: LayoutSelected) => fits(box)
     && draft.seats.every((s, i) => (except?.type === 'seat' && except.index === i) || !overlaps(box, s))
     && draft.labels.every((l, i) => (except?.type === 'label' && except.index === i) || !overlaps(box, l));
@@ -68,7 +68,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     setDirty(true);
     setDraft(d => ({ ...d, labels: d.labels.map((l, i) => i === index ? { ...l, ...change } : l) }));
   };
-  // 空いているマスを押した：選んでいる卓・ことばがあればそこへ動かし、無ければ選んでいるブロックを置く
+  // 空いているマスを押した：選んでいる卓・目印があればそこへ動かし、無ければ選んでいるブロックを置く
   const pressCell = (col: number, row: number) => {
     setMessage('');
     if (seat || label) {
@@ -84,7 +84,8 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     if (!free(box)) { setMessage('そこには入りません。空いているところを押すか、小さいブロックを選んでください'); return; }
     setDirty(true);
     if (chosen.kind === 'label') {
-      setDraft(d => ({ ...d, labels: [...d.labels, { text: 'ことば', ...box }] }));
+      // 目印（No.128）はまず入口として置き、種類はあとで選ぶ
+      setDraft(d => ({ ...d, labels: [...d.labels, { kind: 'entrance', text: landmarkName('entrance')!, ...box }] }));
       setSelected({ type: 'label', index: draft.labels.length });
       return;
     }
@@ -93,7 +94,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     setOrigIds(ids => [...ids, null]);
     setSelected({ type: 'seat', index: draft.seats.length });
   };
-  // 置いた卓・ことばを押した：直すものとして選ぶ
+  // 置いた卓・目印を押した：直すものとして選ぶ
   const select = (next: LayoutSelected) => { setMessage(''); setSelected(next); };
   // 大きさを変える（幅・高さをマス1つずつ）。入らなければ変えない
   const resize = (dCol: number, dRow: number) => {
@@ -105,7 +106,7 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
     setMessage('');
     if (selected?.type === 'seat') updateSeat(selected.index, { colSpan: box.colSpan, rowSpan: box.rowSpan }); else updateLabel((selected as { index: number }).index, { colSpan: box.colSpan, rowSpan: box.rowSpan });
   };
-  // ドラッグ（No.93）：つかんだ卓・ことばを、その場所・大きさに置けるか（ドラッグ中の影の色に使う）
+  // ドラッグ（No.93）：つかんだ卓・目印を、その場所・大きさに置けるか（ドラッグ中の影の色に使う）
   const canPlace = (target: NonNullable<LayoutSelected>, box: Box) => free(box, target);
   // 指を離したところに置き、直すものとして選ぶ。置けなければ動かさず、理由を出す
   const placeAt = (target: NonNullable<LayoutSelected>, box: Box) => {
@@ -129,6 +130,12 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
   const setSeatId = (text: string) => { if (selected?.type === 'seat') updateSeat(selected.index, { id: text.replace(/\D/g, '').slice(0, 3) }); };
   const setSeatKind = (kind: SeatKind) => { if (selected?.type === 'seat') updateSeat(selected.index, { kind }); };
   const setLabelText = (text: string) => { if (selected?.type === 'label') updateLabel(selected.index, { text }); };
+  // 目印の種類（No.128）。用意した種類は名前もその種類の名前にし、店が足す目印（custom）は名前を入れてもらう（用意した種類から変えたら空にする）
+  const setLabelKind = (kind: LandmarkKind) => {
+    if (selected?.type !== 'label' || !label) return;
+    const name = landmarkName(kind);
+    updateLabel(selected.index, { kind, text: name ?? (label.kind === 'custom' ? label.text : '') });
+  };
   const resetToDefault = () => {
     setDraft(DEFAULT_LAYOUT);
     // 最初の配置に戻す操作も編集。読み込み時に存在した卓だけ、もとの卓番を引き継ぐ
@@ -148,6 +155,6 @@ export function useLayoutEditor({ layout, occupied, onSave, onClose }: { layout:
   const status = conflict ? 'ほかの端末で配置が変わりました。「最新を読み込む」を押してから直してください'
     : message || (problems.length ? `直すところ：${problems.join('／')}` : changed ? '保存すると、すべての端末の配置が変わります' : '');
   const canSave = changed && problems.length === 0 && !saving && !layoutChanged;
-  return { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText,
+  return { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText, setLabelKind,
     conflict, reload, resetToDefault, changed, saving, canSave, save, status };
 }

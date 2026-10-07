@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import { GRID, type SeatKind } from '@table-check/core/layout';
 import { cellAt, DRAG_THRESHOLD, dragBox, sameBox, type Cell, type DragKind } from '@table-check/core/layoutDrag';
-import { LABEL_MAX_LENGTH, type ShopLayout } from '@table-check/core/shopLayout';
+import { LABEL_MAX_LENGTH, LANDMARK_KINDS, type LandmarkKind, type ShopLayout } from '@table-check/core/shopLayout';
 import { LAYOUT_BLOCKS, useLayoutEditor } from '@table-check/core/useLayoutEditor';
 import { COLORS, FILL } from './theme';
 import { Glass } from './Glass';
@@ -11,6 +11,8 @@ import { PanelButton } from './ui';
 import { SelectField, type SelectOption } from './sheets/SelectField';
 
 const KIND_OPTIONS: SelectOption<SeatKind>[] = [{ value: 'table', label: 'テーブル' }, { value: 'counter', label: 'カウンター席' }];
+// 目印の種類（No.128。Web と同じ）
+const LANDMARK_OPTIONS: SelectOption<LandmarkKind>[] = [...LANDMARK_KINDS.map(item => ({ value: item.kind, label: item.name })), { value: 'custom', label: 'そのほか（名前を入れる）' }];
 const GAP = 4;
 // 大きさを変えるつまみの、指で押せる大きさ
 const HANDLE = 36;
@@ -22,12 +24,12 @@ type Target = { type: 'seat' | 'label'; index: number };
 export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait, mini }: {
   layout: ShopLayout; occupied: Set<string>; onSave(layout: ShopLayout): Promise<void>; onClose(): void; top: number; portrait: boolean; mini: boolean;
 }) {
-  const { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText,
+  const { draft, block, setBlock, selected, select, seat, label, locked, isOccupied, pressCell, resize, canPlace, placeAt, remove, setSeatId, setSeatKind, setLabelText, setLabelKind,
     conflict, reload, resetToDefault, changed, saving, canSave, save, status } = useLayoutEditor({ layout, occupied, onSave, onClose });
   const [gridWidth, setGridWidth] = useState(0);
   const cell = (gridWidth - GAP * (GRID.cols - 1)) / GRID.cols;
   const gridHeight = GRID.rows * cell + (GRID.rows - 1) * GAP;
-  // ドラッグ（Web と同じ。No.93）：置いた卓・ことばをつかんで動かし、選んでいるものは右下のつまみで大きさを変える。
+  // ドラッグ（Web と同じ。No.93）：置いた卓・目印をつかんで動かし、選んでいるものは右下のつまみで大きさを変える。
   // 指を離すまでは下書きを変えず、行き先を影で見せる（置けない場所は朱）。少ししか動かさなければ、今までどおり押して選ぶ。
   // 卓に指を置いている間は、画面のスクロールを止める（スクロールにドラッグを取られないように）
   const gridView = useRef<View>(null);
@@ -105,7 +107,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
               })}
             </View>
           </> : <>
-            <Text style={styles.groupTitle}>{seat ? `${seat.id}番` : `「${label?.text}」`}を直す</Text>
+            <Text style={styles.groupTitle}>{seat ? `${seat.id}番` : `目印「${label?.text}」`}を直す</Text>
             {seat && <>
               <View style={styles.fieldRow}>
                 <Text style={styles.fieldLabel}>卓番</Text>
@@ -114,10 +116,13 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
               <SelectField label="種類" value={seat.kind} options={KIND_OPTIONS} onChange={setSeatKind} />
               {locked && <Text style={styles.help}>お客さんがいる卓なので、卓番を変えたり消したりできません（動かす・大きさを変えるのはできます）</Text>}
             </>}
-            {label && <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>ことば</Text>
-              <TextInput accessibilityLabel="ことば" style={styles.input} maxLength={LABEL_MAX_LENGTH} value={label.text} onChangeText={setLabelText} />
-            </View>}
+            {label && <>
+              <SelectField label="種類" value={label.kind} options={LANDMARK_OPTIONS} onChange={setLabelKind} />
+              {label.kind === 'custom' && <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>名前</Text>
+                <TextInput accessibilityLabel="目印の名前" style={styles.input} maxLength={LABEL_MAX_LENGTH} placeholder="例：喫煙所・階段" value={label.text} onChangeText={setLabelText} />
+              </View>}
+            </>}
             {target && <View style={styles.sizes} accessibilityRole="none" accessibilityLabel="大きさ">
               <SizeRow name="幅" value={target.colSpan} onLess={() => resize(-1, 0)} onMore={() => resize(1, 0)} />
               <SizeRow name="高さ" value={target.rowSpan} onLess={() => resize(0, -1)} onMore={() => resize(0, 1)} />
@@ -136,7 +141,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
               {draft.labels.map((l, i) => {
                 const current = selected?.type === 'label' && selected.index === i;
                 const t: Target = { type: 'label', index: i };
-                return <View key={`label-${i}`} accessible accessibilityRole="button" accessibilityLabel={`ことば「${l.text}」（押すと直す）`} onAccessibilityTap={() => select(t)}
+                return <View key={`label-${i}`} accessible accessibilityRole="button" accessibilityLabel={`目印「${l.text}」（押すと直す）`} onAccessibilityTap={() => select(t)}
                   {...dragHandlers(t, l, 'move')} style={[styles.item, styles.labelItem, frame(l), current && styles.selected, isDragged(t) && styles.dragging]}>
                   <Text style={styles.labelText} numberOfLines={1} adjustsFontSizeToFit>{l.text}</Text>
                 </View>;
@@ -150,7 +155,7 @@ export function LayoutEditor({ layout, occupied, onSave, onClose, top, portrait,
                   <Text style={[styles.seatText, mini && styles.miniSeatText]} numberOfLines={1} adjustsFontSizeToFit>{s.id}</Text>
                 </View>;
               })}
-              {/* 大きさを変えるつまみ：選んでいる卓・ことばの右下の角（読み上げでは左の幅・高さの −／＋ を使う）。つかんでいる間も消さない */}
+              {/* 大きさを変えるつまみ：選んでいる卓・目印の右下の角（読み上げでは左の幅・高さの −／＋ を使う）。つかんでいる間も消さない */}
               {selected && target && <View accessible={false} {...dragHandlers(selected, target, 'resize')}
                 style={[styles.handle, { left: (target.col + target.colSpan - 1) * (cell + GAP) - HANDLE / 2, top: (target.row + target.rowSpan - 1) * (cell + GAP) - HANDLE / 2 }, preview && styles.hidden]}>
                 <View style={styles.handleDot} />
