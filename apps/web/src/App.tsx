@@ -13,7 +13,6 @@ import { Header } from './Header';
 import { DetailPanel } from './DetailPanel';
 import { ClearAllDialog } from './ClearAllDialog';
 import { SeatDialog } from './SeatDialog';
-import { ShopTimerDialog } from './ShopTimerDialog';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
@@ -127,15 +126,6 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     if (undo.kind === 'session') void store.put(undo.before);
     else void shopTimerStore.undoDone(undo.id, undo.after, undo.before);
   };
-  // ヘッダーのトイレタイマーは詳細を開き、そこから済にする（通知の「済にする」はすぐ済にする）
-  const [shopTimerOpen, setShopTimerOpen] = useState<ShopTimerId | null>(null);
-  const shopTimerReturnFocus = useRef<HTMLElement | null>(null);
-  const openShopTimer = useCallback((id: ShopTimerId) => {
-    shopTimerReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setShopTimerOpen(id);
-  }, []);
-  const closeShopTimer = useCallback(() => setShopTimerOpen(null), []);
-  const openedShopTimer = shopSettings.shopTimers.find(timer => timer.id === shopTimerOpen);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
@@ -184,7 +174,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const anchor = opened ? document.querySelector(`.floor [data-seat="${CSS.escape(openFrom)}"]`)?.getBoundingClientRect() ?? null : null;
   // ご案内も押した卓のそばに出す（No.85。詳細パネルの「ご案内」から開いたときも、その卓のそば）
   const seatingAnchor = seating === null ? null : document.querySelector(`.floor [data-seat="${CSS.escape(seating)}"]`)?.getBoundingClientRect() ?? null;
-  const modal = Boolean(opened) || clearing || seating !== null || Boolean(openedShopTimer);
+  const modal = Boolean(opened) || clearing || seating !== null;
   const picked = pick ? sessions.find(s => s.id === pick.sessionId && isVisible(s, time, shopSettings)) : undefined;
   // パネルを開いた卓を「×」で外したら、残っている卓の先頭を移動元にする
   const moveFrom = opened ? (opened.tableIds.includes(openFrom) ? openFrom : opened.tableIds[0]) : openFrom;
@@ -230,7 +220,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
-    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerOpen={openShopTimer} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
+    </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload}
       noticeCount={toasts.length} noticesOpen={noticesOpen && screen === 'floor'} onOpenNotices={() => { if (screen !== 'floor') selectScreen('floor'); openNotices(shownNotice); }} />}
     {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time, shopSettings)).flatMap(s => s.tableIds))}
@@ -275,7 +265,6 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} />}
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={nextWithUndo} onSeat={requestSeat} onBack={backWithUndo} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} sheet={mini} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} anchor={seatingAnchor} sheet={mini} />}
-    {openedShopTimer && <ShopTimerDialog label={openedShopTimer.label} icon={openedShopTimer.icon} doneAt={shopTimers[openedShopTimer.id]} onReset={() => markShopTimerDone(openedShopTimer.id)} onClose={closeShopTimer} returnFocus={shopTimerReturnFocus.current} />}
     {undo ? <UndoBar message={undo.message} runKey={undo.key} onUndo={applyUndo} /> : undoNote ? <UndoBar message={undoNote.message} runKey={undoNote.key} />
       : announce && !pick && <ReleaseBar onOpen={() => selectScreen('news')} onClose={markSeen} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={() => clearAll(shopSettings)} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
