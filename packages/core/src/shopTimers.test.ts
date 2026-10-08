@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SHOP_TIMERS, isShopTimerId, mergeShopTimerDone, newShopTimerId, parseDoneAt, parseShopTimers, shopTimerState, stepInterval } from './shopTimers';
+import { DEFAULT_SHOP_TIMERS, isShopTimerId, mergeShopTimerDone, newShopTimerId, parseDoneAt, parseShopTimers, shopTimerState, shortTimerNames, stepInterval } from './shopTimers';
 import { noticesOf } from './notices';
 
 const minute = 60_000;
@@ -47,5 +47,13 @@ describe('店が決めるタイマー（No.91）', () => {
   });
   it('通知は店のタイマーで出す', () => {
     expect(noticesOf([], {}, 0, undefined, [timer]).map(notice => notice.message)).toEqual(['ゴミ出しの時間です']);
+  });
+  it('スマホの短い名前は、共通する頭を省く', () => {
+    expect(shortTimerNames(['トイレチェック', 'トイレ清掃'])).toEqual(['チェック', '清掃']);
+    expect(shortTimerNames(['トイレ清掃', 'ゴミ出し'])).toEqual(['トイレ清掃', 'ゴミ出し']);
+    // 省くと空になる名前があれば省かない。1つだけならそのまま
+    expect(shortTimerNames(['トイレ', 'トイレ清掃'])).toEqual(['トイレ', 'トイレ清掃']);
+    expect(shortTimerNames(['トイレチェック'])).toEqual(['トイレチェック']);
+    expect(shortTimerNames([])).toEqual([]);
   });
 });

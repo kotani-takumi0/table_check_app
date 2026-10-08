@@ -68,3 +68,11 @@ export function parseDoneAt(value: string | null): number | undefined {
   const at = value === null ? NaN : Number(value);
   return Number.isFinite(at) && value !== '' ? at : undefined;
 }
+// スマホのツールバーに出す短い名前：どの名前にも共通する頭（「トイレチェック」「トイレ清掃」なら「トイレ」）を省く。
+// 省くと空になる名前があるとき・タイマーが1つのときは、そのままの名前にする
+export function shortTimerNames(labels: string[]): string[] {
+  if (labels.length < 2) return labels;
+  let prefix = labels[0];
+  for (const label of labels) while (!label.startsWith(prefix)) prefix = prefix.slice(0, -1);
+  return labels.some(label => label.length === prefix.length) ? labels : labels.map(label => label.slice(prefix.length));
+}
