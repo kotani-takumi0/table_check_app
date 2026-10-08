@@ -1,9 +1,8 @@
 import { formatClock } from '@table-check/core/domain';
 import { APP_VERSION } from './version';
-import { shopTimerState, type ShopTimer, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
+import { shopTimerState, shortTimerNames, type ShopTimer, type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import type { SyncState } from '@table-check/core/store';
-import { useEffect, useState } from 'react';
-import { ShopTimerGlyph } from './ShopTimerGlyph';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 interface Props {
   time: number;
@@ -11,7 +10,7 @@ interface Props {
   showSync: boolean;
   timers: ShopTimer[];        // 店のタイマー（No.91。店の設定）
   shopTimers: ShopTimerDone;
-  onShopTimerOpen(id: ShopTimerId): void;   // 詳細を開く（押しただけでは済にしない）
+  onShopTimerDone(id: ShopTimerId): void;   // 押印欄を押した：すぐ済にする（画面の下の帯で元に戻せる）
   canClearAll: boolean;
   onClearAll(): void;   // 確認ダイアログを開く（押しただけでは消さない）
   menuOpen: boolean;    // メニューを開いているか
@@ -28,8 +27,8 @@ interface Props {
 }
 // 「消す卓はありません」を出しておく長さ
 const NOTHING_TO_CLEAR_MS = 2500;
-// 画面の上の白いヘッダー（No.107）：左に「メニュー」・名前とトイレのタイマー（時間制限なしの目印）、右に同期状態・バージョン・時刻・全卓消去
-export function Header({ time, syncState, showSync, timers, shopTimers, onShopTimerOpen, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, updateReady, onUpdate, inert, trial, noticeCount, noticesOpen, onOpenNotices }: Props) {
+// 画面の上の白いヘッダー（No.107）：左に「メニュー」・名前と店のタイマーの欄（時間制限なしの目印）、右に同期状態・バージョン・時刻・全卓消去
+export function Header({ time, syncState, showSync, timers, shopTimers, onShopTimerDone, canClearAll, onClearAll, menuOpen, onToggleMenu, timeLimitOff, onOpenSettings, updateReady, onUpdate, inert, trial, noticeCount, noticesOpen, onOpenNotices }: Props) {
   // 卓が0のときにゴミ箱を押したら「消す卓はありません」を少しだけ出す
   const [nothingToClear, setNothingToClear] = useState(false);
   useEffect(() => {
@@ -37,27 +36,38 @@ export function Header({ time, syncState, showSync, timers, shopTimers, onShopTi
     const timer = setTimeout(() => setNothingToClear(false), NOTHING_TO_CLEAR_MS);
     return () => clearTimeout(timer);
   }, [nothingToClear]);
+  const shortNames = shortTimerNames(timers.map(timer => timer.label));
   return <header className="toolbar" inert={inert}>
     <button className="list-toggle" aria-label="メニュー" title="メニュー" aria-expanded={menuOpen} aria-controls="side-menu" onClick={onToggleMenu}>
       <svg className="toolbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15" /></svg>
     </button>
     {/* アプリの名前と印（アイコンのウチワサボテンを4つのマスにしたもの）。スマホでは隠す */}
     <span className="brand" aria-hidden="true"><span className="brand-mark"><i /><i /><i /><i /></span>Minopal</span>
-    <span className="toolbar-rule" aria-hidden="true" />
+    {/* 店のタイマー：帳票の欄のように「印・名前・残り」を罫線で区切って並べ、右に「済にする」の枠のボタンを置く。欄そのものは押せず、押すのはボタンだけ */}
     <div className="shop-timers">
-      {/* タイマーが多くて入らないときは、チップの並びだけを横にスクロールする（時間制限なしの目印は外に置いて隠さない） */}
+      {/* タイマーが多くて入らないときは、欄の並びだけを横にスクロールする（時間制限なしの目印は外に置いて隠さない） */}
       <div className="shop-timer-list">
-      {timers.map(timer => {
+      {timers.map((timer, index) => {
         // 画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける
-        const state = shopTimerState(timer.intervalMin, shopTimers[timer.id], time);
+        const doneAt = shopTimers[timer.id];
+        const state = shopTimerState(timer.intervalMin, doneAt, time);
         const minutes = Math.min(timer.intervalMin, Math.ceil(state.remainingMs / 60_000));
         const rest = state.due ? '時間です' : `あと${minutes}分`;
-        // 名前（スマホでは隠す）は幅が足りなければ省略し、残り時間の数字は切らない。スマホは「あと」も省く
-        return <button key={timer.id} className={`shop-timer ${state.due ? 'due' : ''}`} aria-label={`${timer.label} ${rest}（押すと詳細）`} title={timer.label} onClick={() => onShopTimerOpen(timer.id)}>
-          <ShopTimerGlyph icon={timer.icon} />
-          <span className="shop-timer-name" aria-hidden="true">{timer.label}</span>
-          <span className="shop-timer-rest" aria-hidden="true">{state.due ? rest : <><span className="shop-timer-ato">あと</span>{minutes}分</>}</span>
-        </button>;
+        // 印はアプリのアイコンから：ふだんは淡い緑の丸が残り時間に合わせて欠けていき、時間が来たら右下の赤い角丸の四角になる
+        const left = Math.min(1, state.remainingMs / (timer.intervalMin * 60_000));
+        return <div key={timer.id} className={`shop-timer ${state.due ? 'due' : ''}`}>
+          <span className="shop-timer-mark" style={{ '--left': `${left * 360}deg` } as CSSProperties} aria-hidden="true" />
+          <span className="shop-timer-text" aria-hidden="true">
+            <span className="shop-timer-name" title={timer.label}>{timer.label}</span>
+            <span className="shop-timer-name short">{shortNames[index]}</span>
+            <span className="shop-timer-rest">{state.due ? rest : <><span className="shop-timer-ato">あと</span>{minutes}分</>}</span>
+          </span>
+          {/* 押したらすぐ済にする（画面の下の帯で元に戻せる）。前回済にした時刻は読み上げとマウスを乗せたときに出す */}
+          <button className="shop-timer-done" title={doneAt === undefined ? undefined : `前回 ${formatClock(doneAt)} に済`}
+            aria-label={`${timer.label}を済にする（${rest}${doneAt === undefined ? '' : `。前回 ${formatClock(doneAt)} に済`}）`} onClick={() => onShopTimerDone(timer.id)}>
+            済<span className="shop-timer-done-long">にする</span>
+          </button>
+        </div>;
       })}
       </div>
       {/* 切ったまま忘れないよう、時間制限なしの間はツールバーに出しておく */}

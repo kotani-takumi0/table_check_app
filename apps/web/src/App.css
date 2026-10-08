@@ -66,20 +66,26 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .brand-mark i { width: 8px; height: 8px; border-radius: 2.5px; background: var(--key); }
 .brand-mark i:nth-child(2) { border-radius: 50%; background: #8fcfa3; }
 .brand-mark i:nth-child(4) { background: var(--now); }
-.toolbar-rule { flex: none; width: 1px; height: 24px; margin: 0 6px; background: var(--line); }
-.shop-timers { min-width: 0; flex: 0 1 auto; display: flex; align-items: center; gap: 6px; }
-/* タイマーが多くて入らないときは、チップの並びだけを横にスクロールする（チップは「アイコン＋残り時間」の幅より縮めない。時間制限なしの目印は外） */
-.shop-timer-list { min-width: 0; display: flex; align-items: center; gap: inherit; overflow-x: auto; scrollbar-width: none; }
+/* 店のタイマー（No.91）：帳票の欄のように、ヘッダーの高さいっぱいの罫線で区切る。欄は「印・名前・残り」の表示だけで押せない。押すのは右の「済にする」だけ */
+.shop-timers { min-width: 0; flex: 0 1 auto; align-self: stretch; display: flex; align-items: center; gap: 8px; margin-left: 4px; border-left: 1px solid var(--line); }
+/* タイマーが多くて入らないときは、欄の並びだけを横にスクロールする（時間制限なしの目印は外） */
+.shop-timer-list { min-width: 0; align-self: stretch; display: flex; overflow-x: auto; scrollbar-width: none; }
 .shop-timer-list::-webkit-scrollbar { display: none; }
-/* 最小幅：アイコン・名前の「ト…」・「あと120分」・余白が入る幅（名前だけが縮む） */
-.shop-timer { flex-shrink: 1; min-width: 11.7em; overflow: hidden; height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px 0 10px; border: 0; border-radius: 8px; background: var(--tile); color: var(--ink-2); font-size: 14px; white-space: nowrap; }
-.shop-timer:hover { background: #e8eeea; }
-/* No.99：線のアイコン＋名前＋残り時間。幅が足りなければ名前から省略し、残り時間の数字は切らない */
-.shop-timer-glyph { flex-shrink: 0; width: 18px; height: 18px; color: var(--key); }
-.shop-timer-name { min-width: 2em; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 700; }
-.shop-timer-rest { flex-shrink: 0; font-weight: 500; }
-.shop-timer.due { background: var(--now-wash); color: var(--now-ink); box-shadow: inset 0 0 0 1px var(--now-line); font-weight: 700; }
-.shop-timer.due .shop-timer-name, .shop-timer.due .shop-timer-glyph { color: inherit; }
+.shop-timer { flex: none; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 16px; border-right: 1px solid var(--line); white-space: nowrap; }
+/* 印：アイコンの淡い緑の丸。残り時間のぶんだけ緑が残る（--left は 0〜360deg）。時間が来たらアイコン右下の赤い角丸の四角 */
+.shop-timer-mark { flex: none; width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(#8fcfa3 var(--left), var(--track) 0); }
+.shop-timer.due .shop-timer-mark { border-radius: 5px; background: var(--now); }
+.shop-timer-text { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+/* 名前は小さい見出し、残り時間を大きく（卓カードと同じく、数字を読ませる） */
+.shop-timer-name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); font-size: 12px; }
+.shop-timer-name.short { display: none; }
+.shop-timer-rest { color: var(--ink); font-size: 17px; font-weight: 600; }
+.shop-timer-ato { margin-right: 2px; color: var(--ink-2); font-family: var(--sans); font-size: 13px; font-weight: 400; }
+.shop-timer.due .shop-timer-name, .shop-timer.due .shop-timer-rest { color: var(--now-ink); }
+.shop-timer.due .shop-timer-rest { font-family: var(--sans); font-weight: 700; }
+/* 枠のボタン（白い地に緑の枠と文字） */
+.shop-timer-done { flex: none; height: 32px; margin-left: 6px; padding: 0 12px; border: 1px solid var(--key); border-radius: 8px; background: var(--page); color: var(--key); font-size: 14px; font-weight: 700; white-space: nowrap; }
+.shop-timer-done:hover { background: var(--key-wash); }
 /* 時間制限なしの目印（押すと設定） */
 .limit-off { flex-shrink: 0; height: 34px; padding: 0 12px; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); color: var(--ink); font-size: 14px; font-weight: 700; white-space: nowrap; }
 /* 右：同期・バージョン・時刻・全卓消去。中身より縮めない（縮めるのは左のチップと、オフラインの文言だけ） */
@@ -394,10 +400,6 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .choice[aria-checked="true"]:not(:has(.choice-sub))::before { content: '✓'; margin-right: 6px; }
 .choice-sub { display: block; font-size: 12px; font-weight: 500; }
 
-/* 店のタイマーの詳細：題はアイコン＋名前 */
-.shop-timer-title { align-items: center; }
-.shop-timer-title-glyph { flex-shrink: 0; width: 24px; height: 24px; color: var(--key); }
-
 /* メニュー：左から出す白い引き出し。フロアは縮めず、後ろはごく薄く暗くする */
 .list-backdrop { position: absolute; inset: 56px 0 0 0; z-index: 4; background: rgb(22 33 27 / 0.12); }
 .side-menu { position: absolute; z-index: 6; top: 56px; bottom: 0; left: 0; width: min(280px, 100%); display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--page); box-shadow: var(--float); animation: list-in 0.18s ease-out; }
@@ -571,17 +573,23 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 
 /* スマホ：小さいカードに卓番・経過・段階だけ。操作はタップで開く詳細パネルで行う */
 .mini .toolbar, .mini .pick-bar { height: 48px; gap: 4px; padding: 0 6px 0 4px; }
-.mini .brand, .mini .toolbar-rule { display: none; }
+.mini .brand { display: none; }
 .mini .list-toggle, .mini .clear-all { width: 36px; height: 36px; }
 .mini .toolbar-right { gap: 6px; }
 .mini .toolbar time { font-size: 17px; }
 .mini .sync-state.synced { font-size: 0; }
 .mini .app-update-long, .mini .limit-off-long { display: none; }
 .mini .pick-bar strong { font-size: 13px; }
-/* スマホは名前を出さず縮めてよい所がないので、チップは縮めずに並びをスクロールする */
-.mini .shop-timer { flex-shrink: 0; min-width: 0; height: 32px; gap: 4px; padding: 0 8px; font-size: 13px; }
-.mini .shop-timer-glyph { width: 16px; height: 16px; }
-.mini .shop-timer-name, .mini .shop-timer-ato { display: none; }
+/* スマホ：名前は短く省略し、「あと」を省く。ボタンは「済」だけ */
+.mini .shop-timers { margin-left: 0; }
+.mini .shop-timer { gap: 4px; padding: 0 4px 0 6px; }
+.mini .shop-timer-mark { width: 10px; height: 10px; }
+.mini .shop-timer.due .shop-timer-mark { border-radius: 3px; }
+.mini .shop-timer-name { display: none; }
+.mini .shop-timer-name.short { display: block; max-width: 5em; font-size: 11px; }
+.mini .shop-timer-rest { font-size: 15px; }
+.mini .shop-timer-ato, .mini .shop-timer-done-long { display: none; }
+.mini .shop-timer-done { height: 30px; margin-left: 2px; padding: 0 8px; font-size: 13px; }
 .mini .limit-off { height: 32px; padding: 0 8px; font-size: 12px; }
 .mini .list-backdrop { inset: 48px 0 0 0; }
 /* No.110：スマホのメニューは画面の幅いっぱい */
