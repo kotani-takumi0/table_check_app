@@ -22,8 +22,9 @@ function validSession(value: unknown): value is Session {
     && (s.dishesServed === undefined || (Number.isInteger(s.dishesServed) && (s.dishesServed as number) >= 0))
     && (s.leaveAt === undefined || s.leaveAt === null || timestamp(s.leaveAt))
     && (s.clearedAt === undefined || s.clearedAt === null || timestamp(s.clearedAt))
-    && (s.status === 'seated' || timestamp(s.otoshiAt))
-    && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt))
+    // 閉店で退店にした卓（No.129）は、お通し・L.O.確認の時刻が空でもよい（firestoreMapping の fromSessionDoc と同じ）
+    && (s.status === 'seated' || timestamp(s.otoshiAt) || (s.status === 'exited' && s.exitedByClosing === true))
+    && (!['lo_done', 'exited'].includes(String(s.status)) || timestamp(s.loDoneAt) || (s.status === 'exited' && s.exitedByClosing === true))
     && (s.status !== 'exited' || timestamp(s.exitedAt));
 }
 export class LocalSessionStore implements SessionStore {

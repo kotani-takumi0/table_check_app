@@ -39,6 +39,10 @@ describe('店の設定', () => {
     expect(parseShopSettings({ lastOrderMin: 60, seatLimitMin: 90, otoshiWarnMin: 10, exitedKeepMin: 3, otoshi: false, shopName: 'ミノパル' }))
       .toEqual({ ...DEFAULT_SHOP_SETTINGS, lastOrderMin: 60, seatLimitMin: 90, otoshiWarnMin: 10, exitedKeepMin: 3, otoshi: false, shopName: 'ミノパル' });
   });
+  it('閉店時刻は15分ごとの分だけを読み、ほかは決めていない（No.129）', () => {
+    expect(parseShopSettings({ closingMin: 1410 }).closingMin).toBe(1410);
+    expect([undefined, null, 1412, 1440, '1410'].map(closingMin => parseShopSettings({ closingMin }).closingMin)).toEqual([null, null, null, null, null]);
+  });
   it('範囲の外の分は既定値、L.O. がお席の時間に届くなら両方とも既定値で読む', () => {
     expect(parseShopSettings({ otoshiWarnMin: 0, exitedKeepMin: 1.5, seatLimitMin: 999 })).toEqual(DEFAULT_SHOP_SETTINGS);
     expect(parseShopSettings({ lastOrderMin: 120, seatLimitMin: 120 })).toEqual(DEFAULT_SHOP_SETTINGS);

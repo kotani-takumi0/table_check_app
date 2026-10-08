@@ -4,6 +4,7 @@ import { priceLabel, type CourseMenu } from '@table-check/core/courseMenus';
 import { newShopTimerId, SHOP_TIMER_LIMITS, stepInterval, type ShopTimer, type ShopTimerId } from '@table-check/core/shopTimers';
 import { FALLBACK_SHOP_TIMER_ICON, SHOP_TIMER_ICONS, shopTimerIcon } from '@table-check/core/shopTimerIcons';
 import { ShopTimerGlyph } from './ShopTimerGlyph';
+import { CLOSING_CHOICES, closingLabel } from '@table-check/core/closing';
 import { COURSE_LIMITS, DRINK_PLAN_NAME_MAX, DRINK_PLANS_MAX, newDrinkPlanId, SHOP_NAME_MAX, stepMinutes, type MinuteSetting, type ShopSettings } from '@table-check/core/shopSettings';
 
 // 設定の画面（メニューの「設定」）。店全体の設定は全端末に反映する
@@ -54,6 +55,7 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
         </div>
         <button className="panel-button" onClick={onOpenLayout}>変える</button>
       </div>
+      <ClosingRow closingMin={settings.closingMin} onChange={closingMin => onChange({ closingMin })} />
     </div>
     <div id="settings-course" className="settings-group sheet" role="group" aria-labelledby="settings-course-title">
       <h2 id="settings-course-title" className="settings-group-title">コース</h2>
@@ -106,6 +108,20 @@ function ExportRow({ today, onExport }: { today: string; onExport(from: string, 
       <input id="export-to" aria-label="おわりの日" type="date" className="field-select" value={to} min={from} max={today} onChange={event => setTo(event.target.value)} />
     </div>
     <button className="panel-button" disabled={busy || from === '' || to === '' || from > to} onClick={run}>{busy ? '書き出しています…' : '書き出す'}</button>
+  </div>;
+}
+// 閉店時刻（No.129）。閉店が近づくとアプリを触らなくなるので、過ぎても退店していない卓を閉店で退店にして、その日の記録を閉じる
+function ClosingRow({ closingMin, onChange }: { closingMin: number | null; onChange(closingMin: number | null): void }) {
+  return <div className="settings-row">
+    <div className="settings-row-text">
+      <label htmlFor="closing-time"><strong>閉店時刻</strong></label>
+      <p id="closing-help" className="settings-help">この時刻を過ぎても退店していない卓を、閉店時刻で退店にします。記録には「閉店で退店」と残ります。閉店時刻より後に案内した卓は、朝4時に退店にします。</p>
+    </div>
+    <select id="closing-time" className="field-select" aria-describedby="closing-help" value={closingMin ?? ''}
+      onChange={event => onChange(event.target.value === '' ? null : Number(event.target.value))}>
+      <option value="">決めない</option>
+      {CLOSING_CHOICES.map(min => <option key={min} value={min}>{closingLabel(min)}</option>)}
+    </select>
   </div>;
 }
 function SwitchRow({ id, label, help, checked, onChange }: { id: string; label: string; help: string; checked: boolean; onChange(checked: boolean): void }) {

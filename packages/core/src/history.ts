@@ -32,7 +32,7 @@ function field(value: string | number): string {
   const text = String(value);
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
-export const CSV_HEADER = ['営業日', '卓', '人数', '区分', 'コース', '案内', 'お通し・ファーストドリンク', 'L.O.確認', '退店', '滞在（分）', 'お会計', '最後の状態', '全卓消去', '卓の動き'];
+export const CSV_HEADER = ['営業日', '卓', '人数', '区分', 'コース', '案内', 'お通し・ファーストドリンク', 'L.O.確認', '退店', '滞在（分）', 'お会計', '最後の状態', '閉店で退店', '全卓消去', '卓の動き'];
 // 卓の動き（No.113）を1つの欄にする。例「19:10 12→13番に移動 / 19:40 14番を足す」
 function tableLogText(log: TableMove[]): string {
   return log.map(move => `${formatClock(move.at)} ${move.kind === 'move' ? `${move.from}→${move.to}番に移動` : move.kind === 'add' ? `${move.to}番を足す` : `${move.from}番を外す`}`).join(' / ');
@@ -58,6 +58,7 @@ export function sessionsCsv(sessions: (Session & { record?: Partial<SessionRecor
       session.exitedAt === null ? '' : Math.round((session.exitedAt - session.seatedAt) / 60_000),
       session.paidAt === null ? '未払い' : `会計済（${formatClock(session.paidAt)}）`,
       STATUS_LABEL[session.status],
+      session.exitedByClosing ? 'はい' : '',
       clock(session.clearedAt),
       tableLogText(session.tableLog),
     ];

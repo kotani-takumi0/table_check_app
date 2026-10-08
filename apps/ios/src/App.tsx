@@ -60,7 +60,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   // 店全体の設定（時間のルール・飲み放題の区分・コースなど）。全端末で共有する
   const [shopSettings, setShopSettings] = useState<ShopSettings>(DEFAULT_SHOP_SETTINGS);
   useEffect(() => shopSettingsStore.subscribe(setShopSettings), [shopSettingsStore]);
-  const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll } = useSessions(store, randomUUID, shopSettings.courseMenus);
+  const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll, closeOut } = useSessions(store, randomUUID, shopSettings.courseMenus);
   const [time, setTime] = useState(now);
   useEffect(() => {
     const interval = setInterval(() => setTime(now()), 1000);
@@ -86,6 +86,12 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
     const timer = setTimeout(() => setUndoNote(null), UNDO_MS);
     return () => clearTimeout(timer);
   }, [undoNote]);
+  // 閉店時刻（No.129。Web と同じ）：過ぎても退店していない卓を、閉店で退店にする。1分ごとに確かめ、退店にしたら下の帯で知らせる
+  const minuteNow = Math.floor(time / 60_000);
+  useEffect(() => {
+    const count = closeOut(shopSettings.closingMin, now());
+    if (count > 0) setUndoNote(`閉店時刻を過ぎたので、${count}組を退店にしました`);
+  }, [closeOut, shopSettings.closingMin, minuteNow]);
   const markShopTimerDone = useCallback((id: ShopTimerId) => {
     const at = now();
     void shopTimerStore.markDone(id, at);

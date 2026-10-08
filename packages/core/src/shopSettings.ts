@@ -2,6 +2,7 @@ import { DEFAULT_COURSE_MENUS, isMenuId, type CourseMenu } from './courseMenus';
 import { DEFAULT_SHOP_TIMERS, parseShopTimers, type ShopTimer } from './shopTimers';
 import { DEFAULT_DRINK_PLANS, isCourse, RULES, type DrinkPlan, type Rules } from './domain';
 import type { SyncState } from './store';
+import { isClosingMin } from './closing';
 
 // 店全体の設定。全端末で共有する（Firestore の shopSettings/main）。
 // 時間のルール（No.14）と店名。timeLimitOff は空いている日などに L.O.・お席の時間の通知と色を止める（No.80）。
@@ -11,8 +12,9 @@ export interface ShopSettings extends Rules {
   drinkPlans: DrinkPlan[];  // 飲み放題の区分（No.90）。選ぶとコースになる。並べる順
   courseMenus: CourseMenu[];  // コースのメニュー（No.89）。選ぶボタンに並べる順
   shopTimers: ShopTimer[];    // 店のタイマー（No.91。トイレチェックなど）。ヘッダーに並べる順
+  closingMin: number | null;  // 閉店時刻（No.129。0時からの分、15分ごと）。過ぎても退店していない卓を閉店で退店にする。null は決めていない
 }
-export const DEFAULT_SHOP_SETTINGS: ShopSettings = { ...RULES, shopName: '', drinkPlans: DEFAULT_DRINK_PLANS, courseMenus: DEFAULT_COURSE_MENUS, shopTimers: DEFAULT_SHOP_TIMERS };
+export const DEFAULT_SHOP_SETTINGS: ShopSettings = { ...RULES, shopName: '', drinkPlans: DEFAULT_DRINK_PLANS, courseMenus: DEFAULT_COURSE_MENUS, shopTimers: DEFAULT_SHOP_TIMERS, closingMin: null };
 export const SHOP_NAME_MAX = 30;
 export const DRINK_PLANS_MAX = 10;
 export const DRINK_PLAN_NAME_MAX = 20;
@@ -91,6 +93,7 @@ export function parseShopSettings(data: unknown): ShopSettings {
     drinkPlans: parseDrinkPlans(d.drinkPlans),
     courseMenus: parseCourseMenus(d.courseMenus),
     shopTimers: parseShopTimers(d.shopTimers),
+    closingMin: isClosingMin(d.closingMin) ? d.closingMin : null,
   };
 }
 // 分の項目を step だけ増やす・減らす。範囲の外や、L.O. がお席の時間に届く変更は null（ボタンを押せなくする）

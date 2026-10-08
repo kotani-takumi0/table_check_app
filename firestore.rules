@@ -39,9 +39,9 @@ service cloud.firestore {
     }
     function validSession(d, shop) {
       // paidAt・guests・course・menu・dishesServed・leaveAt はお会計・人数・コース・料理・退店時刻の追加前のアプリが書かないので必須にしない
-      // clearedAt（全卓消去）・tableLog（卓の動き）と記録の項目（No.113）も同じく、前の版のアプリは書かない
+      // clearedAt（全卓消去）・tableLog（卓の動き）と記録の項目（No.113）・exitedByClosing（No.129）も同じく、前の版のアプリは書かない
       return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','courseMenu','dishesServed','leaveAt',
-          'clearedAt','tableLog','businessDay','drinkPlanName','courseName','timeRules','platform','appVersion','updatedAt'])
+          'clearedAt','tableLog','exitedByClosing','businessDay','drinkPlanName','courseName','timeRules','platform','appVersion','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 60
         && seatIds(shop).hasAll(d.tableIds)
@@ -57,6 +57,8 @@ service cloud.firestore {
         && isTimeOrNull(d.get('leaveAt', null))
         && isTimeOrNull(d.get('clearedAt', null))
         && d.get('tableLog', []) is list && d.get('tableLog', []).size() <= 200
+        // 閉店で退店にした（No.129）。前の版のアプリは書かない
+        && d.get('exitedByClosing', false) is bool
         && validRecord(d)
         && d.updatedAt == request.time;
     }
@@ -150,12 +152,12 @@ service cloud.firestore {
         && request.resource.data.sessionId is string && request.resource.data.sessionId.size() <= 64
         && request.resource.data.updatedAt == request.time;
     }
-    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）・飲み放題の区分（No.90）・コース（No.89）・店のタイマー（No.91）。
+    // 店全体の設定（packages/core/src/shopSettings.ts）。時間制限なし・時間のルール・お通しの有無・店名（No.14）・飲み放題の区分（No.90）・コース（No.89）・店のタイマー（No.91）・閉店時刻（No.129）。
     // アプリは変えた項目だけを merge で書くので、無い項目は既定値として確かめる（範囲は MINUTE_SETTINGS と同じ）
     // 前の版のアプリは文書ごと置き換える（timeLimitOff だけを書く）。保存済みの項目を消す書き込みは拒否して、店の設定を守る
     function canWriteSettings(id) {
       return id == 'main'
-        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','drinkPlans','courseMenus','shopTimers','updatedAt'])
+        && request.resource.data.keys().hasOnly(['timeLimitOff','otoshiWarnMin','lastOrderMin','seatLimitMin','exitedKeepMin','otoshi','shopName','drinkPlans','courseMenus','shopTimers','closingMin','updatedAt'])
         && request.resource.data.get('timeLimitOff', false) is bool
         && request.resource.data.get('otoshi', true) is bool
         && isMinutesIn(request.resource.data.get('otoshiWarnMin', 15), 5, 60)
@@ -167,6 +169,9 @@ service cloud.firestore {
         && request.resource.data.get('drinkPlans', []) is list && request.resource.data.get('drinkPlans', []).size() <= 10
         && request.resource.data.get('courseMenus', []) is list && request.resource.data.get('courseMenus', []).size() <= 20
         && request.resource.data.get('shopTimers', []) is list && request.resource.data.get('shopTimers', []).size() <= 4
+        // 閉店時刻は 0時からの分で15分ごと。null は決めていない（closing.ts の isClosingMin と同じ）
+        && (request.resource.data.get('closingMin', null) == null
+          || (isMinutesIn(request.resource.data.closingMin, 0, 1425) && request.resource.data.closingMin % 15 == 0))
         && request.resource.data.updatedAt == request.time
         && (resource == null || request.resource.data.keys().hasAll(resource.data.keys()));
     }
