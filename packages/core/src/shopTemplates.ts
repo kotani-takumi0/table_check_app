@@ -13,5 +13,5 @@ export const SHOP_TEMPLATES: ShopTemplate[] = [
     layout: DEFAULT_LAYOUT, settings: defaultSettings },
 ];
 // 何もない状態から自分で作る：配置・コース・区分・店のタイマーは空。時間のルールは空にできないので、ふつうの値（L.O.90分・お席120分など）
-export const BLANK_SETTINGS: TemplateSettings = { ...RULES, drinkPlans: [], courseMenus: [], shopTimers: [] };
+export const BLANK_SETTINGS: TemplateSettings = { ...RULES, drinkPlans: [], courseMenus: [], shopTimers: [], closingMin: null };
 export const BLANK_LAYOUT: ShopLayout = { seats: [], labels: [] };

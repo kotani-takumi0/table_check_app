@@ -51,6 +51,7 @@ export interface Session {
   leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
   clearedAt: number | null;  // 全卓消去した時刻（No.113）。記録は消さずに残し、画面からだけ消す
   tableLog: TableMove[];     // 卓の動き（No.113）。移動・卓を足す・卓を外すを、した順にすべて残す
+  exitedByClosing: boolean;  // 閉店時刻を過ぎても退店していなかったので、閉店で退店にした（No.129）。お通し・L.O.確認の時刻は空のまま
 }
 // 卓の動き（No.113）。move は from → to、add は to を足した、remove は from を外した
 export interface TableMove { at: number; kind: 'move' | 'add' | 'remove'; from: string | null; to: string | null }
@@ -80,7 +81,7 @@ export const REASON_LABEL: Record<Exclude<AlertReason, null>, string> = { otoshi
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
   return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course,
-    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, leaveAt: null, clearedAt: null, tableLog: [] };
+    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, leaveAt: null, clearedAt: null, tableLog: [], exitedByClosing: false };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -150,7 +151,10 @@ export function revert(session: Session): Session | null {
     case 'seated': return null;
     case 'otoshi': return { ...session, status: 'seated', otoshiAt: null };
     case 'lo_done': return { ...session, status: 'otoshi', loDoneAt: null };
-    case 'exited': return { ...session, status: 'lo_done', exitedAt: null };
+    // 閉店で退店にした卓（No.129）は、閉店の前の本当の状態に戻す
+    case 'exited': return session.exitedByClosing
+      ? { ...session, status: session.loDoneAt !== null ? 'lo_done' : session.otoshiAt !== null ? 'otoshi' : 'seated', exitedAt: null, exitedByClosing: false }
+      : { ...session, status: 'lo_done', exitedAt: null };
   }
 }
 // L.O.・お席の時間を数え始める時刻。通常は案内、コースはファーストドリンク（全員が揃うまでは数えない）

@@ -3,6 +3,7 @@ import { addTable, advance, clearSession, editTime, isVisible, moveTable, newSes
 import type { SessionStore } from './store';
 import { DEFAULT_COURSE_MENUS, type CourseMenu } from './courseMenus';
 import { now } from './clock';
+import { closeOuts } from './closing';
 // createId はお客さん（セッション）の ID を作る。React Native には crypto.randomUUID が無いので、iOS は expo-crypto を渡す
 // menus は店が作ったコース（No.89。料理を進める・コースを選び直すときに品数を見る）
 const randomId = () => crypto.randomUUID();
@@ -23,6 +24,7 @@ export function useSessions(store: SessionStore, createId: () => string = random
   addTo(session: Session, tableId: string): void;
   release(session: Session, tableId: string): void;
   clearAll(rules: Rules): void;   // rules：退店済みを卓に残す時間（今卓に出ているお客さんだけを消す）
+  closeOut(closingMin: number | null, at: number): number;   // 閉店時刻を過ぎても退店していない卓を、閉店で退店にする（No.129）。退店にした組の数を返す
 } {
   const [sessions, setSessions] = useState<Session[]>([]);
   // 全卓消去したお客さん（No.113）は記録に残すだけで、画面・通知には渡さない
@@ -89,5 +91,12 @@ export function useSessions(store: SessionStore, createId: () => string = random
     const at = now();
     for (const session of sessions) if (isVisible(session, at, rules)) void store.put(clearSession(session, at));
   }, [store, sessions]);
-  return { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll };
+  // 閉店で退店にする（No.129）。そのとき開いている端末（どの端末も開いていなければ、次に開いた端末）が書く。
+  // 何台もの端末が同時に書いても、中身は同じ（退店の時刻は閉店時刻）なので食い違わない
+  const closeOut = useCallback((closingMin: number | null, at: number) => {
+    const closed = closeOuts(sessions, at, closingMin);
+    for (const session of closed) void store.put(session);
+    return closed.length;
+  }, [store, sessions]);
+  return { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll, closeOut };
 }
