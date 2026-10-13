@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackOnReject, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
 import { APP_VERSION } from './version';
 
 // メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
@@ -69,8 +69,14 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
   };
   const fail = (error: unknown) => {
     console.error(error);
+    if (error instanceof FeedbackRejected) {
+      // 画面を離れたあとに断られても待ちは残す。送った時刻を先に覚える
+      const plan = feedbackOnReject(alive.current);
+      if (plan.remember) rememberSent();
+      if (plan.showMessage) setResult({ tone: 'error', message: FEEDBACK_WAIT_MESSAGE });
+      return;
+    }
     if (!alive.current) return;
-    if (error instanceof FeedbackRejected) { rememberSent(); setResult({ tone: 'error', message: FEEDBACK_WAIT_MESSAGE }); return; }
     setResult({ tone: 'error', message: FEEDBACK_ERROR_MESSAGE });
   };
   const send = () => {
@@ -101,7 +107,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
       </div>
       {result && <p className={result.tone === 'ok' ? 'notices-status' : result.tone === 'pending' ? 'notices-pending' : 'notices-error'} role={result.tone === 'error' ? 'alert' : 'status'}>{result.message}</p>}
       <button type="button" className="panel-button primary notices-send" disabled={busy || checking || text === null || cooldown > 0} onClick={send}>
-        {checking ? '確かめています…' : busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}
+        {checking ? '確かめています…' : busy ? '送っています…' : '送る'}
       </button>
       {cooldown > 0 && <p className="notices-wait">{feedbackWaitNote(Math.ceil(cooldown / 1000))}</p>}
     </div>

@@ -66,6 +66,10 @@ export function feedbackArrival(sentShop: string, currentShop: string): { showSe
 export function feedbackWaitNote(remainSec: number): string {
   return `続けて送るには少し待ってください（あと${remainSec}秒）`;
 }
+// 送信が断られたとき。画面を離れていても待ちは記録する。送った時刻を先に覚え、文はそのあと
+export function feedbackOnReject(mounted: boolean): { remember: true; showMessage: boolean } {
+  return { remember: true, showMessage: mounted };
+}
 
 // 店が替わったとき。下書きを消し、届いたか確かめている最中でも押せない状態を解く（意図どおり）
 export function feedbackShopSwitch(keptShop: string, keptDraft: string, shopId: string): { shop: string; draft: string; checking: false } {

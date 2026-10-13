@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackOnReject, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
 import { Glass } from './Glass';
@@ -73,9 +73,17 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
   };
   const fail = (error: unknown) => {
     console.error(error);
-    feedback.warn();
+    if (error instanceof FeedbackRejected) {
+      // 画面を離れたあとに断られても待ちは残す。送った時刻を先に覚える
+      const plan = feedbackOnReject(alive.current);
+      if (plan.remember) rememberSent();
+      if (!plan.showMessage) return;
+      feedback.warn();
+      setResult({ tone: 'error', message: FEEDBACK_WAIT_MESSAGE });
+      return;
+    }
     if (!alive.current) return;
-    if (error instanceof FeedbackRejected) { rememberSent(); setResult({ tone: 'error', message: FEEDBACK_WAIT_MESSAGE }); return; }
+    feedback.warn();
     setResult({ tone: 'error', message: FEEDBACK_ERROR_MESSAGE });
   };
   const send = () => {
@@ -111,7 +119,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
         {result && <Text style={[styles.status, result.tone === 'pending' && styles.pending, result.tone === 'error' && styles.error]} accessibilityRole={result.tone === 'error' ? 'alert' : 'text'} accessibilityLiveRegion="polite">{result.message}</Text>}
         <Pressable accessibilityRole="button" disabled={busy || checking || text === null || cooldown > 0} onPress={send}
           style={({ pressed }) => [styles.send, (busy || checking || text === null || cooldown > 0) && styles.disabled, pressed && styles.pressed]}>
-          <Text style={styles.sendLabel}>{checking ? '確かめています…' : busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}</Text>
+          <Text style={styles.sendLabel}>{checking ? '確かめています…' : busy ? '送っています…' : '送る'}</Text>
         </Pressable>
         {cooldown > 0 && <Text style={styles.wait}>{feedbackWaitNote(Math.ceil(cooldown / 1000))}</Text>}
       </Glass>
