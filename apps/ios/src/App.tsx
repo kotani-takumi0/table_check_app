@@ -6,7 +6,7 @@ import { randomUUID } from 'expo-crypto';
 import { useKeepAwake } from 'expo-keep-awake';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { now } from '@table-check/core/clock';
-import { isVisible, occupantOf, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { isVisible, occupantOf, pickGuideLabel, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { type ShopTimerDone, type ShopTimerId } from '@table-check/core/shopTimers';
 import { DEFAULT_SHOP_SETTINGS, type ShopSettings } from '@table-check/core/shopSettings';
@@ -127,7 +127,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   const [seating, setSeating] = useState<string | null>(null);
   const [shopTimerOpen, setShopTimerOpen] = useState<ShopTimerId | null>(null);
   const [clearing, setClearing] = useState(false);
-  // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
+  // 卓の移動先・追加先を選んでいる間の状態。空席と退店済みの卓をタップすると反映する（No.133）
   const [pick, setPick] = useState<{ sessionId: string; mode: 'move' | 'add'; from: string } | null>(null);
   // メニュー（左から出す）で切り替える画面。最初はテーブル状況で、メニューはしまっておく
   const [screen, setScreen] = useState<Screen>('floor');
@@ -273,7 +273,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
         {pick && picked
           ? <View style={styles.pickBar} accessibilityRole="alert">
             <Text style={[styles.pickText, mini && styles.miniPickText]} numberOfLines={1}>
-              {pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}
+              {pickGuideLabel(pick.mode, pick.from, picked.tableIds)}
             </Text>
             <PanelButton label="やめる" onPress={() => setPick(null)} style={styles.pickCancel} />
           </View>

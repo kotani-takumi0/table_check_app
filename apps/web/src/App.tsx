@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { isVisible, occupantOf, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
+import { isVisible, occupantOf, pickGuideLabel, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { GRID } from '@table-check/core/layout';
 import { DEFAULT_LAYOUT, portraitOf, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
@@ -42,7 +42,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const { sessions, seat, next, back, retime, pay, changeGuests, changeLeaveAt, changeCourse, changeMenu, serve, unserve, moveTo, addTo, release, clearAll, closeOut } = useSessions(store, undefined, shopSettings.courseMenus);
   const [openId, setOpenId] = useState<string | null>(null);
   const [openFrom, setOpenFrom] = useState('');
-  // 卓の移動先・追加先を選んでいる間の状態。空席をタップすると反映する
+  // 卓の移動先・追加先を選んでいる間の状態。空席と退店済みの卓をタップすると反映する（No.133）
   const [pick, setPick] = useState<{ sessionId: string; mode: 'move' | 'add'; from: string } | null>(null);
   // メニュー（左から出す）で切り替える画面。最初はテーブル状況で、メニューはしまっておく
   const [screen, setScreen] = useState<Screen>('floor');
@@ -235,7 +235,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const labels = turned?.labels ?? layout.labels;
   return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     {pick && picked ? <div className="pick-bar" role="status">
-      <strong>{pick.mode === 'move' ? `${pick.from}番の移動先の空席をタップしてください` : `${picked.tableIds.join('・')}番に追加する空席をタップしてください`}</strong>
+      <strong>{pickGuideLabel(pick.mode, pick.from, picked.tableIds)}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
     </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload}
