@@ -50,9 +50,10 @@ npm run dev
 npm run build
 npm test
 npm run typecheck:ios
+npm run test:rules
 ```
 
-ビルドは `packages/core` と `apps/web` の型チェック後に `apps/web/dist/` へ出力します。`typecheck:ios` は iOS アプリの型チェックです。テストは両方のパッケージで動き、状態遷移、警告・表示期限の境界、経過時間、21席の配置などを検証します。
+ビルドは `packages/core` と `apps/web` の型チェック後に `apps/web/dist/` へ出力します。`typecheck:ios` は iOS アプリの型チェックです。テストは両方のパッケージで動き、状態遷移、警告・表示期限の境界、経過時間、21席の配置などを検証します。`npm run test:rules` はご意見の送信ルールを、手元の Firestore エミュレータだけで確かめます。Java が必要です。`firebase-tools` は依存に入っておらず、実行のときに `npx` で 15.33.0 を動かします。プロジェクト名は `demo-minopal` なので、本番や店の Firebase にはつなぎません。
 
 ## 操作と保存
 
