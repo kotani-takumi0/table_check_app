@@ -6,7 +6,7 @@ import { RELEASE_NOTES, releaseDateLabel, releaseNoteOf, SEEN_RELEASE_KEY, shoul
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
 import { Glass } from './Glass';
-import { COLORS } from './theme';
+import { COLORS, GLASS_PLATE_BG } from './theme';
 
 const APP_VERSION = `v${version}`;
 
@@ -17,12 +17,14 @@ export function ReleaseNotes() {
       <Text style={styles.lead}>版ごとに、新しくなったところをまとめています。いまの版は {APP_VERSION} です。</Text>
       {RELEASE_NOTES.map(note => (
         <Glass key={note.version} tint={0.84} style={styles.panel}>
-          <View style={styles.head}>
-            <Text style={styles.version} accessibilityRole="header">v{note.version}</Text>
-            {`v${note.version}` === APP_VERSION && <Text style={styles.current}>いまの版</Text>}
-            <Text style={styles.date}>{releaseDateLabel(note.date)}</Text>
+          <View style={styles.plate}>
+            <View style={styles.head}>
+              <Text style={styles.version} accessibilityRole="header">v{note.version}</Text>
+              {`v${note.version}` === APP_VERSION && <Text style={styles.current}>いまの版</Text>}
+              <Text style={styles.date}>{releaseDateLabel(note.date)}</Text>
+            </View>
+            {note.items.map((item, index) => <Text key={item} style={[styles.item, index > 0 && styles.itemLine]}>{item}</Text>)}
           </View>
-          {note.items.map((item, index) => <Text key={item} style={[styles.item, index > 0 && styles.itemLine]}>{item}</Text>)}
         </Glass>
       ))}
     </View>
@@ -67,11 +69,12 @@ const styles = StyleSheet.create({
   stack: { gap: 20 },
   lead: { fontSize: 14, lineHeight: 22, color: COLORS.muted },
   panel: { borderRadius: 20, overflow: 'hidden' },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 18, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.line, backgroundColor: COLORS.surface },
+  plate: { margin: 16, borderRadius: 12, backgroundColor: GLASS_PLATE_BG, boxShadow: 'none', overflow: 'hidden' },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 18, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.line },
   version: { fontSize: 17, fontWeight: '700', lineHeight: 26, color: COLORS.text },
   current: { paddingHorizontal: 9, paddingVertical: 3, borderWidth: 1, borderColor: COLORS.action, borderRadius: 8, backgroundColor: COLORS.actionBg, color: COLORS.actionText, fontSize: 12, fontWeight: '700', overflow: 'hidden' },
   date: { marginLeft: 'auto', fontSize: 12, fontWeight: '500', color: COLORS.muted, fontVariant: ['tabular-nums'] },
-  item: { paddingVertical: 16, paddingHorizontal: 18, fontSize: 14, lineHeight: 22, color: COLORS.text, backgroundColor: COLORS.surface },
+  item: { paddingVertical: 16, paddingHorizontal: 18, fontSize: 14, lineHeight: 22, color: COLORS.text },
   itemLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   wrap: { position: 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center' },
   bar: { maxWidth: 560, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.text },

@@ -6,7 +6,7 @@ import { FeedbackForm } from './FeedbackForm';
 import { ReleaseNotes } from './ReleaseNotes';
 import { feedback } from './feedback';
 import { Glass } from './Glass';
-import { COLORS } from './theme';
+import { COLORS, GLASS_PLATE_BG } from './theme';
 
 export type NoticeTab = 'roadmap' | 'updates' | 'feedback';
 const TABS: { id: NoticeTab; label: string }[] = [
@@ -59,29 +59,31 @@ function Roadmap({ onFeedback, mini }: { onFeedback(): void; mini: boolean }) {
         <View key={group.stage}>
           <Text style={styles.stage} accessibilityRole="header">{ROADMAP_STAGE_LABEL[group.stage]}</Text>
           <Glass tint={0.84} style={styles.panel}>
-            {group.items.map((item, index) => (
-              <View key={item.id} style={[styles.row, index === 0 && styles.rowFirst]}>
-                <Text style={[styles.chip, item.stage === 'preparing' && styles.chipPrep]}>{ROADMAP_STAGE_LABEL[item.stage]}</Text>
-                <View style={styles.textPlate}>
-                  <Text style={styles.title}>{item.title}</Text>
-                  <Text style={styles.detail}>{item.detail}</Text>
-                  {item.fromFeedback && (
-                    <View style={styles.from}>
-                      <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={COLORS.muted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" accessible={false}>
-                        <Path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h11A1.5 1.5 0 0 1 19 6.5v7a1.5 1.5 0 0 1-1.5 1.5H10l-3.5 3v-3H6.5A1.5 1.5 0 0 1 5 13.5z" />
-                      </Svg>
-                      <Text style={styles.fromText}>{ROADMAP_FROM_FEEDBACK_LABEL}</Text>
-                    </View>
-                  )}
+            <View style={styles.plate}>
+              {group.items.map((item, index) => (
+                <View key={item.id} style={[styles.row, index === 0 && styles.rowFirst]}>
+                  <Text style={[styles.chip, item.stage === 'preparing' && styles.chipPrep]}>{ROADMAP_STAGE_LABEL[item.stage]}</Text>
+                  <View style={styles.body}>
+                    <Text style={styles.title}>{item.title}</Text>
+                    <Text style={styles.detail}>{item.detail}</Text>
+                    {item.fromFeedback && (
+                      <View style={styles.from}>
+                        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={COLORS.muted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" accessible={false}>
+                          <Path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h11A1.5 1.5 0 0 1 19 6.5v7a1.5 1.5 0 0 1-1.5 1.5H10l-3.5 3v-3H6.5A1.5 1.5 0 0 1 5 13.5z" />
+                        </Svg>
+                        <Text style={styles.fromText}>{ROADMAP_FROM_FEEDBACK_LABEL}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </Glass>
         </View>
       ))}
       <Text style={styles.note}>{ROADMAP_NOTE}</Text>
       <Glass tint={0.84} style={[styles.cta, mini && styles.ctaMini]}>
-        <View style={[styles.textPlate, styles.ctaText]}>
+        <View style={[styles.insetPlate, styles.ctaText]}>
           <Text style={styles.ctaTitle}>{ROADMAP_CTA_TITLE}</Text>
           <Text style={styles.detail}>{ROADMAP_CTA_DETAIL}</Text>
         </View>
@@ -107,24 +109,26 @@ const styles = StyleSheet.create({
   dotOn: { backgroundColor: COLORS.onAction },
   stage: { marginTop: 20, marginBottom: 8, fontSize: 14, fontWeight: '500', color: COLORS.muted },
   panel: { borderRadius: 20, overflow: 'hidden' },
+  plate: { margin: 16, borderRadius: 12, backgroundColor: GLASS_PLATE_BG, boxShadow: 'none', overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 16, paddingHorizontal: 18, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   rowFirst: { borderTopWidth: 0 },
   chip: { marginTop: 2, paddingVertical: 3, paddingHorizontal: 9, borderWidth: 1, borderColor: COLORS.line, borderRadius: 8, backgroundColor: COLORS.bg, color: COLORS.muted, fontSize: 12, fontWeight: '700', overflow: 'hidden' },
   chipPrep: { borderColor: COLORS.action, backgroundColor: COLORS.actionBg, color: COLORS.actionText },
-  textPlate: { flex: 1, borderRadius: 8, backgroundColor: COLORS.surface, paddingVertical: 4, paddingHorizontal: 8 },
+  body: { flex: 1 },
+  insetPlate: { borderRadius: 12, backgroundColor: GLASS_PLATE_BG, boxShadow: 'none', paddingVertical: 4, paddingHorizontal: 8 },
   title: { fontSize: 17, fontWeight: '700', lineHeight: 26, color: COLORS.text },
   detail: { marginTop: 2, fontSize: 14, lineHeight: 22, color: COLORS.muted },
   from: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   fromText: { fontSize: 12, lineHeight: 17, color: COLORS.muted },
   note: { marginTop: 14, fontSize: 12, lineHeight: 20, color: COLORS.muted },
-  cta: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20 },
+  cta: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: 16, borderRadius: 20 },
   ctaMini: { flexDirection: 'column', alignItems: 'stretch' },
   ctaText: { flex: 1 },
   ctaTitle: { fontSize: 15, fontWeight: '700', lineHeight: 22, color: COLORS.text },
   outlineButton: { height: 48, paddingHorizontal: 20, borderWidth: 1, borderColor: COLORS.action, borderRadius: 12, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center' },
   outlineLabel: { fontSize: 14, fontWeight: '700', color: COLORS.actionText },
   pressed: { opacity: 0.6 },
-  emptyPanel: { minHeight: 280, alignItems: 'center', justifyContent: 'center', gap: 16, paddingVertical: 32, paddingHorizontal: 18, borderRadius: 20 },
-  emptyPlate: { alignSelf: 'stretch', borderRadius: 8, backgroundColor: COLORS.surface, paddingVertical: 8, paddingHorizontal: 12 },
+  emptyPanel: { minHeight: 280, alignItems: 'center', justifyContent: 'center', gap: 16, paddingVertical: 32, paddingHorizontal: 16, borderRadius: 20 },
+  emptyPlate: { alignSelf: 'stretch', borderRadius: 12, backgroundColor: GLASS_PLATE_BG, boxShadow: 'none', paddingVertical: 8, paddingHorizontal: 12 },
   emptyText: { fontSize: 14, lineHeight: 22, color: COLORS.muted, textAlign: 'center' },
 });

@@ -5,7 +5,7 @@ import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SE
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
 import { Glass } from './Glass';
-import { COLORS } from './theme';
+import { COLORS, GLASS_PLATE_BG } from './theme';
 
 const APP_VERSION = `v${version}`;
 // メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
@@ -110,13 +110,13 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
 const styles = StyleSheet.create({
   stack: { gap: 12 },
   lead: { fontSize: 14, lineHeight: 22, color: COLORS.muted },
-  panel: { gap: 8, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20 },
+  panel: { gap: 8, padding: 16, borderRadius: 20 },
   label: { fontSize: 14, fontWeight: '700', color: COLORS.text },
   input: { minHeight: 168, padding: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.surface, fontSize: 16, lineHeight: 24, color: COLORS.text },
   foot: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   note: { flex: 1, fontSize: 12, lineHeight: 20, color: COLORS.muted },
   count: { fontSize: 12, color: COLORS.muted, fontVariant: ['tabular-nums'] },
-  status: { fontSize: 14, lineHeight: 22, color: COLORS.text, backgroundColor: COLORS.surface, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8 },
+  status: { fontSize: 14, lineHeight: 22, color: COLORS.text, backgroundColor: GLASS_PLATE_BG, borderRadius: 12, boxShadow: 'none', paddingVertical: 4, paddingHorizontal: 8 },
   pending: { fontWeight: '700', color: COLORS.soonText },
   error: { fontWeight: '700', color: COLORS.nowText },
   send: { alignSelf: 'flex-end', minWidth: 120, height: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: COLORS.action, alignItems: 'center', justifyContent: 'center' },
