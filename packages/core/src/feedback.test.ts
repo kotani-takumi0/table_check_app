@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FEEDBACK_INTERVAL_MS, FEEDBACK_MAX, FEEDBACK_TICKET_RE, feedbackCooldownMs, feedbackDocId, feedbackText, feedbackTicket, NoFeedbackStore } from './feedback';
+import { FEEDBACK_INTERVAL_MS, FEEDBACK_MAX, FEEDBACK_TICKET_RE, FEEDBACK_UNCONFIRMED_MESSAGE, feedbackAccepted, feedbackCooldownMs, feedbackDocId, feedbackText, feedbackTicket, NoFeedbackStore } from './feedback';
 
 describe('feedbackText', () => {
   it('前後の空白を落とす', () => {
@@ -31,12 +31,17 @@ describe('feedback の間隔', () => {
     expect(FEEDBACK_INTERVAL_MS).toBe(30_000);
     expect(FEEDBACK_MAX).toBe(1000);
   });
+  it('受け取ったと確かめるまで、下書きは消さない', () => {
+    expect(feedbackAccepted('sent')).toBe(true);
+    expect(feedbackAccepted('queued')).toBe(false);
+    expect(FEEDBACK_UNCONFIRMED_MESSAGE).toContain('確かめられませんでした');
+  });
 });
 
 describe('NoFeedbackStore', () => {
   it('試しはどこにも送らない', async () => {
     const store = new NoFeedbackStore();
     expect(store.delivers).toBe(false);
-    await expect(store.send({ message: 'x', version: 'v2.3.4', platform: 'web', shopName: '' })).resolves.toBe('sent');
+    await expect(store.send({ message: 'x', version: 'v2.3.4', platform: 'web', shopName: '' })).resolves.toMatchObject({ delivery: 'sent' });
   });
 });

@@ -518,6 +518,7 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .notices-feedback-foot .notices-note { margin: 0; flex: 1; }
 .notices-count { flex: none; color: var(--muted); font-family: var(--num); font-size: 12px; font-variant-numeric: tabular-nums; }
 .notices-status { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.6; }
+.notices-pending { margin: 0; color: var(--soon-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
 .notices-error { margin: 0; color: var(--now-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
 .notices-send { align-self: flex-end; }
 @media (max-width: 600px) {
