@@ -17,6 +17,8 @@ export const COLORS = {
 } as const;
 // ガラスの上のボタンの淡い塗り（Web の color-mix(in srgb, var(--text) 7%, transparent)）
 export const FILL = 'rgba(45, 43, 40, 0.07)';
+// ガラスの上に敷く文章の下地。面だけ 0.9 にして、中の文字は不透明のままにする（surface #fefdfc）
+export const GLASS_PLATE_BG = 'rgba(254, 253, 252, 0.9)';
 // 卓の色：警告の段階だけで決める（もうすぐ＝琥珀、いま対応＝朱）。ふだんは無彩色（退店済はカードごと薄くする）。
 // face は文字盤の塗り、arc は経過の弧
 export interface CardTone { bg: string; text: string; face: string; arc: string }

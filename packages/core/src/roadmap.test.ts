@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { ROADMAP, ROADMAP_DETAIL_MAX, ROADMAP_STAGES, ROADMAP_TITLE_MAX, roadmapGroups, roadmapSeenValue, shouldShowRoadmapDot } from './roadmap';
+import { ROADMAP, ROADMAP_DETAIL_MAX, ROADMAP_EMPTY, ROADMAP_STAGES, ROADMAP_TITLE_MAX, roadmapGroups, roadmapHasUnseen, roadmapSeenValue, shouldShowRoadmapDot } from './roadmap';
 
 describe('ROADMAP', () => {
-  it('準備中が先、検討中があと。日付・店や人の名前は持たない', () => {
+  it('出す予定を選ぶまでは空で、点を出さない', () => {
+    expect(ROADMAP).toEqual([]);
+    expect(roadmapGroups()).toEqual([]);
+    expect(roadmapSeenValue()).toBe('');
+    expect(shouldShowRoadmapDot(null)).toBe(false);
+    expect(shouldShowRoadmapDot('')).toBe(false);
+    expect(shouldShowRoadmapDot('old-plan')).toBe(false);
+    expect(ROADMAP_EMPTY).toBe('いまお知らせできる予定はありません。使っていて気になることがあれば、ご意見を送ってください。');
+  });
+  it('足した予定は段階・長さの決まりを守り、日付や店や人の名前を持たない', () => {
     const stages = ROADMAP.map(item => item.stage);
     const preparing = stages.lastIndexOf('preparing');
     const considering = stages.indexOf('considering');
-    expect(preparing).toBeGreaterThanOrEqual(0);
-    expect(considering).toBeGreaterThan(preparing);
+    if (preparing >= 0 && considering >= 0) expect(considering).toBeGreaterThan(preparing);
     for (const item of ROADMAP) {
       expect(ROADMAP_STAGES).toContain(item.stage);
       expect(Object.keys(item).sort()).toEqual(['detail', 'fromFeedback', 'id', 'stage', 'title']);
@@ -21,24 +29,25 @@ describe('ROADMAP', () => {
       expect(`${item.title}${item.detail}`).not.toMatch(/\d{4}年|\d+月\d+日|セキュリティ|脆弱/);
     }
     expect(new Set(ROADMAP.map(item => item.id)).size).toBe(ROADMAP.length);
-  });
-  it('段階ごとにまとまり、空の段階は出さない', () => {
-    expect(roadmapGroups().map(group => group.stage)).toEqual(['preparing', 'considering']);
-    const count = roadmapGroups().reduce((sum, group) => sum + group.items.length, 0);
-    expect(count).toBe(ROADMAP.length);
+    const groups = roadmapGroups();
+    expect(groups.every(group => group.items.length > 0)).toBe(true);
+    expect(groups.reduce((sum, group) => sum + group.items.length, 0)).toBe(ROADMAP.length);
   });
 });
 
-describe('shouldShowRoadmapDot', () => {
+describe('roadmapHasUnseen', () => {
+  const ids = ['overtime-seats', 'phone-seat-text'];
+  it('予定が空なら点を出さない', () => {
+    expect(roadmapHasUnseen([], null)).toBe(false);
+    expect(roadmapHasUnseen([], '')).toBe(false);
+  });
   it('まだ見ていない端末は点を出す', () => {
-    expect(shouldShowRoadmapDot(null)).toBe(true);
-    expect(shouldShowRoadmapDot('')).toBe(true);
+    expect(roadmapHasUnseen(ids, null)).toBe(true);
+    expect(roadmapHasUnseen(ids, '')).toBe(true);
   });
   it('いまの予定を見たら出さない。新しい予定が足されたら出す', () => {
-    expect(shouldShowRoadmapDot(roadmapSeenValue())).toBe(false);
-    const seen = new Set(roadmapSeenValue().split(','));
-    const extra = [...seen].slice(1).join(',');
-    expect(shouldShowRoadmapDot(extra)).toBe(true);
-    expect(shouldShowRoadmapDot(`${roadmapSeenValue()},old-plan`)).toBe(false);
+    expect(roadmapHasUnseen(ids, ids.join(','))).toBe(false);
+    expect(roadmapHasUnseen(ids, 'phone-seat-text')).toBe(true);
+    expect(roadmapHasUnseen(ids, `${ids.join(',')},old-plan`)).toBe(false);
   });
 });

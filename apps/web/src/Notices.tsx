@@ -1,4 +1,4 @@
-import { ROADMAP_CTA_DETAIL, ROADMAP_CTA_TITLE, ROADMAP_FROM_FEEDBACK_LABEL, ROADMAP_NOTE, ROADMAP_STAGE_LABEL, roadmapGroups } from '@table-check/core/roadmap';
+import { ROADMAP_CTA_DETAIL, ROADMAP_CTA_TITLE, ROADMAP_EMPTY, ROADMAP_FROM_FEEDBACK_LABEL, ROADMAP_NOTE, ROADMAP_STAGE_LABEL, roadmapGroups } from '@table-check/core/roadmap';
 import type { FeedbackStore } from '@table-check/core/feedback';
 import { FeedbackForm } from './FeedbackForm';
 import { ReleaseNotes } from './ReleaseNotes';
@@ -11,8 +11,8 @@ const TABS: { id: NoticeTab; label: string }[] = [
 ];
 
 // お知らせ（No.144）。今後の予定・最近の更新・ご意見を送るを、1つの画面のタブにまとめる
-export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, inert }: {
-  tab: NoticeTab; onTab(tab: NoticeTab): void; roadmapNew: boolean; feedbackStore: FeedbackStore; shopName: string; inert?: boolean;
+export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, shopId, inert }: {
+  tab: NoticeTab; onTab(tab: NoticeTab): void; roadmapNew: boolean; feedbackStore: FeedbackStore; shopName: string; shopId: string; inert?: boolean;
 }) {
   return <section className="notices" aria-label="お知らせ" inert={inert}>
     <div className="notices-wrap">
@@ -27,15 +27,20 @@ export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, inert
       <div role="tabpanel" id={`notice-panel-${tab}`} aria-labelledby={`notice-tab-${tab}`}>
         {tab === 'roadmap' ? <Roadmap onFeedback={() => onTab('feedback')} />
           : tab === 'updates' ? <ReleaseNotes />
-          : <FeedbackForm feedbackStore={feedbackStore} shopName={shopName} />}
+          : <FeedbackForm feedbackStore={feedbackStore} shopName={shopName} shopId={shopId} />}
       </div>
     </div>
   </section>;
 }
 
 function Roadmap({ onFeedback }: { onFeedback(): void }) {
+  const groups = roadmapGroups();
+  if (groups.length === 0) return <div className="notices-panel notices-empty">
+    <p className="notices-empty-text">{ROADMAP_EMPTY}</p>
+    <button type="button" className="notices-cta-button" onClick={onFeedback}>ご意見を送る</button>
+  </div>;
   return <>
-    {roadmapGroups().map(group => <section key={group.stage} aria-labelledby={`roadmap-${group.stage}`}>
+    {groups.map(group => <section key={group.stage} aria-labelledby={`roadmap-${group.stage}`}>
       <h2 id={`roadmap-${group.stage}`} className="notices-stage">{ROADMAP_STAGE_LABEL[group.stage]}</h2>
       <div className="notices-panel">
         {group.items.map(item => <article key={item.id} className="notices-row">

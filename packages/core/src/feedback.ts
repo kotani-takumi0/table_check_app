@@ -9,6 +9,7 @@ const FEEDBACK_INTERVAL_SLACK_MS = 1_000;
 export const FEEDBACK_TICKET_RE = /^[a-z0-9]{16}$/;
 export const FEEDBACK_SENT_AT_KEY = 'minopal:feedbackSentAt';
 export const FEEDBACK_WAIT_MESSAGE = '少し待ってから、もう一度送ってください。';
+export const FEEDBACK_UNCONFIRMED_MESSAGE = '届いたか確かめています。送り直さなくて大丈夫です。';
 
 // ルールで断られたとき（間隔が短い）。画面はこの文を出す
 export class FeedbackRejected extends Error {
@@ -39,13 +40,41 @@ export interface FeedbackInput {
   platform: FeedbackPlatform;
   shopName: string;         // 設定の店名（空のこともある）
 }
-// sent：サーバーに届いた。queued：電波が無いなどでまだ届いていない（端末に残し、つながったら送る）
-export type FeedbackResult = 'sent' | 'queued';
+// sent：サーバーが受け取った。queued：8秒待っても、受け取ったかまだ分からない
+export type FeedbackDelivery = 'sent' | 'queued';
+export interface FeedbackAck {
+  delivery: FeedbackDelivery;
+  // 受け取ったと分かったときに解決する。queued でもあとから解決し、断られたら拒否する
+  confirmed: Promise<void>;
+}
+// 受け取ったと確かめてから、下書きを消し、次に送れるまでの待ち時間を始める
+export function feedbackAccepted(delivery: FeedbackDelivery): boolean {
+  return delivery === 'sent';
+}
 export interface FeedbackStore {
   // 送れない（ルールで断られたなど）ときは例外にする
-  send(input: FeedbackInput): Promise<FeedbackResult>;
+  send(input: FeedbackInput): Promise<FeedbackAck>;
   // false：Firebase につながない試しなので、どこにも送らない
   readonly delivers: boolean;
+}
+
+// 前の店の分が届いても、いまの店には「送りました」を出さない。待ちは始める。
+// 30秒の制限はサーバーがユーザーごとにかけるので、始めないと次の送信が断られて失敗に見える
+export function feedbackArrival(sentShop: string, currentShop: string): { showSent: boolean; startWait: true } {
+  return { showSent: sentShop === currentShop, startWait: true };
+}
+export function feedbackWaitNote(remainSec: number): string {
+  return `続けて送るには少し待ってください（あと${remainSec}秒）`;
+}
+// 送信が断られたとき。画面を離れていても待ちは記録する。送った時刻を先に覚え、文はそのあと
+export function feedbackOnReject(mounted: boolean): { remember: true; showMessage: boolean } {
+  return { remember: true, showMessage: mounted };
+}
+
+// 店が替わったとき。下書きを消し、届いたか確かめている最中でも押せない状態を解く（意図どおり）
+export function feedbackShopSwitch(keptShop: string, keptDraft: string, shopId: string): { shop: string; draft: string; checking: false } {
+  if (keptShop === shopId) return { shop: keptShop, draft: keptDraft, checking: false };
+  return { shop: shopId, draft: '', checking: false };
 }
 
 // 送る文。前後の空白を落とし、空・長すぎるときは null
@@ -54,14 +83,13 @@ export function feedbackText(draft: string): string | null {
   return text === '' || text.length > FEEDBACK_MAX ? null : text;
 }
 
-export const FEEDBACK_SENT_MESSAGE: Record<FeedbackResult, string> = {
-  sent: '送りました。ありがとうございます。',
-  queued: '電波がつながったら送ります。ありがとうございます。',
-};
+export const FEEDBACK_SENT_MESSAGE = '送りました。ありがとうございます。';
 export const FEEDBACK_ERROR_MESSAGE = '送れませんでした。時間をおいてもう一度お試しください。';
 
 // Firebase につながない試し：どこにも送らない
 export class NoFeedbackStore implements FeedbackStore {
   readonly delivers = false;
-  async send(_input: FeedbackInput): Promise<FeedbackResult> { return 'sent'; }
+  async send(_input: FeedbackInput): Promise<FeedbackAck> {
+    return { delivery: 'sent', confirmed: Promise.resolve() };
+  }
 }

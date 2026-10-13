@@ -487,6 +487,8 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .side-menu-dot { margin-left: auto; }
 .notices-stage { margin: 20px 0 8px; color: var(--muted); font-size: 14px; font-weight: 500; }
 .notices-panel { background: var(--page); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
+.notices-empty { min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px 18px; text-align: center; }
+.notices-empty-text { margin: 0; max-width: 36em; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .notices-row { display: flex; gap: 14px; padding: 16px 18px; border-top: 1px solid var(--line); align-items: flex-start; }
 .notices-panel > .notices-row:first-child { border-top: 0; }
 .notices-chip { flex: none; margin-top: 2px; padding: 3px 9px; border: 1px solid var(--edge); border-radius: 8px; background: var(--tile); color: var(--ink-2); font-size: 12px; font-weight: 700; line-height: 1.4; }
@@ -512,12 +514,15 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .notices-feedback-panel { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; }
 .notices-label { font-size: 14px; font-weight: 700; }
 .notices-text { min-height: 168px; padding: 12px; line-height: 1.6; resize: vertical; }
+.notices-text:read-only { color: var(--muted); }
 .notices-feedback-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .notices-feedback-foot .notices-note { margin: 0; flex: 1; }
 .notices-count { flex: none; color: var(--muted); font-family: var(--num); font-size: 12px; font-variant-numeric: tabular-nums; }
 .notices-status { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.6; }
+.notices-pending { margin: 0; color: var(--soon-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
 .notices-error { margin: 0; color: var(--now-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
 .notices-send { align-self: flex-end; }
+.notices-wait { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
 @media (max-width: 600px) {
   .notices-wrap { max-width: none; margin: 16px 0 0; padding: 0 16px 32px; }
   .notices-tabs { display: flex; width: 100%; }

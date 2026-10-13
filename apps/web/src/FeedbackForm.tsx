@@ -1,8 +1,26 @@
-import { useEffect, useState } from 'react';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackCooldownMs, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
+import { useEffect, useRef, useState } from 'react';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackOnReject, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
 import { APP_VERSION } from './version';
 
+// メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
+let keptDraft = '';
+let keptShop = '';
+function draftForShop(shopId: string): { draft: string; checking: false } {
+  const next = feedbackShopSwitch(keptShop, keptDraft, shopId);
+  keptShop = next.shop;
+  keptDraft = next.draft;
+  return next;
+}
+
+let keptSentAt: number | null = null;
+const sentListeners = new Set<(at: number) => void>();
+function publishSent(at: number) {
+  keptSentAt = at;
+  try { window.localStorage.setItem(FEEDBACK_SENT_AT_KEY, String(at)); } catch { /* 覚えられなくても、聞いている画面では待てる */ }
+  for (const hear of sentListeners) hear(at);
+}
 function readSentAt(): number | null {
+  if (keptSentAt !== null) return keptSentAt;
   try {
     const raw = window.localStorage.getItem(FEEDBACK_SENT_AT_KEY);
     if (raw === null) return null;
@@ -12,12 +30,24 @@ function readSentAt(): number | null {
 }
 
 // ご意見を送る（お知らせのタブ。もとの画面。No.125）。書いた文と、版・店名を一緒に送る。連続では送れない
-export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: FeedbackStore; shopName: string }) {
-  const [draft, setDraft] = useState('');
+export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStore: FeedbackStore; shopName: string; shopId: string }) {
+  const [draft, setDraft] = useState(() => draftForShop(shopId).draft);
+  const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
+  // 確かめている途中で店が替わったら、下書きは消え、押せない状態も解ける（意図どおり）
+  useEffect(() => { const next = draftForShop(shopId); setDraft(next.draft); setResult(null); setChecking(next.checking); }, [shopId]);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [sentAt, setSentAt] = useState<number | null>(readSentAt);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const hear = (at: number) => { setSentAt(at); setNowMs(at); };
+    sentListeners.add(hear);
+    if (keptSentAt !== null) hear(keptSentAt);
+    return () => { sentListeners.delete(hear); };
+  }, []);
   useEffect(() => {
     if (sentAt === null) return;
     const timer = window.setInterval(() => {
@@ -29,43 +59,57 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
   }, [sentAt]);
   const text = feedbackText(draft);
   const cooldown = feedbackCooldownMs(sentAt, nowMs);
-  const rememberSent = () => {
-    const at = Date.now();
-    setSentAt(at);
-    setNowMs(at);
-    try { window.localStorage.setItem(FEEDBACK_SENT_AT_KEY, String(at)); } catch { /* 覚えられなくても、このページでは待てる */ }
+  const rememberSent = () => { publishSent(Date.now()); };
+  const accept = (sentText: string) => {
+    // 前の店の分が届いても「送りました」は出さない。待ちは始める。30秒の制限はサーバーがユーザーごとにかけるので、始めないと次の送信が断られて失敗に見える
+    const arrival = feedbackArrival(shopId, keptShop);
+    if (arrival.showSent && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
+    if (arrival.startWait) rememberSent();
+    if (alive.current && arrival.showSent) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
+  };
+  const fail = (error: unknown) => {
+    console.error(error);
+    if (error instanceof FeedbackRejected) {
+      // 画面を離れたあとに断られても待ちは残す。送った時刻を先に覚える
+      const plan = feedbackOnReject(alive.current);
+      if (plan.remember) rememberSent();
+      if (plan.showMessage) setResult({ tone: 'error', message: FEEDBACK_WAIT_MESSAGE });
+      return;
+    }
+    if (!alive.current) return;
+    setResult({ tone: 'error', message: FEEDBACK_ERROR_MESSAGE });
   };
   const send = () => {
     if (text === null) return;
-    if (feedbackCooldownMs(sentAt, Date.now()) > 0) { setResult({ ok: false, message: FEEDBACK_WAIT_MESSAGE }); return; }
+    if (feedbackCooldownMs(sentAt, Date.now()) > 0) { setResult({ tone: 'error', message: FEEDBACK_WAIT_MESSAGE }); return; }
+    const sentText = text;
     setBusy(true);
     setResult(null);
-    feedbackStore.send({ message: text, version: APP_VERSION, platform: 'web', shopName }).then(sent => {
-      setDraft('');
-      rememberSent();
-      setResult({ ok: true, message: FEEDBACK_SENT_MESSAGE[sent] });
-    }, (error: unknown) => {
-      console.error(error);
-      if (error instanceof FeedbackRejected) { rememberSent(); setResult({ ok: false, message: FEEDBACK_WAIT_MESSAGE }); return; }
-      setResult({ ok: false, message: FEEDBACK_ERROR_MESSAGE });
-    }).finally(() => setBusy(false));
+    feedbackStore.send({ message: sentText, version: APP_VERSION, platform: 'web', shopName }).then(ack => {
+      if (feedbackAccepted(ack.delivery)) accept(sentText);
+      else {
+        if (alive.current) { setChecking(true); setResult({ tone: 'pending', message: FEEDBACK_UNCONFIRMED_MESSAGE }); }
+        void ack.confirmed.then(() => { if (alive.current) setChecking(false); accept(sentText); }, error => { if (alive.current) setChecking(false); fail(error); });
+      }
+    }, fail).finally(() => { if (alive.current) setBusy(false); });
   };
   return <div className="notices-feedback">
     <p className="notices-lead">使いにくいところ・ほしい機能・おかしな動きなど、なんでも書いてください。作っている人に届きます。</p>
     <div className="notices-panel notices-feedback-panel">
       <label htmlFor="feedback-text" className="notices-label">ご意見</label>
-      <textarea id="feedback-text" className="field-select notices-text" rows={7} maxLength={FEEDBACK_MAX} value={draft} disabled={busy}
-        placeholder="例：トイレチェックのボタンが押しにくい" aria-describedby="feedback-note" onChange={event => { setDraft(event.target.value); setResult(null); }} />
+      <textarea id="feedback-text" className="field-select notices-text" rows={7} maxLength={FEEDBACK_MAX} value={draft} disabled={busy} readOnly={checking}
+        placeholder="例：トイレチェックのボタンが押しにくい" aria-describedby="feedback-note" onChange={event => { updateDraft(event.target.value); setResult(null); }} />
       <div className="notices-feedback-foot">
         <p id="feedback-note" className="notices-note">
           {feedbackStore.delivers ? `アプリの版（${APP_VERSION}）${shopName ? `と店名（${shopName}）` : ''}も一緒に送ります。` : '試しなので、どこにも送られません。'}
         </p>
         <span className="notices-count" aria-hidden="true">{draft.length}/{FEEDBACK_MAX}</span>
       </div>
-      {result && <p className={result.ok ? 'notices-status' : 'notices-error'} role={result.ok ? 'status' : 'alert'}>{result.message}</p>}
-      <button type="button" className="panel-button primary notices-send" disabled={busy || text === null || cooldown > 0} onClick={send}>
-        {busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}
+      {result && <p className={result.tone === 'ok' ? 'notices-status' : result.tone === 'pending' ? 'notices-pending' : 'notices-error'} role={result.tone === 'error' ? 'alert' : 'status'}>{result.message}</p>}
+      <button type="button" className="panel-button primary notices-send" disabled={busy || checking || text === null || cooldown > 0} onClick={send}>
+        {checking ? '確かめています…' : busy ? '送っています…' : '送る'}
       </button>
+      {cooldown > 0 && <p className="notices-wait">{feedbackWaitNote(Math.ceil(cooldown / 1000))}</p>}
     </div>
   </div>;
 }

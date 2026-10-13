@@ -49,10 +49,11 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const [menuOpen, setMenuOpen] = useState(false);
   const [noticeTab, setNoticeTab] = useState<NoticeTab>('roadmap');
   const selectScreen = useCallback((next: Screen) => {
-    if (next === 'notices') setNoticeTab('roadmap');
+    // 別の画面から開くときは今後の予定。お知らせを開き直したときはタブを残す（ご意見の下書きを消さない）
+    if (next === 'notices' && screen !== 'notices') setNoticeTab('roadmap');
     setScreen(next);
     setMenuOpen(false);
-  }, []);
+  }, [screen]);
   const openUpdates = useCallback(() => { setNoticeTab('updates'); setScreen('notices'); setMenuOpen(false); }, []);
   // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。最近の更新を開いたら、もう出さない
   const { announce, markSeen } = useReleaseAnnounce();
@@ -266,7 +267,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             if (recorded.length > 0) downloadText(csvFileName(from, to), sessionsCsv(recorded, shopSettings), 'text/csv');
             return recorded.length;
           }} inert={modal || menuOpen} />
-      : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />
+      : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} shopId={account ?? 'guest'} inert={modal || menuOpen} />
       : <div className="floor-frame">
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
         <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>

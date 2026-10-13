@@ -2,4 +2,7 @@ node_modules/
 dist/
 *.local
 .firebase/
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
 .expo/

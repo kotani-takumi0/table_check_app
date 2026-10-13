@@ -5,15 +5,10 @@ import Svg, { Path } from 'react-native-svg';
 import { RELEASE_NOTES, releaseDateLabel, releaseNoteOf, SEEN_RELEASE_KEY, shouldAnnounce } from '@table-check/core/releaseNotes';
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
+import { Glass } from './Glass';
+import { COLORS, GLASS_PLATE_BG } from './theme';
 
 const APP_VERSION = `v${version}`;
-const INK = '#16211b';
-const INK2 = '#4b5a51';
-const MUTED = '#627168';
-const LINE = '#e2e9e4';
-const KEY = '#1b7a3e';
-const PREP = '#e8f3ec';
-const PAGE = '#ffffff';
 
 // 最近の更新（お知らせのタブ。Web の ReleaseNotes と同じ。No.127）
 export function ReleaseNotes() {
@@ -21,14 +16,16 @@ export function ReleaseNotes() {
     <View style={styles.stack}>
       <Text style={styles.lead}>版ごとに、新しくなったところをまとめています。いまの版は {APP_VERSION} です。</Text>
       {RELEASE_NOTES.map(note => (
-        <View key={note.version} style={styles.panel}>
-          <View style={styles.head}>
-            <Text style={styles.version} accessibilityRole="header">v{note.version}</Text>
-            {`v${note.version}` === APP_VERSION && <Text style={styles.current}>いまの版</Text>}
-            <Text style={styles.date}>{releaseDateLabel(note.date)}</Text>
+        <Glass key={note.version} tint={0.84} style={styles.panel}>
+          <View style={styles.plate}>
+            <View style={styles.head}>
+              <Text style={styles.version} accessibilityRole="header">v{note.version}</Text>
+              {`v${note.version}` === APP_VERSION && <Text style={styles.current}>いまの版</Text>}
+              <Text style={styles.date}>{releaseDateLabel(note.date)}</Text>
+            </View>
+            {note.items.map((item, index) => <Text key={item} style={[styles.item, index > 0 && styles.itemLine]}>{item}</Text>)}
           </View>
-          {note.items.map((item, index) => <Text key={item} style={[styles.item, index > 0 && styles.itemLine]}>{item}</Text>)}
-        </View>
+        </Glass>
       ))}
     </View>
   );
@@ -60,7 +57,7 @@ export function ReleaseBar({ onOpen, onClose }: { onOpen(): void; onClose(): voi
           <Text style={styles.buttonLabel}>内容を見る</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="閉じる" onPress={() => { feedback.tap(); onClose(); }} hitSlop={6} style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2.2} strokeLinecap="round" accessible={false}>
+          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={COLORS.onAction} strokeWidth={2.2} strokeLinecap="round" accessible={false}>
             <Path d="M6 6l12 12M18 6L6 18" />
           </Svg>
         </Pressable>
@@ -70,19 +67,20 @@ export function ReleaseBar({ onOpen, onClose }: { onOpen(): void; onClose(): voi
 }
 const styles = StyleSheet.create({
   stack: { gap: 20 },
-  lead: { fontSize: 14, lineHeight: 22, color: INK2 },
-  panel: { borderWidth: 1, borderColor: '#bcc6c0', borderRadius: 12, backgroundColor: PAGE, overflow: 'hidden' },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: LINE },
-  version: { fontSize: 17, fontWeight: '700', lineHeight: 26, color: INK },
-  current: { paddingHorizontal: 9, paddingVertical: 3, borderWidth: 1, borderColor: KEY, borderRadius: 8, backgroundColor: PREP, color: KEY, fontSize: 12, fontWeight: '700', overflow: 'hidden' },
-  date: { marginLeft: 'auto', fontSize: 12, fontWeight: '500', color: MUTED, fontVariant: ['tabular-nums'] },
-  item: { paddingVertical: 16, paddingHorizontal: 18, fontSize: 14, lineHeight: 22, color: INK2 },
-  itemLine: { borderTopWidth: 1, borderTopColor: LINE },
+  lead: { fontSize: 14, lineHeight: 22, color: COLORS.muted },
+  panel: { borderRadius: 20, overflow: 'hidden' },
+  plate: { margin: 16, borderRadius: 12, backgroundColor: GLASS_PLATE_BG, boxShadow: 'none', overflow: 'hidden' },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 18, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.line },
+  version: { fontSize: 17, fontWeight: '700', lineHeight: 26, color: COLORS.text },
+  current: { paddingHorizontal: 9, paddingVertical: 3, borderWidth: 1, borderColor: COLORS.action, borderRadius: 8, backgroundColor: COLORS.actionBg, color: COLORS.actionText, fontSize: 12, fontWeight: '700', overflow: 'hidden' },
+  date: { marginLeft: 'auto', fontSize: 12, fontWeight: '500', color: COLORS.muted, fontVariant: ['tabular-nums'] },
+  item: { paddingVertical: 16, paddingHorizontal: 18, fontSize: 14, lineHeight: 22, color: COLORS.text },
+  itemLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   wrap: { position: 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center' },
-  bar: { maxWidth: 560, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, borderRadius: 14, backgroundColor: INK },
-  message: { flexShrink: 1, fontSize: 15, fontWeight: '700', color: '#ffffff', paddingRight: 4 },
+  bar: { maxWidth: 560, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.text },
+  message: { flexShrink: 1, fontSize: 15, fontWeight: '700', color: COLORS.onAction, paddingRight: 4 },
   button: { minHeight: 40, paddingHorizontal: 12, borderRadius: 10, justifyContent: 'center' },
-  buttonLabel: { fontSize: 15, fontWeight: '700', color: '#a6dd8c', textDecorationLine: 'underline' },
+  buttonLabel: { fontSize: 15, fontWeight: '700', color: COLORS.actionBg, textDecorationLine: 'underline' },
   close: { width: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
   pressed: { opacity: 0.6 },
 });
