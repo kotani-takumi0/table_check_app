@@ -13,14 +13,13 @@
     "ios:tunnel": "npm run start -w @table-check/ios -- --tunnel",
     "build": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web",
     "test": "npm test --workspaces --if-present",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-minopal \"node scripts/feedback-rules.test.mjs\"",
+    "test:rules": "npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-minopal \"node scripts/feedback-rules.test.mjs\"",
     "typecheck:ios": "npm run typecheck -w @table-check/ios",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules -P prod",
     "deploy:store": "npm run typecheck -w @table-check/core && STORE_DEPLOY=1 npm run build -w @table-check/web -- --mode development && firebase deploy --only hosting,firestore:rules -P dev"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
-    "firebase-tools": "^15.33.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"
   }
