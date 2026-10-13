@@ -354,6 +354,7 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .time-row input { min-height: 44px; padding: 0 10px; border: 1px solid var(--edge); border-radius: 8px; background: var(--page); color: var(--ink); font-size: 17px; }
 .time-row .panel-button { min-height: 40px; padding: 0 14px; font-size: 14px; }
 .time-error { grid-column: 1 / -1; color: var(--now-ink); font-size: 14px; font-weight: 700; }
+.time-hint { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
 .leave-help { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: var(--ink-2); font-size: 13px; }
 .leave-help .text-button { min-height: 28px; }
 .table-chips { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 2 / -1; }

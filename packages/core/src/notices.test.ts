@@ -14,7 +14,7 @@ it('L.O. の時間が来た卓と、時間になったトイレを通知する',
 it('数え始めを直すと、L.O. の通知は別の key になる（閉じても出し直す）', () => {
   const otoshi = advance(newSession('a', '11', 0), 10 * minute);
   const before = noticesOf([otoshi], { toilet_check: 0, toilet_clean: 0 }, 100 * minute)[0];
-  const retimed = editTime(otoshi, 'seatedAt', 5 * minute, 100 * minute);
+  const retimed = editTime(otoshi, 'otoshiAt', 5 * minute, 100 * minute);
   expect(retimed).not.toBeNull();
   const after = noticesOf([retimed!], { toilet_check: 0, toilet_clean: 0 }, 100 * minute)[0];
   expect(before.key).not.toBe(after.key);

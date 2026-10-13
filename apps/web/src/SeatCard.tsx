@@ -87,7 +87,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
   // 人数・コースの料理の進みはテーブル卓だけ。団体はどの卓にも全員の人数を出す
   const guests = seat.kind === 'table' ? session.guests : undefined;
   const progress = seat.kind === 'table' ? dishProgress(session, settings.courseMenus) : null;
-  // 右下：L.O.まで・退席まで。退店済は「押すとご案内」、コースの開始待ちはタイマー停止中
+  // 右下：L.O.まで・退席まで。退店済は「押すとご案内」、お通し前・コースの開始待ちはタイマー停止中
   const corner = remaining ? remainingLabel(remaining)
     : exited ? '押すとご案内'
       : 'タイマー停止中';

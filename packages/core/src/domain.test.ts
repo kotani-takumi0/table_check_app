@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, moveTable, removeTable, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -27,13 +27,14 @@ describe('警告の境界', () => {
   it.each([
     [seated, seated.seatedAt + 15 * minute - 1000, 'none', null],
     [seated, seated.seatedAt + 15 * minute, 'now', 'otoshi_missing'],
-    [seated, seated.seatedAt + 120 * minute, 'now', 'seat_limit'],
-    [otoshi, seated.seatedAt + 90 * minute - 1000, 'none', null],
-    [otoshi, seated.seatedAt + 90 * minute, 'soon', 'last_order'],
-    [otoshi, seated.seatedAt + 120 * minute - 1000, 'soon', 'last_order'],
-    [otoshi, seated.seatedAt + 120 * minute, 'now', 'seat_limit'],
-    [loDone, seated.seatedAt + 120 * minute - 1000, 'none', null],
-    [loDone, seated.seatedAt + 120 * minute, 'now', 'seat_limit'],
+    // お通し前は席時間を数えない。120分たっても「お席の時間」ではなく「お通し未提供」
+    [seated, seated.seatedAt + 120 * minute, 'now', 'otoshi_missing'],
+    [otoshi, otoshi.otoshiAt! + 90 * minute - 1000, 'none', null],
+    [otoshi, otoshi.otoshiAt! + 90 * minute, 'soon', 'last_order'],
+    [otoshi, otoshi.otoshiAt! + 120 * minute - 1000, 'soon', 'last_order'],
+    [otoshi, otoshi.otoshiAt! + 120 * minute, 'now', 'seat_limit'],
+    [loDone, otoshi.otoshiAt! + 120 * minute - 1000, 'none', null],
+    [loDone, otoshi.otoshiAt! + 120 * minute, 'now', 'seat_limit'],
     [exited, 40_000, 'none', null],
     [exited, 40_000 + 1000 * minute, 'none', null],
   ])('%s at %i', (session, time, level, reason) => {
@@ -51,10 +52,12 @@ it('会計前の卓数は、店にいて未払いの客の卓を数え、退店�
   expect(unpaidTableCount([seated, group, paid, exited], 50_000)).toBe(3);
   expect(unpaidTableCount([], 50_000)).toBe(0);
 });
-it('タイマーは退店までは案内から、退店後は退店から計算し、負にならない', () => {
-  for (const session of [seated, otoshi, loDone]) expect(timerOf(session, 50_000)).toEqual({ label: '案内から', elapsedMs: 40_000 });
+it('タイマーはお通しから数え、お通し前は止め、退店後は退店から計算し、負にならない', () => {
+  expect(timerOf(seated, 50_000)).toEqual({ label: 'お通しから', elapsedMs: null });
+  for (const session of [otoshi, loDone]) expect(timerOf(session, 50_000)).toEqual({ label: 'お通しから', elapsedMs: 30_000 });
   expect(timerOf(exited, 50_000)).toEqual({ label: '退店から', elapsedMs: 10_000 });
-  for (const session of [seated, otoshi, loDone, exited]) expect(timerOf(session, 0).elapsedMs).toBe(0);
+  expect(timerOf(seated, 0).elapsedMs).toBeNull();
+  for (const session of [otoshi, loDone, exited]) expect(timerOf(session, 0).elapsedMs).toBe(0);
 });
 it.each([[0, '00:00'], [3_599_000, '59:59'], [3_600_000, '1:00:00'], [3_661_000, '1:01:01'], [-1000, '00:00']])('formatElapsed(%i)', (ms, expected) => {
   expect(formatElapsed(ms)).toBe(expected);
@@ -85,12 +88,12 @@ describe('時刻の修正', () => {
     expect(editTime(seated, 'seatedAt', 20_001, 20_000)).toBeNull();
   });
 });
-it('案内から L.O. の時間を過ぎて未確認のお通し済セッションを、案内が古い順に返す', () => {
+it('お通しから L.O. の時間を過ぎて未確認のお通し済セッションを、お通しが古い順に返す', () => {
   const late = advance(newSession('late', '12', 5 * minute), 30 * minute);
-  const early = advance(newSession('early', '11', 1 * minute), 40 * minute);
-  expect(lastOrderDue([late, early], 5 * minute + 90 * minute - 1000).map(s => s.id)).toEqual(['early']);
-  expect(lastOrderDue([late, early], 5 * minute + 90 * minute).map(s => s.id)).toEqual(['early', 'late']);
-  expect(lastOrderDue([late, early], 200 * minute).map(s => s.id)).toEqual(['early', 'late']);
+  const early = advance(newSession('early', '11', 1 * minute), 10 * minute);
+  expect(lastOrderDue([late, early], 10 * minute + 90 * minute - 1000).map(s => s.id)).toEqual([]);
+  expect(lastOrderDue([late, early], 10 * minute + 90 * minute).map(s => s.id)).toEqual(['early']);
+  expect(lastOrderDue([late, early], 30 * minute + 90 * minute).map(s => s.id)).toEqual(['early', 'late']);
   expect(lastOrderDue([advance(early, 50 * minute), newSession('seated', '13', 0)], 200 * minute)).toEqual([]);
 });
 it('お会計は状態とは独立に切り替えられ、進める・戻すでは変わらない', () => {
@@ -269,10 +272,10 @@ describe('コース', () => {
   ])('L.O.・お席の時間はファーストドリンクから数える: %i', (time, level, reason) => {
     expect(alertOf(started, time)).toEqual({ level, reason });
   });
-  it('L.O. の通知もファーストドリンクから数え、数え始めが古い順に並べる', () => {
+  it('L.O. の通知はお通し・ファーストドリンクから数え、数え始めが古い順に並べる', () => {
     const normal = advance(newSession('normal', '11', 10 * minute), 15 * minute);
-    expect(lastOrderDue([started, normal, waiting], 100 * minute + 1000).map(s => s.id)).toEqual(['normal']);
-    expect(lastOrderDue([started, normal, waiting], 110 * minute).map(s => s.id)).toEqual(['normal', 'c']);
+    expect(lastOrderDue([started, normal, waiting], 15 * minute + 90 * minute).map(s => s.id)).toEqual(['normal']);
+    expect(lastOrderDue([started, normal, waiting], 20 * minute + 90 * minute).map(s => s.id)).toEqual(['normal', 'c']);
     expect(lastOrderDue([waiting], 1000 * minute)).toEqual([]);
   });
   it('あとから通常とコースを直せて、状態・時刻・人数は変わらない', () => {
@@ -302,6 +305,30 @@ it('卓には、その卓を含む表示中のお客さんのうち最後に案�
   const gone = { ...advance(advance(advance(late, 11 * minute), 12 * minute), 13 * minute) };
   expect(gone.status).toBe('exited');
   expect(occupantOf([early, gone], '11', 13 * minute + 5 * minute)?.id).toBe('a');
+});
+
+describe('通常の卓のタイマー（No.132）', () => {
+  it('お通しを出すまでは止め、出した時刻から L.O.・お席の時間を数える', () => {
+    expect(startOf(seated)).toBeNull();
+    expect(limitsOf(seated)).toBeNull();
+    expect(timerOf(seated, seated.seatedAt + 30 * minute)).toEqual({ label: 'お通しから', elapsedMs: null });
+    expect(alertOf(seated, seated.seatedAt + 120 * minute).reason).toBe('otoshi_missing');
+    expect(startOf(otoshi)).toBe(otoshi.otoshiAt);
+    expect(limitsOf(otoshi)).toEqual({ lastOrderAt: otoshi.otoshiAt! + 90 * minute, seatEndAt: otoshi.otoshiAt! + 120 * minute });
+  });
+  it('お通しの時刻を直すと、数え始めもずれる', () => {
+    const later = editTime(otoshi, 'otoshiAt', 40_000, 50_000);
+    expect(later && startOf(later)).toBe(40_000);
+    expect(later && timerOf(later, 50_000)).toEqual({ label: 'お通しから', elapsedMs: 10_000 });
+  });
+  it('お通しを出さない店の通常卓は案内から数え、未提供の警告は出さない', () => {
+    const noOtoshi = { ...RULES, otoshi: false };
+    expect(startOf(seated, noOtoshi)).toBe(seated.seatedAt);
+    expect(alertOf(seated, seated.seatedAt + 30 * minute, noOtoshi)).toEqual({ level: 'none', reason: null });
+    expect(alertOf(seated, seated.seatedAt + 120 * minute, noOtoshi)).toEqual({ level: 'now', reason: 'seat_limit' });
+    expect(timerOf(seated, seated.seatedAt + 30 * minute, noOtoshi)).toEqual({ label: '案内から', elapsedMs: 30 * minute });
+    expect(timerOf(otoshi, 50_000, noOtoshi)).toEqual({ label: '案内から', elapsedMs: 40_000 });
+  });
 });
 
 it('詳細の大きいボタンは、押すと何になるかを「〜にする」で出す（No.123）', () => {

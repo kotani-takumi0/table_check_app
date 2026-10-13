@@ -72,11 +72,11 @@ export function Settings({ settings, onChange, onOpenLayout, onEditCourse, today
     </div>
     <div id="settings-time" className="settings-group sheet" role="group" aria-labelledby="settings-time-title">
       <h2 id="settings-time-title" className="settings-group-title">時間のルール</h2>
-      {/* No.14：店ごとに分を決める。L.O.・お席の時間は案内（コースはファーストドリンク）から数える */}
-      <MinutesRow settings={settings} field="lastOrderMin" label="L.O." help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
-      <MinutesRow settings={settings} field="seatLimitMin" label="お席の時間" help="案内から数えます（コースはファーストドリンクから）" onChange={onChange} />
+      {/* No.14・No.132：店ごとに分を決める。L.O.・お席の時間はお通し（コースはファーストドリンク）から数える */}
+      <MinutesRow settings={settings} field="lastOrderMin" label="L.O." help={settings.otoshi ? 'お通しから数えます（コースはファーストドリンクから）' : '案内から数えます（コースはファーストドリンクから）'} onChange={onChange} />
+      <MinutesRow settings={settings} field="seatLimitMin" label="お席の時間" help={settings.otoshi ? 'お通しから数えます（コースはファーストドリンクから）' : '案内から数えます（コースはファーストドリンクから）'} onChange={onChange} />
       <SwitchRow id="otoshi" label="お通しを出す" checked={settings.otoshi} onChange={otoshi => onChange({ otoshi })}
-        help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、お通し未提供の警告を出しません。" />
+        help="出さない店は「お通し提供済み」を「ファーストドリンク提供済み」と呼び、L.O.・お席の時間は案内から数えます。お通し未提供の警告は出しません。" />
       {settings.otoshi && <MinutesRow settings={settings} field="otoshiWarnMin" label="お通しの警告" help="案内からこの時間たってもお通しがまだなら知らせます" onChange={onChange} />}
       <MinutesRow settings={settings} field="exitedKeepMin" label="退店済みを残す" help="退店したあと、卓に退店済みを出しておく時間" onChange={onChange} />
     </div>

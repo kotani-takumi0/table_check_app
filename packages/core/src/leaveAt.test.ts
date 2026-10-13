@@ -7,12 +7,12 @@ import { noticesOf } from './notices';
 const minute = 60_000;
 const seated = newSession('s', '12', 0);
 const otoshi = advance(seated, 5 * minute);
-// 案内から60分で退店してもらう卓（L.O.はその30分前の30分）
+// 案内の60分後に退店してもらう卓（L.O.はその30分前）。お通しは案内の5分後
 const early = setLeaveAt(otoshi, 60 * minute)!;
 
 describe('卓ごとの退店の時刻', () => {
-  it('ふつうは数え始めから120分・L.O.は90分', () => {
-    expect(limitsOf(otoshi)).toEqual({ lastOrderAt: 90 * minute, seatEndAt: 120 * minute });
+  it('ふつうはお通しから120分・L.O.は90分', () => {
+    expect(limitsOf(otoshi)).toEqual({ lastOrderAt: 95 * minute, seatEndAt: 125 * minute });
   });
   it('決めた卓は、その時刻とその30分前に L.O.・お席の時間の警告を出す', () => {
     expect(limitsOf(early)).toEqual({ lastOrderAt: 30 * minute, seatEndAt: 60 * minute });
@@ -26,7 +26,7 @@ describe('卓ごとの退店の時刻', () => {
     expect(remainingOf(early, 40 * minute)).toEqual({ kind: 'seat_limit', minutes: 20 });
     expect(remainingOf(early, 60 * minute)).toEqual({ kind: 'over' });
     expect(dialOf(early, 60 * minute).over).toBe(true);
-    expect(bandOf(early)).toEqual({ from: 30 / 120, to: 60 / 120 });
+    expect(bandOf(early)).toEqual({ from: 25 / 120, to: 55 / 120 });
     expect(bandOf(otoshi)).toEqual({ from: 90 / 120, to: 1 });
   });
   it('案内より前の時刻は決められず、null でふつうに戻せる', () => {
@@ -35,9 +35,9 @@ describe('卓ごとの退店の時刻', () => {
   });
   it('時刻を直したら L.O.の通知を出し直す（決めていない卓は以前と同じ key）', () => {
     const [plain] = noticesOf([otoshi], { toilet_check: 100 * minute, toilet_clean: 100 * minute }, 100 * minute);
-    expect(plain.key).toBe('lo:s:0');
+    expect(plain.key).toBe(`lo:s:${5 * minute}`);
     const [moved] = noticesOf([early], { toilet_check: 100 * minute, toilet_clean: 100 * minute }, 50 * minute);
-    expect(moved.key).toBe(`lo:s:0:${60 * minute}`);
+    expect(moved.key).toBe(`lo:s:${5 * minute}:${60 * minute}`);
   });
   it('Firestore に保存して読み戻せ、無い文書はふつうとして読む', () => {
     expect(fromSessionDoc('s', toSessionDoc(early))?.leaveAt).toBe(60 * minute);

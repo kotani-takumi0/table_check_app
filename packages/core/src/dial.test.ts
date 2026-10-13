@@ -12,40 +12,44 @@ const courseWait = newSession('c', '13', 0, 3, 'drinks');
 const firstDrink = advance(courseWait, 10 * minute);
 
 describe('文字盤の進み', () => {
-  it('案内から分で数え、120分で一周する（切り捨て）', () => {
-    expect(dialOf(seated, 35 * minute + 59_000)).toEqual({ elapsedMin: 35, progress: 35 / 120, over: false, limitMin: 120 });
-    expect(dialOf(otoshi, 120 * minute - 1)).toEqual({ elapsedMin: 119, progress: 119 / 120, over: false, limitMin: 120 });
-    expect(dialOf(otoshi, 120 * minute)).toEqual({ elapsedMin: 120, progress: 1, over: true, limitMin: 120 });
-    expect(dialOf(otoshi, 150 * minute)).toEqual({ elapsedMin: 150, progress: 1, over: true, limitMin: 120 });
+  it('お通しから分で数え、お通し前は数えず、120分で一周する（切り捨て）', () => {
+    expect(dialOf(seated, 35 * minute + 59_000)).toEqual({ elapsedMin: null, progress: 0, over: false, limitMin: 120 });
+    const start = 5 * minute;
+    expect(dialOf(otoshi, start + 120 * minute - 1)).toEqual({ elapsedMin: 119, progress: 119 / 120, over: false, limitMin: 120 });
+    expect(dialOf(otoshi, start + 120 * minute)).toEqual({ elapsedMin: 120, progress: 1, over: true, limitMin: 120 });
+    expect(dialOf(otoshi, start + 150 * minute)).toEqual({ elapsedMin: 150, progress: 1, over: true, limitMin: 120 });
   });
   it('コースはファーストドリンクから数え、開始待ちは数えない', () => {
     expect(dialOf(courseWait, 30 * minute)).toEqual({ elapsedMin: null, progress: 0, over: false, limitMin: 120 });
     expect(dialOf(firstDrink, 40 * minute)).toEqual({ elapsedMin: 30, progress: 30 / 120, over: false, limitMin: 120 });
   });
   it('退店済は退店の時刻で止める', () => {
-    expect(dialOf(exited, 103 * minute).elapsedMin).toBe(100);
+    expect(dialOf(exited, 103 * minute).elapsedMin).toBe(95);
   });
   it('時刻が戻っても負にしない', () => {
-    expect(dialOf(seated, -minute).elapsedMin).toBe(0);
+    expect(dialOf(otoshi, -minute).elapsedMin).toBe(0);
   });
 });
 
 describe('残り時間', () => {
-  it('L.O.確認済みまでは L.O.まで（切り上げ）', () => {
-    expect(remainingOf(seated, 35 * minute)).toEqual({ kind: 'last_order', minutes: 55 });
-    expect(remainingOf(otoshi, 90 * minute - 30_000)).toEqual({ kind: 'last_order', minutes: 1 });
+  it('L.O.確認済みまでは L.O.まで（切り上げ）。お通し前は出さない', () => {
+    const start = 5 * minute;
+    expect(remainingOf(seated, 35 * minute)).toBeNull();
+    expect(remainingOf(otoshi, start + 90 * minute - 30_000)).toEqual({ kind: 'last_order', minutes: 1 });
   });
   it('L.O.の時間を過ぎるか L.O.確認済みにしたら退席まで', () => {
-    expect(remainingOf(otoshi, 91 * minute)).toEqual({ kind: 'seat_limit', minutes: 29 });
-    expect(remainingOf(otoshi, 90 * minute)).toEqual({ kind: 'seat_limit', minutes: 30 });
-    expect(remainingOf(loDone, 60 * minute)).toEqual({ kind: 'seat_limit', minutes: 60 });
-    expect(remainingOf(loDone, 118 * minute)).toEqual({ kind: 'seat_limit', minutes: 2 });
+    const start = 5 * minute;
+    expect(remainingOf(otoshi, start + 91 * minute)).toEqual({ kind: 'seat_limit', minutes: 29 });
+    expect(remainingOf(otoshi, start + 90 * minute)).toEqual({ kind: 'seat_limit', minutes: 30 });
+    expect(remainingOf(loDone, start + 60 * minute)).toEqual({ kind: 'seat_limit', minutes: 60 });
+    expect(remainingOf(loDone, start + 118 * minute)).toEqual({ kind: 'seat_limit', minutes: 2 });
   });
-  it('120分を過ぎたらお席の時間を過ぎている', () => {
-    expect(remainingOf(loDone, 120 * minute)).toEqual({ kind: 'over' });
+  it('お通しから120分を過ぎたらお席の時間を過ぎている', () => {
+    expect(remainingOf(loDone, 5 * minute + 120 * minute)).toEqual({ kind: 'over' });
   });
-  it('退店済・コースの開始待ちは出さない', () => {
+  it('退店済・お通し前・コースの開始待ちは出さない', () => {
     expect(remainingOf(exited, 101 * minute)).toBeNull();
+    expect(remainingOf(seated, 30 * minute)).toBeNull();
     expect(remainingOf(courseWait, 30 * minute)).toBeNull();
     expect(remainingOf(firstDrink, 40 * minute)).toEqual({ kind: 'last_order', minutes: 60 });
   });
@@ -63,7 +67,8 @@ describe('表示と読み上げ', () => {
     expect(formatHourMinute(118)).toBe('1:58');
   });
   it('経過と残りを読み上げる', () => {
-    expect(dialLabel(dialOf(seated, 35 * minute), remainingOf(seated, 35 * minute))).toBe('経過35分、L.O.まで55分');
+    expect(dialLabel(dialOf(otoshi, 5 * minute + 35 * minute), remainingOf(otoshi, 5 * minute + 35 * minute))).toBe('経過35分、L.O.まで55分');
+    expect(dialLabel(dialOf(seated, 0), null)).toBe('開始前');
     expect(dialLabel(dialOf(courseWait, 0), null)).toBe('開始前');
   });
 });
