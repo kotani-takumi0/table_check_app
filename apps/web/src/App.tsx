@@ -49,10 +49,11 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const [menuOpen, setMenuOpen] = useState(false);
   const [noticeTab, setNoticeTab] = useState<NoticeTab>('roadmap');
   const selectScreen = useCallback((next: Screen) => {
-    if (next === 'notices') setNoticeTab('roadmap');
+    // 別の画面から開くときは今後の予定。お知らせを開き直したときはタブを残す（ご意見の下書きを消さない）
+    if (next === 'notices' && screen !== 'notices') setNoticeTab('roadmap');
     setScreen(next);
     setMenuOpen(false);
-  }, []);
+  }, [screen]);
   const openUpdates = useCallback(() => { setNoticeTab('updates'); setScreen('notices'); setMenuOpen(false); }, []);
   // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。最近の更新を開いたら、もう出さない
   const { announce, markSeen } = useReleaseAnnounce();

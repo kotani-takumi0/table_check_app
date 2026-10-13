@@ -13,10 +13,13 @@ const EDGE = '#bcc6c0';
 const KEY = '#1b7a3e';
 const PAGE = '#ffffff';
 const NOW_INK = '#b3242a';
+// メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す
+let keptDraft = '';
 
 // ご意見を送る（お知らせのタブ。Web の FeedbackForm と同じ。No.125）。連続では送れない
 export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: FeedbackStore; shopName: string }) {
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(keptDraft);
+  const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [sentAt, setSentAt] = useState<number | null>(null);
@@ -55,7 +58,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
     setResult(null);
     feedbackStore.send({ message: text, version: APP_VERSION, platform: 'ios', shopName }).then(sent => {
       feedback.done();
-      setDraft('');
+      updateDraft('');
       rememberSent();
       setResult({ ok: true, message: FEEDBACK_SENT_MESSAGE[sent] });
     }, (error: unknown) => {
@@ -72,7 +75,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
         <Text style={styles.label}>ご意見</Text>
         <TextInput accessibilityLabel="ご意見" style={styles.input} multiline maxLength={FEEDBACK_MAX} editable={!busy} textAlignVertical="top"
           placeholder="例：トイレチェックのボタンが押しにくい" placeholderTextColor={MUTED}
-          value={draft} onChangeText={next => { setDraft(next); setResult(null); }} />
+          value={draft} onChangeText={next => { updateDraft(next); setResult(null); }} />
         <View style={styles.foot}>
           <Text style={styles.note}>
             {feedbackStore.delivers ? `アプリの版（${APP_VERSION}）${shopName ? `と店名（${shopName}）` : ''}も一緒に送ります。` : '試しなので、どこにも送られません。'}
