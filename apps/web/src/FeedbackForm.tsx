@@ -21,7 +21,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [sentAt, setSentAt] = useState<number | null>(readSentAt);
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
