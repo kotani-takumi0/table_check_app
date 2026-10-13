@@ -16,6 +16,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
   const [draft, setDraft] = useState(keptDraft);
   const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -72,8 +73,8 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
       if (feedbackAccepted(ack.delivery)) accept(sentText);
       else {
         feedback.warn();
-        if (alive.current) setResult({ tone: 'pending', message: FEEDBACK_UNCONFIRMED_MESSAGE });
-        void ack.confirmed.then(() => accept(sentText), fail);
+        if (alive.current) { setChecking(true); setResult({ tone: 'pending', message: FEEDBACK_UNCONFIRMED_MESSAGE }); }
+        void ack.confirmed.then(() => { if (alive.current) setChecking(false); accept(sentText); }, error => { if (alive.current) setChecking(false); fail(error); });
       }
     }, fail).finally(() => { if (alive.current) setBusy(false); });
   };
@@ -92,8 +93,8 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
           <Text style={styles.count} accessible={false}>{draft.length}/{FEEDBACK_MAX}</Text>
         </View>
         {result && <Text style={[styles.status, result.tone === 'pending' && styles.pending, result.tone === 'error' && styles.error]} accessibilityRole={result.tone === 'error' ? 'alert' : 'text'} accessibilityLiveRegion="polite">{result.message}</Text>}
-        <Pressable accessibilityRole="button" disabled={busy || text === null || cooldown > 0} onPress={send}
-          style={({ pressed }) => [styles.send, (busy || text === null || cooldown > 0) && styles.disabled, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" disabled={busy || checking || text === null || cooldown > 0} onPress={send}
+          style={({ pressed }) => [styles.send, (busy || checking || text === null || cooldown > 0) && styles.disabled, pressed && styles.pressed]}>
           <Text style={styles.sendLabel}>{busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}</Text>
         </Pressable>
       </Glass>

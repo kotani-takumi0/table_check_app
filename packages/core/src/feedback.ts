@@ -9,7 +9,7 @@ const FEEDBACK_INTERVAL_SLACK_MS = 1_000;
 export const FEEDBACK_TICKET_RE = /^[a-z0-9]{16}$/;
 export const FEEDBACK_SENT_AT_KEY = 'minopal:feedbackSentAt';
 export const FEEDBACK_WAIT_MESSAGE = '少し待ってから、もう一度送ってください。';
-export const FEEDBACK_UNCONFIRMED_MESSAGE = '届いたか確かめられませんでした。文はそのまま残しています。';
+export const FEEDBACK_UNCONFIRMED_MESSAGE = '届いたか確かめています。送り直さなくて大丈夫です。';
 
 // ルールで断られたとき（間隔が短い）。画面はこの文を出す
 export class FeedbackRejected extends Error {

@@ -34,7 +34,7 @@ describe('feedback の間隔', () => {
   it('受け取ったと確かめるまで、下書きは消さない', () => {
     expect(feedbackAccepted('sent')).toBe(true);
     expect(feedbackAccepted('queued')).toBe(false);
-    expect(FEEDBACK_UNCONFIRMED_MESSAGE).toContain('確かめられませんでした');
+    expect(FEEDBACK_UNCONFIRMED_MESSAGE).toBe('届いたか確かめています。送り直さなくて大丈夫です。');
   });
 });
 

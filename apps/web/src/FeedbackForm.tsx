@@ -19,6 +19,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
   const [draft, setDraft] = useState(keptDraft);
   const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -62,8 +63,8 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
     feedbackStore.send({ message: sentText, version: APP_VERSION, platform: 'web', shopName }).then(ack => {
       if (feedbackAccepted(ack.delivery)) accept(sentText);
       else {
-        if (alive.current) setResult({ tone: 'pending', message: FEEDBACK_UNCONFIRMED_MESSAGE });
-        void ack.confirmed.then(() => accept(sentText), fail);
+        if (alive.current) { setChecking(true); setResult({ tone: 'pending', message: FEEDBACK_UNCONFIRMED_MESSAGE }); }
+        void ack.confirmed.then(() => { if (alive.current) setChecking(false); accept(sentText); }, error => { if (alive.current) setChecking(false); fail(error); });
       }
     }, fail).finally(() => { if (alive.current) setBusy(false); });
   };
@@ -80,7 +81,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
         <span className="notices-count" aria-hidden="true">{draft.length}/{FEEDBACK_MAX}</span>
       </div>
       {result && <p className={result.tone === 'ok' ? 'notices-status' : result.tone === 'pending' ? 'notices-pending' : 'notices-error'} role={result.tone === 'error' ? 'alert' : 'status'}>{result.message}</p>}
-      <button type="button" className="panel-button primary notices-send" disabled={busy || text === null || cooldown > 0} onClick={send}>
+      <button type="button" className="panel-button primary notices-send" disabled={busy || checking || text === null || cooldown > 0} onClick={send}>
         {busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}
       </button>
     </div>
