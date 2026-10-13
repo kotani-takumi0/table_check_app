@@ -3,6 +3,35 @@
 
 // 1件の長さ（firestore.rules の canSendFeedback と同じ）
 export const FEEDBACK_MAX = 1000;
+// 連続送信の間隔（firestore.rules の duration.value(30, 's') と同じ）。ルールは「30秒よりあと」なので、画面では1秒多く待つ
+export const FEEDBACK_INTERVAL_MS = 30_000;
+const FEEDBACK_INTERVAL_SLACK_MS = 1_000;
+export const FEEDBACK_TICKET_RE = /^[a-z0-9]{16}$/;
+export const FEEDBACK_SENT_AT_KEY = 'minopal:feedbackSentAt';
+export const FEEDBACK_WAIT_MESSAGE = '少し待ってから、もう一度送ってください。';
+
+// ルールで断られたとき（間隔が短い）。画面はこの文を出す
+export class FeedbackRejected extends Error {
+  constructor() {
+    super(FEEDBACK_WAIT_MESSAGE);
+    this.name = 'FeedbackRejected';
+  }
+}
+const TICKET_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+// 送信ごとに変える印。文書 id に使い、1回の書き込みで1件だけに束ねる
+export function feedbackTicket(random: () => number = Math.random): string {
+  let ticket = '';
+  for (let i = 0; i < 16; i++) ticket += TICKET_ALPHABET[Math.floor(random() * TICKET_ALPHABET.length)];
+  return ticket;
+}
+export function feedbackDocId(uid: string, ticket: string): string {
+  return `${uid}_${ticket}`;
+}
+// 次に送れるまで残っている時間（ミリ秒）。0 なら送ってよい
+export function feedbackCooldownMs(lastSentAt: number | null, nowMs: number): number {
+  if (lastSentAt === null) return 0;
+  return Math.max(0, FEEDBACK_INTERVAL_MS + FEEDBACK_INTERVAL_SLACK_MS - (nowMs - lastSentAt));
+}
 export type FeedbackPlatform = 'web' | 'ios';
 export interface FeedbackInput {
   message: string;
