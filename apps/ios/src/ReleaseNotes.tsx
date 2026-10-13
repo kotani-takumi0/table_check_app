@@ -55,7 +55,7 @@ export function ReleaseBar({ onOpen, onClose }: { onOpen(): void; onClose(): voi
           <Text style={styles.buttonLabel}>内容を見る</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="閉じる" onPress={() => { feedback.tap(); onClose(); }} hitSlop={6} style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2.2} strokeLinecap="round" accessible={false}>
+          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={COLORS.onAction} strokeWidth={2.2} strokeLinecap="round" accessible={false}>
             <Path d="M6 6l12 12M18 6L6 18" />
           </Svg>
         </Pressable>
@@ -75,9 +75,9 @@ const styles = StyleSheet.create({
   itemLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   wrap: { position: 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center' },
   bar: { maxWidth: 560, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.text },
-  message: { flexShrink: 1, fontSize: 15, fontWeight: '700', color: '#ffffff', paddingRight: 4 },
+  message: { flexShrink: 1, fontSize: 15, fontWeight: '700', color: COLORS.onAction, paddingRight: 4 },
   button: { minHeight: 40, paddingHorizontal: 12, borderRadius: 10, justifyContent: 'center' },
-  buttonLabel: { fontSize: 15, fontWeight: '700', color: '#a6dd8c', textDecorationLine: 'underline' },
+  buttonLabel: { fontSize: 15, fontWeight: '700', color: COLORS.actionBg, textDecorationLine: 'underline' },
   close: { width: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
   pressed: { opacity: 0.6 },
 });
