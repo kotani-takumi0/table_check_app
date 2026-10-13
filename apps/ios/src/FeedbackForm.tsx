@@ -4,15 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
+import { Glass } from './Glass';
+import { COLORS } from './theme';
 
 const APP_VERSION = `v${version}`;
-const INK = '#16211b';
-const INK2 = '#4b5a51';
-const MUTED = '#627168';
-const EDGE = '#bcc6c0';
-const KEY = '#1b7a3e';
-const PAGE = '#ffffff';
-const NOW_INK = '#b3242a';
 // メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す
 let keptDraft = '';
 
@@ -85,10 +80,10 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
   return (
     <View style={styles.stack}>
       <Text style={styles.lead}>使いにくいところ・ほしい機能・おかしな動きなど、なんでも書いてください。作っている人に届きます。</Text>
-      <View style={styles.panel}>
+      <Glass tint={0.84} style={styles.panel}>
         <Text style={styles.label}>ご意見</Text>
         <TextInput accessibilityLabel="ご意見" style={styles.input} multiline maxLength={FEEDBACK_MAX} editable={!busy} textAlignVertical="top"
-          placeholder="例：トイレチェックのボタンが押しにくい" placeholderTextColor={MUTED}
+          placeholder="例：トイレチェックのボタンが押しにくい" placeholderTextColor={COLORS.muted}
           value={draft} onChangeText={next => { updateDraft(next); setResult(null); }} />
         <View style={styles.foot}>
           <Text style={styles.note}>
@@ -101,24 +96,24 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
           style={({ pressed }) => [styles.send, (busy || text === null || cooldown > 0) && styles.disabled, pressed && styles.pressed]}>
           <Text style={styles.sendLabel}>{busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}</Text>
         </Pressable>
-      </View>
+      </Glass>
     </View>
   );
 }
 const styles = StyleSheet.create({
   stack: { gap: 12 },
-  lead: { fontSize: 14, lineHeight: 22, color: INK2 },
-  panel: { gap: 8, paddingVertical: 16, paddingHorizontal: 18, borderWidth: 1, borderColor: EDGE, borderRadius: 12, backgroundColor: PAGE },
-  label: { fontSize: 14, fontWeight: '700', color: INK },
-  input: { minHeight: 168, padding: 12, borderWidth: 1, borderColor: EDGE, borderRadius: 8, backgroundColor: PAGE, fontSize: 16, lineHeight: 24, color: INK },
+  lead: { fontSize: 14, lineHeight: 22, color: COLORS.muted },
+  panel: { gap: 8, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20 },
+  label: { fontSize: 14, fontWeight: '700', color: COLORS.text },
+  input: { minHeight: 168, padding: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.surface, fontSize: 16, lineHeight: 24, color: COLORS.text },
   foot: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  note: { flex: 1, fontSize: 12, lineHeight: 20, color: MUTED },
-  count: { fontSize: 12, color: MUTED, fontVariant: ['tabular-nums'] },
-  status: { fontSize: 14, lineHeight: 22, color: INK },
-  pending: { fontWeight: '700', color: '#825b00' },
-  error: { fontWeight: '700', color: NOW_INK },
-  send: { alignSelf: 'flex-end', minWidth: 120, height: 48, paddingHorizontal: 20, borderRadius: 8, backgroundColor: KEY, alignItems: 'center', justifyContent: 'center' },
-  sendLabel: { fontSize: 14, fontWeight: '700', color: '#ffffff' },
+  note: { flex: 1, fontSize: 12, lineHeight: 20, color: COLORS.muted },
+  count: { fontSize: 12, color: COLORS.muted, fontVariant: ['tabular-nums'] },
+  status: { fontSize: 14, lineHeight: 22, color: COLORS.text, backgroundColor: COLORS.surface, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8 },
+  pending: { fontWeight: '700', color: COLORS.soonText },
+  error: { fontWeight: '700', color: COLORS.nowText },
+  send: { alignSelf: 'flex-end', minWidth: 120, height: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: COLORS.action, alignItems: 'center', justifyContent: 'center' },
+  sendLabel: { fontSize: 14, fontWeight: '700', color: COLORS.onAction },
   disabled: { opacity: 0.4 },
   pressed: { opacity: 0.6 },
 });
