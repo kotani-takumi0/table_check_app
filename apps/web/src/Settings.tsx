@@ -99,7 +99,7 @@ function ExportRow({ today, onExport }: { today: string; onExport(from: string, 
   return <div className="settings-row export-row">
     <div className="settings-row-text">
       <strong id="export-title">お客さんを CSV で書き出す</strong>
-      <p id="export-help" className="settings-help">選んだ期間のお客さんを、卓・人数・コース・時刻・お会計・卓の動きと一緒に1組1行で書き出します。日は朝4時で区切ります（0時を過ぎたお客さんも前の日に入ります）。全卓消去したお客さんも、消した時刻と一緒に入ります。</p>
+      <p id="export-help" className="settings-help">選んだ期間のお客さんを、卓・人数・コース・時刻・お会計・卓の動き・料理を出した時刻と一緒に1組1行で書き出します。日は朝4時で区切ります（0時を過ぎたお客さんも前の日に入ります）。全卓消去したお客さんも、消した時刻と一緒に入ります。</p>
       {message && <p className="settings-help" role="status">{message}</p>}
     </div>
     <div className="export-range" role="group" aria-labelledby="export-title" aria-describedby="export-help">

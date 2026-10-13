@@ -48,6 +48,7 @@ export interface Session {
   course: Course | null;   // null は通常。通常は otoshiAt にお通しの時刻、コースはファーストドリンクの時刻を入れる
   menu: string | null;     // どのコースか（courseMenus の id）。コースのときだけ。null は未選択
   dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
+  dishServedAt: (number | null)[];   // 料理を出した時刻（No.131）。i 番目が i+1 品目。時刻を残さない前の版で出した品は null
   leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
   clearedAt: number | null;  // 全卓消去した時刻（No.113）。記録は消さずに残し、画面からだけ消す
   tableLog: TableMove[];     // 卓の動き（No.113）。移動・卓を足す・卓を外すを、した順にすべて残す
@@ -81,7 +82,7 @@ export const REASON_LABEL: Record<Exclude<AlertReason, null>, string> = { otoshi
 const MINUTE = 60_000;
 export function newSession(id: string, tableId: string, at: number, guests: number | null = null, course: Course | null = null, menu: string | null = null): Session {
   return { id, tableIds: [tableId], status: 'seated', seatedAt: at, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests, course,
-    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, leaveAt: null, clearedAt: null, tableLog: [], exitedByClosing: false };
+    menu: course !== null && isMenuId(menu) ? menu : null, dishesServed: 0, dishServedAt: [], leaveAt: null, clearedAt: null, tableLog: [], exitedByClosing: false };
 }
 export const GUESTS_MAX = 99;
 export function isGuestCount(value: unknown): value is number {
@@ -100,15 +101,16 @@ export function setGuests(session: Session, guests: number | null): Session | nu
 // 案内のあとで通常とコースを直す。時刻はそのまま（コースにするとお通しの時刻をファーストドリンクとして読む）。
 // 通常に戻したら、どのコースか・料理の進みも消す
 export function setCourse(session: Session, course: Course | null): Session | null {
-  if (course === null) return { ...session, course, menu: null, dishesServed: 0 };
+  if (course === null) return { ...session, course, menu: null, dishesServed: 0, dishServedAt: [] };
   return isCourse(course) ? { ...session, course } : null;
 }
 // どのコースかを選び直す。選び間違いを直すときのために、出した品数はそのまま（新しいメニューの品数までに収める）
 export function setMenu(session: Session, menu: string | null, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
-  if (menu === null) return { ...session, menu, dishesServed: 0 };
+  if (menu === null) return { ...session, menu, dishesServed: 0, dishServedAt: [] };
   const chosen = menuOf(menu, menus);
   if (session.course === null || !chosen) return null;
-  return { ...session, menu, dishesServed: Math.min(session.dishesServed, chosen.dishes.length) };
+  const dishesServed = Math.min(session.dishesServed, chosen.dishes.length);
+  return { ...session, menu, dishesServed, dishServedAt: servedTimes(session, dishesServed) };
 }
 // コースの料理の進み。served 品目まで出していて、next が次に出す料理（全部出したら null）
 // menus：店が作ったコース（No.89）。設定で消したコースを選んでいる卓は null（料理の進みを出さない）
@@ -118,14 +120,19 @@ export function dishProgress(session: Session, menus: CourseMenu[] = DEFAULT_COU
   const served = Math.min(session.dishesServed, menu.dishes.length);
   return { served, total: menu.dishes.length, next: menu.dishes[served] ?? null };
 }
-// 料理はメニューの順に1品ずつ進める・戻す
-export function serveDish(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
+// 1品目から served 品目までの出した時刻。時刻が無い品（前の版で出した）は null で埋め、それより後の時刻は落とす
+export function servedTimes(session: Session, served: number): (number | null)[] {
+  return Array.from({ length: served }, (_, i) => session.dishServedAt[i] ?? null);
+}
+// 料理はメニューの順に1品ずつ進める・戻す。進めたときは押した時刻を残し（No.131）、戻したときはその品の時刻を外す
+export function serveDish(session: Session, at: number, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
   const progress = dishProgress(session, menus);
-  return progress && progress.next !== null ? { ...session, dishesServed: progress.served + 1 } : null;
+  if (!progress || progress.next === null) return null;
+  return { ...session, dishesServed: progress.served + 1, dishServedAt: [...servedTimes(session, progress.served), at] };
 }
 export function unserveDish(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
   const progress = dishProgress(session, menus);
-  return progress && progress.served > 0 ? { ...session, dishesServed: progress.served - 1 } : null;
+  return progress && progress.served > 0 ? { ...session, dishesServed: progress.served - 1, dishServedAt: servedTimes(session, progress.served - 1) } : null;
 }
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;

@@ -38,8 +38,8 @@ describe('CSV', () => {
     const [head, first, second] = lines(csv);
     expect(head).toBe(CSV_HEADER.join(','));
     expect(first.startsWith('2026-10-03,11・13,,飲み放題,')).toBe(true);
-    expect(first.endsWith(',18:00,,,,,未払い,ご案内済み,,,')).toBe(true);
-    expect(second).toBe('2026-10-03,12,4,通常,,18:05,18:10,19:40,20:05,120,会計済（20:00）,退店済み,,,');
+    expect(first.endsWith(',18:00,,,,,未払い,ご案内済み,,,,')).toBe(true);
+    expect(second).toBe('2026-10-03,12,4,通常,,18:05,18:10,19:40,20:05,120,会計済（20:00）,退店済み,,,,');
   });
   it('どのコースか未定なら「未定」、消したコースは「消したコース」', () => {
     const [, undecided] = lines(sessionsCsv([{ ...course, menu: null }], settings));
@@ -55,12 +55,19 @@ describe('CSV', () => {
   it('全卓消去の時刻と卓の動きを出す（No.113）', () => {
     const moved: Session = { ...plain, clearedAt: at(3, 23, 0), tableLog: [{ at: at(3, 18, 30), kind: 'move', from: '12', to: '13' }, { at: at(3, 19, 0), kind: 'add', from: null, to: '14' }] };
     const cells = lines(sessionsCsv([moved], settings))[1].split(',');
-    expect(cells.slice(-2)).toEqual(['23:00', '18:30 12→13番に移動 / 19:00 14番を足す']);
+    expect(cells.slice(-3, -1)).toEqual(['23:00', '18:30 12→13番に移動 / 19:00 14番を足す']);
   });
   it('閉店で退店にしたお客さんは「閉店で退店」に「はい」（No.129）', () => {
     const closed: Session = { ...plain, status: 'exited', exitedAt: at(3, 23, 0), exitedByClosing: true };
     const cells = lines(sessionsCsv([closed], settings))[1].split(',');
-    expect(cells.slice(-4)).toEqual(['退店済み', 'はい', '', '']);
+    expect(cells.slice(-5)).toEqual(['退店済み', 'はい', '', '', '']);
+  });
+  it('料理を出した時刻を品ごとに、前の品からの分を添えて出す。時刻の無い品は「時刻なし」（No.131）', () => {
+    const served: Session = { ...course, dishesServed: 4, dishServedAt: [null, at(3, 18, 20), at(3, 18, 35), at(3, 18, 52)] };
+    const cells = lines(sessionsCsv([served], settings))[1].split(',');
+    expect(cells.at(-1)).toBe('1品目 時刻なし / 2品目 18:20 / 3品目 18:35（+15分） / 4品目 18:52（+17分）');
+    // 時刻を残す前の記録も、出した品数だけ「時刻なし」で出す
+    expect(lines(sessionsCsv([{ ...course, dishesServed: 2 }], settings))[1].split(',').at(-1)).toBe('1品目 時刻なし / 2品目 時刻なし');
   });
   it('名前を変えた区分・コースも、記録に写したそのときの名前で出す（No.113）', () => {
     const recorded = { ...course, record: { drinkPlanName: '前の名前', courseName: '前のコース名' } };

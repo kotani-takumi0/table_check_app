@@ -1,5 +1,5 @@
 import { menuOf, priceLabel } from './courseMenus';
-import { formatClock, STATUS_LABEL, type Session, type TableMove } from './domain';
+import { formatClock, servedTimes, STATUS_LABEL, type Session, type TableMove } from './domain';
 import type { SessionRecord } from './sessionRecord';
 import type { ShopSettings } from './shopSettings';
 
@@ -32,10 +32,19 @@ function field(value: string | number): string {
   const text = String(value);
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
-export const CSV_HEADER = ['営業日', '卓', '人数', '区分', 'コース', '案内', 'お通し・ファーストドリンク', 'L.O.確認', '退店', '滞在（分）', 'お会計', '最後の状態', '閉店で退店', '全卓消去', '卓の動き'];
+export const CSV_HEADER = ['営業日', '卓', '人数', '区分', 'コース', '案内', 'お通し・ファーストドリンク', 'L.O.確認', '退店', '滞在（分）', 'お会計', '最後の状態', '閉店で退店', '全卓消去', '卓の動き', '料理を出した時刻'];
 // 卓の動き（No.113）を1つの欄にする。例「19:10 12→13番に移動 / 19:40 14番を足す」
 function tableLogText(log: TableMove[]): string {
   return log.map(move => `${formatClock(move.at)} ${move.kind === 'move' ? `${move.from}→${move.to}番に移動` : move.kind === 'add' ? `${move.to}番を足す` : `${move.from}番を外す`}`).join(' / ');
+}
+// 料理を出した時刻（No.131）を1つの欄にする。例「1品目 18:20 / 2品目 18:35（+15分）」。
+// 前の品からの分を添えて、コースのペースを見やすくする。時刻を残す前の版で出した品は「時刻なし」
+function dishTimesText(times: (number | null)[]): string {
+  return times.map((at, i) => {
+    if (at === null) return `${i + 1}品目 時刻なし`;
+    const before = times[i - 1];
+    return `${i + 1}品目 ${formatClock(at)}${typeof before === 'number' ? `（+${Math.round((at - before) / 60_000)}分）` : ''}`;
+  }).join(' / ');
 }
 // 期間のお客さんを案内の順に1行ずつ。Excel で文字化けしないよう、先頭に BOM を付ける。
 // 区分・コースは記録に写しておいたそのときの名前（No.113）で出し、写していない古い記録は今の設定の名前で出す（値段は写さないので今の値段）
@@ -61,6 +70,8 @@ export function sessionsCsv(sessions: (Session & { record?: Partial<SessionRecor
       session.exitedByClosing ? 'はい' : '',
       clock(session.clearedAt),
       tableLogText(session.tableLog),
+      // 時刻を残す前の版で出した品も「時刻なし」で数える
+      dishTimesText(servedTimes(session, session.dishesServed)),
     ];
   });
   return '\ufeff' + [CSV_HEADER, ...rows].map(row => row.map(field).join(',')).join('\r\n') + '\r\n';
