@@ -67,7 +67,7 @@ export function useSessions(store: SessionStore, createId: () => string = random
     if (changed) void store.put(changed);
   }, [store, menus]);
   const serve = useCallback((session: Session) => {
-    const served = serveDish(session, menus);
+    const served = serveDish(session, now(), menus);
     if (served) void store.put(served);
   }, [store, menus]);
   const unserve = useCallback((session: Session) => {

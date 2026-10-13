@@ -8,7 +8,7 @@ const exited = advance(loDone, 40_000);
 const minute = 60_000;
 describe('状態遷移', () => {
   it('初期状態と各状態の時刻を記録し、引数を変更しない', () => {
-    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null, menu: null, dishesServed: 0, leaveAt: null, clearedAt: null, tableLog: [], exitedByClosing: false });
+    expect(seated).toEqual({ id: 'session', tableIds: ['31'], status: 'seated', seatedAt: 10_000, otoshiAt: null, loDoneAt: null, exitedAt: null, paidAt: null, guests: null, course: null, menu: null, dishesServed: 0, dishServedAt: [], leaveAt: null, clearedAt: null, tableLog: [], exitedByClosing: false });
     expect(otoshi).toEqual({ ...seated, status: 'otoshi', otoshiAt: 20_000 });
     expect(loDone).toEqual({ ...otoshi, status: 'lo_done', loDoneAt: 30_000 });
     expect(exited).toEqual({ ...loDone, status: 'exited', exitedAt: 40_000 });
@@ -203,18 +203,18 @@ describe('コースの料理', () => {
     const total = menuOf('casual')!.dishes.length;
     expect(dishProgress(casual)).toEqual({ served: 0, total, next: menuOf('casual')!.dishes[0] });
     let session = casual;
-    for (let i = 0; i < total; i++) session = serveDish(session)!;
+    for (let i = 0; i < total; i++) session = serveDish(session, i)!;
     expect(dishProgress(session)).toEqual({ served: total, total, next: null });
-    expect(serveDish(session)).toBeNull();
+    expect(serveDish(session, total)).toBeNull();
   });
   it('1品戻せる。まだ出していなければ戻せない', () => {
     expect(unserveDish(casual)).toBeNull();
-    expect(unserveDish(serveDish(casual)!)).toEqual(casual);
+    expect(unserveDish(serveDish(casual, 1)!)).toEqual(casual);
   });
   it('コースが未選択・通常の卓は料理を進めない', () => {
     const noMenu = newSession('s', '12', 0, 4, 'drinks');
     expect(dishProgress(noMenu)).toBeNull();
-    expect(serveDish(noMenu)).toBeNull();
+    expect(serveDish(noMenu, 1)).toBeNull();
     expect(dishProgress(newSession('s', '12', 0))).toBeNull();
   });
   it('コースを選び直しても出した品数は残し、新しいメニューの品数までに収める', () => {
@@ -226,9 +226,27 @@ describe('コースの料理', () => {
     expect(setMenu(newSession('s', '12', 0), 'casual')).toBeNull();
   });
   it('料理の進みは状態の進み・戻し・卓の移動で変わらない', () => {
-    const served = serveDish(casual)!;
+    const served = serveDish(casual, 1)!;
     expect(advance(served, 10 * 60_000).dishesServed).toBe(1);
     expect(moveTable(served, '12', '13', 1)?.dishesServed).toBe(1);
+  });
+  it('出した時刻を1品ごとに残し、1品戻すとその品の時刻を外す（No.131）', () => {
+    const two = serveDish(serveDish(casual, 5 * minute)!, 12 * minute)!;
+    expect(two).toMatchObject({ dishesServed: 2, dishServedAt: [5 * minute, 12 * minute] });
+    expect(unserveDish(two)).toMatchObject({ dishesServed: 1, dishServedAt: [5 * minute] });
+    expect(serveDish(unserveDish(two)!, 15 * minute)?.dishServedAt).toEqual([5 * minute, 15 * minute]);
+  });
+  it('時刻を残す前の版で出した品は時刻を null にし、品の順はずらさない（No.131）', () => {
+    const legacy = { ...casual, dishesServed: 2 };
+    expect(serveDish(legacy, 20 * minute)?.dishServedAt).toEqual([null, null, 20 * minute]);
+    // 前の版で1品戻されて、品数より多く残っている時刻は落とす
+    expect(serveDish({ ...casual, dishesServed: 1, dishServedAt: [5 * minute, 12 * minute] }, 20 * minute)?.dishServedAt).toEqual([5 * minute, 20 * minute]);
+  });
+  it('コースを選び直すと品数に合わせて時刻も切り詰め、通常・未選択に戻すと消す（No.131）', () => {
+    const cheese = { ...casual, menu: 'cheese', dishesServed: 7, dishServedAt: [1, 2, 3, 4, 5, 6, 7] };
+    expect(setMenu(cheese, 'nijikai')?.dishServedAt).toEqual([1, 2, 3, 4, 5].slice(0, menuOf('nijikai')!.dishes.length));
+    expect(setMenu(cheese, null)?.dishServedAt).toEqual([]);
+    expect(setCourse(cheese, null)?.dishServedAt).toEqual([]);
   });
 });
 describe('コース', () => {
@@ -285,7 +303,7 @@ describe('コース', () => {
   });
   it('通常に戻すと、どのコースか・料理の進みも消す', () => {
     const served = { ...started, menu: 'cheese', dishesServed: 3 };
-    expect(setCourse(served, null)).toEqual({ ...started, course: null, menu: null, dishesServed: 0 });
+    expect(setCourse(served, null)).toEqual({ ...started, course: null, menu: null, dishesServed: 0, dishServedAt: [] });
     expect(setCourse(served, 'premium_drinks')).toEqual({ ...served, course: 'premium_drinks' });
   });
   it('コースは状態の進み・戻し・卓の移動で変わらない', () => {

@@ -39,8 +39,8 @@ service cloud.firestore {
     }
     function validSession(d, shop) {
       // paidAt・guests・course・menu・dishesServed・leaveAt はお会計・人数・コース・料理・退店時刻の追加前のアプリが書かないので必須にしない
-      // clearedAt（全卓消去）・tableLog（卓の動き）と記録の項目（No.113）・exitedByClosing（No.129）も同じく、前の版のアプリは書かない
-      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','courseMenu','dishesServed','leaveAt',
+      // clearedAt（全卓消去）・tableLog（卓の動き）と記録の項目（No.113）・exitedByClosing（No.129）・dishServedAt（No.131）も同じく、前の版のアプリは書かない
+      return d.keys().hasOnly(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','paidAt','guests','course','drinkPlan','menu','courseMenu','dishesServed','dishServedAt','leaveAt',
           'clearedAt','tableLog','exitedByClosing','businessDay','drinkPlanName','courseName','timeRules','platform','appVersion','updatedAt'])
         && d.keys().hasAll(['tableIds','status','seatedAt','otoshiAt','loDoneAt','exitedAt','updatedAt'])
         && d.tableIds is list && d.tableIds.size() >= 1 && d.tableIds.size() <= 60
@@ -54,6 +54,8 @@ service cloud.firestore {
         && isMenuOrNull(d.get('menu', null))
         && isCourseMenuOrNull(d.get('courseMenu', null))
         && isDishesServed(d.get('dishesServed', 0))
+        // 料理を出した時刻（No.131）。1品に1つで、品数の上限（30品）まで
+        && d.get('dishServedAt', []) is list && d.get('dishServedAt', []).size() <= 30
         && isTimeOrNull(d.get('leaveAt', null))
         && isTimeOrNull(d.get('clearedAt', null))
         && d.get('tableLog', []) is list && d.get('tableLog', []).size() <= 200
@@ -108,10 +110,15 @@ service cloud.firestore {
       return resource == null || resource.data.get('tableLog', []).size() == 0
         || request.resource.data.keys().hasAny(['tableLog']);
     }
+    // 料理を出した時刻（No.131）も同じく、前の版のアプリの上書きで消させない
+    function keepsDishServedAt() {
+      return resource == null || resource.data.get('dishServedAt', []).size() == 0
+        || request.resource.data.keys().hasAny(['dishServedAt']);
+    }
     // 書き込みの確かめ（今の店とログインした店で同じものを使う）
     function canWriteSession(shop) {
       return validSession(request.resource.data, shop) && keepsPaid() && keepsGuests() && keepsCourse() && keepsDrinkPlan() && keepsCourseMenu() && keepsMenu() && keepsLeaveAt()
-        && keepsCleared() && keepsTableLog();
+        && keepsCleared() && keepsTableLog() && keepsDishServedAt();
     }
     function canWriteTable(shop, tableId) {
       return tableId in seatIds(shop)
