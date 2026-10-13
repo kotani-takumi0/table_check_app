@@ -266,8 +266,12 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
-    // ご意見（No.125、packages/core/src/feedback.ts）。店ごとに分けず1か所に集める。アプリからは送るだけで、読むのは Firebase コンソールから。
-    // shop はログインした店ならそのアカウントの uid（ほかの店の名で送れないようにする）、今の店は null
+    // ご意見（No.125、No.144、packages/core/src/feedback.ts）。店ごとに分けず1か所に集める。アプリからは送るだけで、読むのは Firebase コンソールから。
+    // shop はログインした店ならそのアカウントの uid（ほかの店の名で送れないようにする）、今の店は null。
+    // 短時間に何件も送れない（セキュリティ強化）。間隔は feedback.ts の FEEDBACK_INTERVAL_MS（30秒）と同じ
+    function feedbackTicketOk(ticket) {
+      return ticket is string && ticket.matches('^[a-z0-9]{16}$');
+    }
     function canSendFeedback() {
       let d = request.resource.data;
       return d.keys().hasOnly(['message','version','platform','shopName','shop','createdAt'])
@@ -279,9 +283,36 @@ service cloud.firestore {
         && (d.shop == null || d.shop == request.auth.uid)
         && d.createdAt == request.time;
     }
+    function feedbackPaceShape() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['lastAt','ticket'])
+        && d.lastAt == request.time
+        && feedbackTicketOk(d.ticket);
+    }
+    // 文書が無い最初の1件か、前の送信から30秒よりあとに空いている
+    function feedbackPaceReady(path) {
+      return !exists(path) || request.time > get(path).data.lastAt + duration.value(30, 's');
+    }
+    function feedbackPaceAllows(id) {
+      let path = /databases/$(database)/documents/feedbackPace/$(request.auth.uid);
+      return existsAfter(path) && feedbackPaceLinked(path, id);
+    }
+    function feedbackPaceLinked(path, id) {
+      let after = getAfter(path).data;
+      return after.lastAt == request.time
+        && feedbackTicketOk(after.ticket)
+        && id == request.auth.uid + '_' + after.ticket
+        && feedbackPaceReady(path);
+    }
     match /feedback/{id} {
-      allow create: if signedIn() && canSendFeedback();
+      allow create: if signedIn() && canSendFeedback() && feedbackPaceAllows(id);
       allow read, update, delete: if false;
+    }
+    match /feedbackPace/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && feedbackPaceShape();
+      allow update: if signedIn() && request.auth.uid == uid && feedbackPaceShape() && feedbackPaceReady(/databases/$(database)/documents/feedbackPace/$(uid));
+      allow delete: if false;
     }
     match /clockProbes/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
