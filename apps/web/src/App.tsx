@@ -16,9 +16,10 @@ import { SeatDialog } from './SeatDialog';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
-import { FeedbackForm } from './FeedbackForm';
-import { ReleaseBar, ReleaseNotes } from './ReleaseNotes';
+import { Notices, type NoticeTab } from './Notices';
+import { ReleaseBar } from './ReleaseNotes';
 import { useReleaseAnnounce } from './useReleaseAnnounce';
+import { useRoadmapDot } from './useRoadmapDot';
 import { ShopTimerGlyph } from './ShopTimerGlyph';
 import { useAppUpdate } from './useAppUpdate';
 import { type ShopTimerDone, type ShopTimerId, type ShopTimerStore } from '@table-check/core/shopTimers';
@@ -46,10 +47,19 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // メニュー（左から出す）で切り替える画面。最初はテーブル状況で、メニューはしまっておく
   const [screen, setScreen] = useState<Screen>('floor');
   const [menuOpen, setMenuOpen] = useState(false);
-  const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
-  // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。お知らせの画面を開いたら、もう出さない
+  const [noticeTab, setNoticeTab] = useState<NoticeTab>('roadmap');
+  const selectScreen = useCallback((next: Screen) => {
+    if (next === 'notices') setNoticeTab('roadmap');
+    setScreen(next);
+    setMenuOpen(false);
+  }, []);
+  const openUpdates = useCallback(() => { setNoticeTab('updates'); setScreen('notices'); setMenuOpen(false); }, []);
+  // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。最近の更新を開いたら、もう出さない
   const { announce, markSeen } = useReleaseAnnounce();
-  useEffect(() => { if (screen === 'news') markSeen(); }, [screen, markSeen]);
+  useEffect(() => { if (screen === 'notices' && noticeTab === 'updates') markSeen(); }, [screen, noticeTab, markSeen]);
+  // 新しい予定（No.144）：メニューに点を1回出す。今後の予定を開いたら、もう出さない。営業中の画面には出さない
+  const { show: roadmapNew, markSeen: markRoadmapSeen } = useRoadmapDot();
+  useEffect(() => { if (screen === 'notices' && noticeTab === 'roadmap') markRoadmapSeen(); }, [screen, noticeTab, markRoadmapSeen]);
   // 直しているコース（No.89）。新しく足すときは、開いたときに作った下書き
   const [editingCourse, setEditingCourse] = useState<{ course: CourseMenu; isNew: boolean } | null>(null);
   const timeLimitOff = shopSettings.timeLimitOff;
@@ -216,7 +226,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const portrait = useMediaQuery('(orientation: portrait)');
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
   // 新しい版（No.83）：詳細・ダイアログ・メニュー・卓選び・席の配置・ご意見を書いている途中では読み込み直さない
-  const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout' || screen === 'course' || screen === 'feedback', syncState);
+  const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout' || screen === 'course' || (screen === 'notices' && noticeTab === 'feedback'), syncState);
   // 縦向きは、置いてある行までを回して出す（No.108。何も置いていない下の行は出さない）
   const turned = portrait ? portraitOf(layout) : null;
   const grid = turned?.grid ?? GRID;
@@ -256,8 +266,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             if (recorded.length > 0) downloadText(csvFileName(from, to), sessionsCsv(recorded, shopSettings), 'text/csv');
             return recorded.length;
           }} inert={modal || menuOpen} />
-      : screen === 'news' ? <ReleaseNotes inert={modal || menuOpen} />
-      : screen === 'feedback' ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />
+      : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />
       : <div className="floor-frame">
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
         <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
@@ -268,11 +277,11 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
       </div>}
     {noticesOpen && screen === 'floor' && <Toasts toasts={toasts} shownKey={shownNotice} run={noticeRun} onShow={key => openNotices(key)} onTuck={() => setNoticesOpen(false)} onAction={() => setNoticeRun(run => run + 1)} />}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
-    {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} />}
+    {menuOpen && !pick && <SideMenu screen={screen} onSelect={selectScreen} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} inert={modal} roadmapNew={roadmapNew} />}
     {opened && <DetailPanel session={opened} time={time} othersEditing={editingIds.has(opened.id)} settings={shopSettings} onClose={closePanel} onNext={nextWithUndo} onSeat={requestSeat} onBack={backWithUndo} onRetime={retime} onPay={pay} onGuests={changeGuests} onLeaveAt={changeLeaveAt} onCourse={changeCourse} onMenu={changeMenu} onServe={serve} onUnserve={unserve} from={moveFrom} onPick={startPick} onRelease={release} returnFocus={returnFocus.current} anchor={anchor} sheet={mini} />}
     {seating !== null && !seatingTaken && <SeatDialog tableId={seating} exited={seatingOccupant?.status === 'exited'} previousUnpaid={seatingOccupant?.paidAt === null} onSeat={(guests, course, menu) => seat(seating, guests, course, menu)} settings={shopSettings} onClose={closeSeating} returnFocus={seatReturnFocus.current} anchor={seatingAnchor} sheet={mini} />}
     {undo ? <UndoBar message={undo.message} runKey={undo.key} onUndo={applyUndo} /> : undoNote ? <UndoBar message={undoNote.message} runKey={undoNote.key} />
-      : announce && !pick && <ReleaseBar onOpen={() => selectScreen('news')} onClose={markSeen} />}
+      : announce && !pick && screen === 'floor' && <ReleaseBar onOpen={openUpdates} onClose={markSeen} />}
     {clearing && <ClearAllDialog unpaidTables={unpaidTableCount(sessions, time, shopSettings)} onConfirm={() => clearAll(shopSettings)} onClose={closeClear} returnFocus={clearReturnFocus.current} />}
   </main>;
 }

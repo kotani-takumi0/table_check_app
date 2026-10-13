@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { randomUUID } from 'expo-crypto';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -30,8 +31,9 @@ import { Floor } from './Floor';
 import { Toasts, type Toast } from './Toasts';
 import { SideMenu, type Screen } from './SideMenu';
 import { Settings } from './Settings';
-import { FeedbackForm } from './FeedbackForm';
-import { ReleaseBar, ReleaseNotes, useReleaseAnnounce } from './ReleaseNotes';
+import { Notices, type NoticeTab } from './Notices';
+import { ReleaseBar, useReleaseAnnounce } from './ReleaseNotes';
+import { roadmapSeenValue, SEEN_ROADMAP_KEY, shouldShowRoadmapDot } from '@table-check/core/roadmap';
 import { LayoutEditor } from './LayoutEditor';
 import { CourseEditor } from './CourseEditor';
 import { coursesInUse, newCourse, putCourse } from '@table-check/core/courseEditor';
@@ -130,10 +132,30 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
   // メニュー（左から出す）で切り替える画面。最初はテーブル状況で、メニューはしまっておく
   const [screen, setScreen] = useState<Screen>('floor');
   const [menuOpen, setMenuOpen] = useState(false);
-  const selectScreen = useCallback((next: Screen) => { setScreen(next); setMenuOpen(false); }, []);
-  // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。お知らせの画面を開いたら、もう出さない
+  const [noticeTab, setNoticeTab] = useState<NoticeTab>('roadmap');
+  const selectScreen = useCallback((next: Screen) => {
+    if (next === 'notices') setNoticeTab('roadmap');
+    setScreen(next);
+    setMenuOpen(false);
+  }, []);
+  const openUpdates = useCallback(() => { setNoticeTab('updates'); setScreen('notices'); setMenuOpen(false); }, []);
+  // 新しい版のお知らせ（No.127）：更新のあと1回だけ帯を出す。最近の更新を開いたら、もう出さない
   const { announce, markSeen } = useReleaseAnnounce();
-  useEffect(() => { if (screen === 'news') markSeen(); }, [screen, markSeen]);
+  useEffect(() => { if (screen === 'notices' && noticeTab === 'updates') markSeen(); }, [screen, noticeTab, markSeen]);
+  // 新しい予定（No.144）：メニューに点を1回出す。今後の予定を開いたら、もう出さない
+  const [roadmapNew, setRoadmapNew] = useState(false);
+  const roadmapMarked = useRef(false);
+  useEffect(() => {
+    let alive = true;
+    void AsyncStorage.getItem(SEEN_ROADMAP_KEY).catch(() => null).then(seen => { if (alive && !roadmapMarked.current) setRoadmapNew(shouldShowRoadmapDot(seen)); });
+    return () => { alive = false; };
+  }, []);
+  const markRoadmapSeen = useCallback(() => {
+    roadmapMarked.current = true;
+    setRoadmapNew(false);
+    void AsyncStorage.setItem(SEEN_ROADMAP_KEY, roadmapSeenValue()).catch(() => undefined);
+  }, []);
+  useEffect(() => { if (screen === 'notices' && noticeTab === 'roadmap') markRoadmapSeen(); }, [screen, noticeTab, markRoadmapSeen]);
   // 直しているコース（No.89）。新しく足すときは、開いたときに作った下書き
   const [editingCourse, setEditingCourse] = useState<{ course: CourseMenu; isNew: boolean } | null>(null);
 
@@ -232,10 +254,8 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             setEditingCourse(course ? { course, isNew: false } : { course: newCourse(shopSettings.courseMenus, Date.now()), isNew: true });
             selectScreen('course');
           }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
-        : screen === 'news'
-        ? <ReleaseNotes top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
-        : screen === 'feedback'
-        ? <FeedbackForm feedbackStore={feedbackStore} shopName={shopSettings.shopName} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        : screen === 'notices'
+        ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} mini={mini} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
           <Floor sessions={sessions} time={time} editingIds={editingIds} settings={shopSettings} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}
@@ -245,7 +265,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
       {menuOpen && !pick && <>
         <Pressable accessibilityLabel="メニューを閉じる" style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
         <View style={[styles.listArea, { top: (mini ? TOOLBAR_HEIGHT.mini + 10 : TOOLBAR_HEIGHT.regular + 14) }, mini && styles.miniListArea]} pointerEvents="box-none">
-          <SideMenu screen={screen} onSelect={selectScreen} mini={mini} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} />
+          <SideMenu screen={screen} onSelect={selectScreen} mini={mini} account={account} shopName={shopSettings.shopName} onLeave={onLeave} leaveError={leaveError} roadmapNew={roadmapNew} />
         </View>
       </>}
       <View style={[styles.overlay, mini && styles.miniOverlay]} pointerEvents="box-none">
@@ -261,7 +281,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)} timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} />}
       </View>
       {/* シートを開いている間は、シートの中に出す（下に出すとシートに隠れる） */}
-      {content === null && (undoBar ?? (announce && !pick && <ReleaseBar onOpen={() => selectScreen('news')} onClose={markSeen} />))}
+      {content === null && (undoBar ?? (announce && !pick && screen === 'floor' && <ReleaseBar onOpen={openUpdates} onClose={markSeen} />))}
       {popover && <Popover key={popoverAt ? (seating !== null ? `seat-${seating}` : `detail-${openId}`) : 'alert'} anchor={clearing ? 'end' : 'start'} at={popoverAt} mini={mini} onClose={closeSheet}>{popover}</Popover>}
       {/* iOS 26 はシートそのものが Liquid Glass なので、中の背景を Web のパネルと同じ 84% の白にして、うっすらガラスを見せる */}
       <Modal visible={content !== null} animationType="slide" presentationStyle="formSheet" onRequestClose={closeSheet}>

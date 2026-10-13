@@ -1,36 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import { RELEASE_NOTES, releaseDateLabel, releaseNoteOf, SEEN_RELEASE_KEY, shouldAnnounce } from '@table-check/core/releaseNotes';
 import { version } from '../../../package.json';
-import { COLORS } from './theme';
-import { Glass } from './Glass';
 import { feedback } from './feedback';
 
 const APP_VERSION = `v${version}`;
-// 更新のお知らせの画面（Web の ReleaseNotes と同じ。No.127）。版ごとに、何が変わったかを新しい順に出す
-export function ReleaseNotes({ top }: { top: number }) {
+const INK = '#16211b';
+const INK2 = '#4b5a51';
+const MUTED = '#627168';
+const LINE = '#e2e9e4';
+const KEY = '#1b7a3e';
+const PREP = '#e8f3ec';
+const PAGE = '#ffffff';
+
+// 最近の更新（お知らせのタブ。Web の ReleaseNotes と同じ。No.127）
+export function ReleaseNotes() {
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]}>
-      <Text style={styles.title} accessibilityRole="header">更新のお知らせ</Text>
-      <Text style={styles.help}>版ごとに、新しくなったところをまとめています。いまの版は {APP_VERSION} です。</Text>
+    <View style={styles.stack}>
+      <Text style={styles.lead}>版ごとに、新しくなったところをまとめています。いまの版は {APP_VERSION} です。</Text>
       {RELEASE_NOTES.map(note => (
-        <Glass key={note.version} tint={0.84} style={styles.group}>
+        <View key={note.version} style={styles.panel}>
           <View style={styles.head}>
             <Text style={styles.version} accessibilityRole="header">v{note.version}</Text>
             {`v${note.version}` === APP_VERSION && <Text style={styles.current}>いまの版</Text>}
             <Text style={styles.date}>{releaseDateLabel(note.date)}</Text>
           </View>
-          {note.items.map(item => (
-            <View key={item} style={styles.item}>
-              <Text style={styles.bullet} accessible={false}>・</Text>
-              <Text style={styles.itemText}>{item}</Text>
-            </View>
-          ))}
-        </Glass>
+          {note.items.map((item, index) => <Text key={item} style={[styles.item, index > 0 && styles.itemLine]}>{item}</Text>)}
+        </View>
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -69,20 +69,17 @@ export function ReleaseBar({ onOpen, onClose }: { onOpen(): void; onClose(): voi
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { alignSelf: 'center', width: '100%', maxWidth: 640, gap: 12, paddingBottom: 16 },
-  title: { fontSize: 24, fontWeight: '700', color: COLORS.text },
-  help: { fontSize: 13, lineHeight: 19, color: COLORS.muted },
-  group: { gap: 6, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 20 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  version: { fontSize: 17, fontWeight: '700', color: COLORS.text },
-  current: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, overflow: 'hidden', backgroundColor: COLORS.actionBg, color: COLORS.actionText, fontSize: 12, fontWeight: '700' },
-  date: { marginLeft: 'auto', fontSize: 13, color: COLORS.muted },
-  item: { flexDirection: 'row' },
-  bullet: { width: 16, fontSize: 15, lineHeight: 23, color: COLORS.muted },
-  itemText: { flex: 1, fontSize: 15, lineHeight: 23, color: COLORS.text },
+  stack: { gap: 20 },
+  lead: { fontSize: 14, lineHeight: 22, color: INK2 },
+  panel: { borderWidth: 1, borderColor: '#bcc6c0', borderRadius: 12, backgroundColor: PAGE, overflow: 'hidden' },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: LINE },
+  version: { fontSize: 17, fontWeight: '700', lineHeight: 26, color: INK },
+  current: { paddingHorizontal: 9, paddingVertical: 3, borderWidth: 1, borderColor: KEY, borderRadius: 8, backgroundColor: PREP, color: KEY, fontSize: 12, fontWeight: '700', overflow: 'hidden' },
+  date: { marginLeft: 'auto', fontSize: 12, fontWeight: '500', color: MUTED, fontVariant: ['tabular-nums'] },
+  item: { paddingVertical: 16, paddingHorizontal: 18, fontSize: 14, lineHeight: 22, color: INK2 },
+  itemLine: { borderTopWidth: 1, borderTopColor: LINE },
   wrap: { position: 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center' },
-  bar: { maxWidth: 560, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.text },
+  bar: { maxWidth: 560, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, borderRadius: 14, backgroundColor: INK },
   message: { flexShrink: 1, fontSize: 15, fontWeight: '700', color: '#ffffff', paddingRight: 4 },
   button: { minHeight: 40, paddingHorizontal: 12, borderRadius: 10, justifyContent: 'center' },
   buttonLabel: { fontSize: 15, fontWeight: '700', color: '#a6dd8c', textDecorationLine: 'underline' },

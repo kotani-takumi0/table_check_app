@@ -474,21 +474,56 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .settings-row-text { flex: 1; min-width: 0; font-size: 16px; }
 .settings-row-text strong { font-weight: 700; }
 .settings-help { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.6; }
-/* ご意見を送る（No.125） */
-.feedback-group { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; }
-.feedback-label { font-size: 16px; }
-.feedback-text { min-height: 168px; padding: 12px; line-height: 1.6; resize: vertical; }
-.feedback-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.feedback-foot .settings-help { margin: 0; }
-.feedback-count { flex: none; color: var(--ink-2); font-family: var(--num); font-size: 13px; }
-.feedback-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-top: 4px; }
-.feedback-actions .settings-help { flex: 1; margin: 0; }
-.feedback-error { color: var(--now-ink); font-weight: 700; }
-/* 更新のお知らせ（No.127） */
-.release-head { display: flex; align-items: baseline; gap: 10px; }
-.release-current { padding: 2px 8px; border-radius: 999px; background: var(--key-wash); color: var(--key); font-size: 12px; font-weight: 700; }
-.release-date { margin-left: auto; color: var(--ink-2); font-size: 13px; font-weight: 500; }
-.release-items { margin: 0; padding: 6px 0 2px 1.2em; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.6; }
+/* お知らせ（No.144）。PC は幅 880px で中央、スマホは画面幅いっぱい。見本の色・文字・余白 */
+.notices { flex: 1; min-height: 0; overflow-y: auto; background: var(--tile); }
+.notices-wrap { max-width: 880px; margin: 24px auto; padding: 0 20px 40px; }
+.notices-tabs { display: inline-flex; max-width: 100%; flex-wrap: wrap; background: var(--page); border: 1px solid var(--edge); border-radius: 8px; padding: 3px; gap: 2px; margin-bottom: 20px; }
+.notices-tab { position: relative; border: 0; background: transparent; color: var(--ink-2); font-size: 14px; font-weight: 500; line-height: 1.4; padding: 8px 16px; border-radius: 6px; }
+.notices-tab.on { background: var(--key); color: #fff; }
+.notices-dot, .side-menu-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--key); }
+.notices-tab .notices-dot { position: absolute; top: 6px; right: 6px; }
+.notices-tab.on .notices-dot { background: #fff; }
+.side-menu-dot { margin-left: auto; }
+.notices-stage { margin: 20px 0 8px; color: var(--muted); font-size: 14px; font-weight: 500; }
+.notices-panel { background: var(--page); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
+.notices-row { display: flex; gap: 14px; padding: 16px 18px; border-top: 1px solid var(--line); align-items: flex-start; }
+.notices-panel > .notices-row:first-child { border-top: 0; }
+.notices-chip { flex: none; margin-top: 2px; padding: 3px 9px; border: 1px solid var(--edge); border-radius: 8px; background: var(--tile); color: var(--ink-2); font-size: 12px; font-weight: 700; line-height: 1.4; }
+.notices-chip.prep { border-color: var(--key); background: #e8f3ec; color: var(--key); }
+.notices-title { margin: 0; color: var(--ink); font-size: 17px; font-weight: 700; line-height: 1.5; }
+.notices-detail { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.6; }
+.notices-from { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.notices-from svg { width: 14px; height: 14px; }
+.notices-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.notices-cta { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--page); border: 1px solid var(--edge); border-radius: 12px; padding: 16px 18px; }
+.notices-cta-title { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.5; }
+.notices-cta-button { flex: none; height: 48px; padding: 0 20px; border: 1px solid var(--key); border-radius: 8px; background: var(--page); color: var(--key); font-size: 14px; font-weight: 700; }
+.notices-cta-button:hover { background: var(--key-wash); }
+.notices-lead { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; line-height: 1.6; }
+.notices-updates, .notices-feedback { display: flex; flex-direction: column; gap: 20px; }
+.notices-updates .notices-lead, .notices-feedback .notices-lead { margin: 0; }
+.notices-release-head { display: flex; align-items: center; gap: 10px; margin: 0; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.notices-release-head .notices-chip { margin-top: 0; }
+.notices-release-date { margin-left: auto; color: var(--muted); font-family: var(--num); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.notices-release-items { margin: 0; padding: 0; list-style: none; }
+.notices-release-items li { padding: 16px 18px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 14px; line-height: 1.6; }
+.notices-release-items li:first-child { border-top: 0; }
+.notices-feedback-panel { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; }
+.notices-label { font-size: 14px; font-weight: 700; }
+.notices-text { min-height: 168px; padding: 12px; line-height: 1.6; resize: vertical; }
+.notices-feedback-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.notices-feedback-foot .notices-note { margin: 0; flex: 1; }
+.notices-count { flex: none; color: var(--muted); font-family: var(--num); font-size: 12px; font-variant-numeric: tabular-nums; }
+.notices-status { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.6; }
+.notices-error { margin: 0; color: var(--now-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
+.notices-send { align-self: flex-end; }
+@media (max-width: 600px) {
+  .notices-wrap { max-width: none; margin: 16px 0 0; padding: 0 16px 32px; }
+  .notices-tabs { display: flex; width: 100%; }
+  .notices-tab { flex: 1; padding: 8px 6px; text-align: center; }
+  .notices-cta { flex-direction: column; align-items: stretch; }
+  .notices-send { align-self: stretch; }
+}
 .export-row { flex-wrap: wrap; }
 .export-row .settings-row-text { flex-basis: 100%; }
 .export-range { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; }
