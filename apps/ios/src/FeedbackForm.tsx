@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackShopSwitch, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
 import { Glass } from './Glass';
@@ -17,6 +17,13 @@ function draftForShop(shopId: string): { draft: string; checking: false } {
   keptDraft = next.draft;
   return next;
 }
+let keptSentAt: number | null = null;
+const sentListeners = new Set<(at: number) => void>();
+function publishSent(at: number) {
+  keptSentAt = at;
+  void AsyncStorage.setItem(FEEDBACK_SENT_AT_KEY, String(at)).catch(() => undefined);
+  for (const hear of sentListeners) hear(at);
+}
 
 // ご意見を送る（お知らせのタブ。Web の FeedbackForm と同じ。No.125）。連続では送れない
 export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStore: FeedbackStore; shopName: string; shopId: string }) {
@@ -29,16 +36,19 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
   useEffect(() => { const next = draftForShop(shopId); setDraft(next.draft); setResult(null); setChecking(next.checking); }, [shopId]);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  const [sentAt, setSentAt] = useState<number | null>(null);
+  const [sentAt, setSentAt] = useState<number | null>(keptSentAt);
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
+    const hear = (at: number) => { setSentAt(at); setNowMs(at); };
+    sentListeners.add(hear);
+    if (keptSentAt !== null) hear(keptSentAt);
     let alive = true;
     void AsyncStorage.getItem(FEEDBACK_SENT_AT_KEY).then(raw => {
-      if (!alive || raw === null) return;
+      if (!alive || raw === null || keptSentAt !== null) return;
       const at = Number(raw);
       if (Number.isFinite(at)) setSentAt(at);
     }).catch(() => undefined);
-    return () => { alive = false; };
+    return () => { alive = false; sentListeners.delete(hear); };
   }, []);
   useEffect(() => {
     if (sentAt === null) return;
@@ -51,18 +61,15 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
   }, [sentAt]);
   const text = feedbackText(draft);
   const cooldown = feedbackCooldownMs(sentAt, nowMs);
-  const rememberSent = () => {
-    const at = Date.now();
-    void AsyncStorage.setItem(FEEDBACK_SENT_AT_KEY, String(at)).catch(() => undefined);
-    if (!alive.current) return;
-    setSentAt(at);
-    setNowMs(at);
-  };
+  const rememberSent = () => { publishSent(Date.now()); };
   const accept = (sentText: string) => {
-    if (keptShop === shopId && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
-    rememberSent();
+    // 前の店の分が届いても「送りました」は出さない。待ちは始める。30秒の制限はサーバーがユーザーごとにかけるので、始めないと次の送信が断られて失敗に見える
+    const arrival = feedbackArrival(shopId, keptShop);
+    if (arrival.showSent && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
+    if (arrival.startWait) rememberSent();
+    if (!alive.current || !arrival.showSent) return;
     feedback.done();
-    if (alive.current) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
+    setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
   };
   const fail = (error: unknown) => {
     console.error(error);
@@ -106,6 +113,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
           style={({ pressed }) => [styles.send, (busy || checking || text === null || cooldown > 0) && styles.disabled, pressed && styles.pressed]}>
           <Text style={styles.sendLabel}>{checking ? '確かめています…' : busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}</Text>
         </Pressable>
+        {cooldown > 0 && <Text style={styles.wait}>{feedbackWaitNote(Math.ceil(cooldown / 1000))}</Text>}
       </Glass>
     </View>
   );
@@ -125,6 +133,7 @@ const styles = StyleSheet.create({
   error: { fontWeight: '700', color: COLORS.nowText },
   send: { alignSelf: 'flex-end', minWidth: 120, height: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: COLORS.action, alignItems: 'center', justifyContent: 'center' },
   sendLabel: { fontSize: 14, fontWeight: '700', color: COLORS.onAction },
+  wait: { fontSize: 12, lineHeight: 20, color: COLORS.muted },
   disabled: { opacity: 0.4 },
   pressed: { opacity: 0.6 },
 });

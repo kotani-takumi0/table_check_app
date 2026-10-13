@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackShopSwitch, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackArrival, feedbackCooldownMs, feedbackShopSwitch, feedbackText, feedbackWaitNote, type FeedbackStore } from '@table-check/core/feedback';
 import { APP_VERSION } from './version';
 
 // メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
@@ -12,7 +12,15 @@ function draftForShop(shopId: string): { draft: string; checking: false } {
   return next;
 }
 
+let keptSentAt: number | null = null;
+const sentListeners = new Set<(at: number) => void>();
+function publishSent(at: number) {
+  keptSentAt = at;
+  try { window.localStorage.setItem(FEEDBACK_SENT_AT_KEY, String(at)); } catch { /* 覚えられなくても、聞いている画面では待てる */ }
+  for (const hear of sentListeners) hear(at);
+}
 function readSentAt(): number | null {
+  if (keptSentAt !== null) return keptSentAt;
   try {
     const raw = window.localStorage.getItem(FEEDBACK_SENT_AT_KEY);
     if (raw === null) return null;
@@ -35,6 +43,12 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
   const [sentAt, setSentAt] = useState<number | null>(readSentAt);
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
+    const hear = (at: number) => { setSentAt(at); setNowMs(at); };
+    sentListeners.add(hear);
+    if (keptSentAt !== null) hear(keptSentAt);
+    return () => { sentListeners.delete(hear); };
+  }, []);
+  useEffect(() => {
     if (sentAt === null) return;
     const timer = window.setInterval(() => {
       const next = Date.now();
@@ -45,17 +59,13 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
   }, [sentAt]);
   const text = feedbackText(draft);
   const cooldown = feedbackCooldownMs(sentAt, nowMs);
-  const rememberSent = () => {
-    const at = Date.now();
-    try { window.localStorage.setItem(FEEDBACK_SENT_AT_KEY, String(at)); } catch { /* 覚えられなくても、このページでは待てる */ }
-    if (!alive.current) return;
-    setSentAt(at);
-    setNowMs(at);
-  };
+  const rememberSent = () => { publishSent(Date.now()); };
   const accept = (sentText: string) => {
-    if (keptShop === shopId && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
-    rememberSent();
-    if (alive.current) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
+    // 前の店の分が届いても「送りました」は出さない。待ちは始める。30秒の制限はサーバーがユーザーごとにかけるので、始めないと次の送信が断られて失敗に見える
+    const arrival = feedbackArrival(shopId, keptShop);
+    if (arrival.showSent && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
+    if (arrival.startWait) rememberSent();
+    if (alive.current && arrival.showSent) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
   };
   const fail = (error: unknown) => {
     console.error(error);
@@ -93,6 +103,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
       <button type="button" className="panel-button primary notices-send" disabled={busy || checking || text === null || cooldown > 0} onClick={send}>
         {checking ? '確かめています…' : busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}
       </button>
+      {cooldown > 0 && <p className="notices-wait">{feedbackWaitNote(Math.ceil(cooldown / 1000))}</p>}
     </div>
   </div>;
 }

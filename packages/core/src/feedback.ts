@@ -58,6 +58,15 @@ export interface FeedbackStore {
   readonly delivers: boolean;
 }
 
+// 前の店の分が届いても、いまの店には「送りました」を出さない。待ちは始める。
+// 30秒の制限はサーバーがユーザーごとにかけるので、始めないと次の送信が断られて失敗に見える
+export function feedbackArrival(sentShop: string, currentShop: string): { showSent: boolean; startWait: true } {
+  return { showSent: sentShop === currentShop, startWait: true };
+}
+export function feedbackWaitNote(remainSec: number): string {
+  return `続けて送るには少し待ってください（あと${remainSec}秒）`;
+}
+
 // 店が替わったとき。下書きを消し、届いたか確かめている最中でも押せない状態を解く（意図どおり）
 export function feedbackShopSwitch(keptShop: string, keptDraft: string, shopId: string): { shop: string; draft: string; checking: false } {
   if (keptShop === shopId) return { shop: keptShop, draft: keptDraft, checking: false };

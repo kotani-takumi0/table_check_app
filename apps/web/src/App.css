@@ -522,6 +522,7 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .notices-pending { margin: 0; color: var(--soon-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
 .notices-error { margin: 0; color: var(--now-ink); font-size: 14px; font-weight: 700; line-height: 1.6; }
 .notices-send { align-self: flex-end; }
+.notices-wait { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
 @media (max-width: 600px) {
   .notices-wrap { max-width: none; margin: 16px 0 0; padding: 0 16px 32px; }
   .notices-tabs { display: flex; width: 100%; }
