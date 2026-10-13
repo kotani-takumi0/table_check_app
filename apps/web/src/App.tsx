@@ -267,7 +267,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             if (recorded.length > 0) downloadText(csvFileName(from, to), sessionsCsv(recorded, shopSettings), 'text/csv');
             return recorded.length;
           }} inert={modal || menuOpen} />
-      : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} inert={modal || menuOpen} />
+      : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} shopId={account ?? 'guest'} inert={modal || menuOpen} />
       : <div className="floor-frame">
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
         <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>

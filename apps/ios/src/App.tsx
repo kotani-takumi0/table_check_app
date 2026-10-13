@@ -256,7 +256,7 @@ function Hall({ services: { store, shopTimerStore, editingStore, shopSettingsSto
             selectScreen('course');
           }} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : screen === 'notices'
-        ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} mini={mini} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
+        ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} shopId={account ?? 'guest'} mini={mini} top={(mini ? TOOLBAR_HEIGHT.mini : TOOLBAR_HEIGHT.regular) + 20} />
         : <View style={[styles.floorArea, { paddingTop: mini ? FLOOR_TOP.mini : portrait ? FLOOR_TOP.portrait : FLOOR_TOP.regular }]}>
           <Floor sessions={sessions} time={time} editingIds={editingIds} settings={shopSettings} layout={layout} portrait={portrait} mini={mini} picking={Boolean(pick)}
             onSeat={pick ? applyPick : requestSeat} onOpen={openPanel}

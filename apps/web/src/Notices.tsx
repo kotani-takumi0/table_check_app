@@ -11,8 +11,8 @@ const TABS: { id: NoticeTab; label: string }[] = [
 ];
 
 // お知らせ（No.144）。今後の予定・最近の更新・ご意見を送るを、1つの画面のタブにまとめる
-export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, inert }: {
-  tab: NoticeTab; onTab(tab: NoticeTab): void; roadmapNew: boolean; feedbackStore: FeedbackStore; shopName: string; inert?: boolean;
+export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, shopId, inert }: {
+  tab: NoticeTab; onTab(tab: NoticeTab): void; roadmapNew: boolean; feedbackStore: FeedbackStore; shopName: string; shopId: string; inert?: boolean;
 }) {
   return <section className="notices" aria-label="お知らせ" inert={inert}>
     <div className="notices-wrap">
@@ -27,7 +27,7 @@ export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, inert
       <div role="tabpanel" id={`notice-panel-${tab}`} aria-labelledby={`notice-tab-${tab}`}>
         {tab === 'roadmap' ? <Roadmap onFeedback={() => onTab('feedback')} />
           : tab === 'updates' ? <ReleaseNotes />
-          : <FeedbackForm feedbackStore={feedbackStore} shopName={shopName} />}
+          : <FeedbackForm feedbackStore={feedbackStore} shopName={shopName} shopId={shopId} />}
       </div>
     </div>
   </section>;

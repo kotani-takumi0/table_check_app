@@ -16,8 +16,8 @@ const TABS: { id: NoticeTab; label: string }[] = [
 ];
 
 // お知らせ（No.144。Web の Notices と同じ中身）。色とパネルはほかの iOS 画面のテーマと Glass にそろえる
-export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, top, mini }: {
-  tab: NoticeTab; onTab(tab: NoticeTab): void; roadmapNew: boolean; feedbackStore: FeedbackStore; shopName: string; top: number; mini: boolean;
+export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, shopId, top, mini }: {
+  tab: NoticeTab; onTab(tab: NoticeTab): void; roadmapNew: boolean; feedbackStore: FeedbackStore; shopName: string; shopId: string; top: number; mini: boolean;
 }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: top }]} keyboardShouldPersistTaps="handled">
@@ -36,7 +36,7 @@ export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, top, 
       </View>
       {tab === 'roadmap' ? <Roadmap mini={mini} onFeedback={() => { feedback.tap(); onTab('feedback'); }} />
         : tab === 'updates' ? <ReleaseNotes />
-        : <FeedbackForm feedbackStore={feedbackStore} shopName={shopName} />}
+        : <FeedbackForm feedbackStore={feedbackStore} shopName={shopName} shopId={shopId} />}
     </ScrollView>
   );
 }

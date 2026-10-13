@@ -2,8 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
 import { APP_VERSION } from './version';
 
-// メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す
+// メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
 let keptDraft = '';
+let keptShop = '';
+function draftForShop(shopId: string): string {
+  if (keptShop !== shopId) { keptDraft = ''; keptShop = shopId; }
+  return keptDraft;
+}
 
 function readSentAt(): number | null {
   try {
@@ -15,12 +20,13 @@ function readSentAt(): number | null {
 }
 
 // ご意見を送る（お知らせのタブ。もとの画面。No.125）。書いた文と、版・店名を一緒に送る。連続では送れない
-export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: FeedbackStore; shopName: string }) {
-  const [draft, setDraft] = useState(keptDraft);
+export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStore: FeedbackStore; shopName: string; shopId: string }) {
+  const [draft, setDraft] = useState(() => draftForShop(shopId));
   const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
+  useEffect(() => { setDraft(draftForShop(shopId)); setResult(null); setChecking(false); }, [shopId]);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [sentAt, setSentAt] = useState<number | null>(readSentAt);
@@ -44,7 +50,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
     setNowMs(at);
   };
   const accept = (sentText: string) => {
-    if (feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
+    if (keptShop === shopId && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
     rememberSent();
     if (alive.current) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
   };

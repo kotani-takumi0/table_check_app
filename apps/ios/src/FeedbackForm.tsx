@@ -8,16 +8,22 @@ import { Glass } from './Glass';
 import { COLORS } from './theme';
 
 const APP_VERSION = `v${version}`;
-// メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す
+// メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
 let keptDraft = '';
+let keptShop = '';
+function draftForShop(shopId: string): string {
+  if (keptShop !== shopId) { keptDraft = ''; keptShop = shopId; }
+  return keptDraft;
+}
 
 // ご意見を送る（お知らせのタブ。Web の FeedbackForm と同じ。No.125）。連続では送れない
-export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: FeedbackStore; shopName: string }) {
-  const [draft, setDraft] = useState(keptDraft);
+export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStore: FeedbackStore; shopName: string; shopId: string }) {
+  const [draft, setDraft] = useState(() => draftForShop(shopId));
   const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
+  useEffect(() => { setDraft(draftForShop(shopId)); setResult(null); setChecking(false); }, [shopId]);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [sentAt, setSentAt] = useState<number | null>(null);
@@ -50,7 +56,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
     setNowMs(at);
   };
   const accept = (sentText: string) => {
-    if (feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
+    if (keptShop === shopId && feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
     rememberSent();
     feedback.done();
     if (alive.current) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
