@@ -68,22 +68,22 @@ describe('店の設定', () => {
 describe('店ごとの時間のルール（No.14）', () => {
   const rules = { ...RULES, otoshiWarnMin: 10, lastOrderMin: 60, seatLimitMin: 90, exitedKeepMin: 2 };
   it('L.O.・お席の時間・お通しの警告をその分で出す', () => {
-    expect(limitsOf(otoshi, rules)).toEqual({ lastOrderAt: 60 * minute, seatEndAt: 90 * minute });
-    expect(alertOf(otoshi, 60 * minute, rules)).toEqual({ level: 'soon', reason: 'last_order' });
-    expect(alertOf(otoshi, 90 * minute, rules)).toEqual({ level: 'now', reason: 'seat_limit' });
+    expect(limitsOf(otoshi, rules)).toEqual({ lastOrderAt: 65 * minute, seatEndAt: 95 * minute });
+    expect(alertOf(otoshi, 65 * minute, rules)).toEqual({ level: 'soon', reason: 'last_order' });
+    expect(alertOf(otoshi, 95 * minute, rules)).toEqual({ level: 'now', reason: 'seat_limit' });
     expect(alertOf(seated, 10 * minute, rules)).toEqual({ level: 'now', reason: 'otoshi_missing' });
-    expect(lastOrderDue([otoshi], 60 * minute, rules)).toEqual([otoshi]);
+    expect(lastOrderDue([otoshi], 65 * minute, rules)).toEqual([otoshi]);
   });
   it('L.O.・お席の時間を変えたら、閉じた L.O. の通知も別の通知として出し直す（ふつうの値なら key は今までどおり）', () => {
     const key = (r: typeof RULES) => noticesOf([otoshi], { toilet_check: 200 * minute, toilet_clean: 200 * minute }, 130 * minute, r)[0].key;
-    expect(key(RULES)).toBe(`lo:s:0`);
+    expect(key(RULES)).toBe(`lo:s:${5 * minute}`);
     expect(key(rules)).not.toBe(key({ ...rules, lastOrderMin: 65 }));
   });
   it('退店の時刻を決めた卓は、その「お席の時間 − L.O.」前を L.O. にする', () => {
     expect(limitsOf({ ...otoshi, leaveAt: 80 * minute }, rules)).toEqual({ lastOrderAt: 50 * minute, seatEndAt: 80 * minute });
   });
   it('文字盤はお席の時間で一周し、帯は L.O. からお席の時間まで', () => {
-    expect(dialOf(otoshi, 45 * minute, rules)).toEqual({ elapsedMin: 45, progress: 0.5, over: false, limitMin: 90 });
+    expect(dialOf(otoshi, 50 * minute, rules)).toEqual({ elapsedMin: 45, progress: 0.5, over: false, limitMin: 90 });
     expect(bandOf(otoshi, rules)).toEqual({ from: 60 / 90, to: 1 });
   });
   it('退店済みはその分だけ残す', () => {

@@ -60,7 +60,8 @@ function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; 
   const value = limits?.seatEndAt ?? null;
   const [draft, setDraft] = useState(value === null ? null : new Date(value));
   const [error, setError] = useState(false);
-  if (value === null || draft === null || limits === null) return <View style={sheet.row}><Text style={sheet.rowLabel}>退店</Text><Text style={[sheet.text, sheet.muted]}>ファーストドリンクのあとで決められます</Text></View>;
+  const startName = session.course === null && rules.otoshi ? 'お通し' : 'ファーストドリンク';
+  if (value === null || draft === null || limits === null) return <View style={sheet.row}><Text style={sheet.rowLabel}>退店</Text><Text style={[sheet.text, sheet.muted]}>{startName}のあとで決められます</Text></View>;
   const hhmm = formatClock(draft.getTime());
   const changed = hhmm !== formatClock(value);
   // 決める：時刻が読めないか案内より前なら保存しない。ふつうに戻す：null を保存する
@@ -88,10 +89,10 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
   const [showDishes, setShowDishes] = useState(false);
   // 次の状態へのボタンは、押した直後の 0.5秒はもう一度押しても進めない（No.122。Web と同じ）
   const guard = useTapGuard();
-  const timer = timerOf(session, time);
   const next = nextStatus(session.status);
   // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
   const rules = sessionRules(settings, session, settings.courseMenus);
+  const timer = timerOf(session, time, rules);
   const display = displayOf(session.status, session.course, rules);
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
   // お通しを出さない店（No.14）も同じ欄にファーストドリンクの時刻を入れる
@@ -125,6 +126,12 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
     {next
       ? <PanelButton label={nextActionLabel(session, from, rules)} tone="primary" onPress={() => guard(() => { feedback.step(); onNext(session); })} style={styles.next} />
       : session.status === 'exited' && <PanelButton label={nextActionLabel(session, from, rules)} tone="primary" onPress={() => guard(() => { feedback.tap(); onSeat(from); })} style={styles.next} />}
+    {/* No.132：お通し（コースはファーストドリンク）の時刻は、L.O.・お席の時間の数え始め。変更するにしまわず直せるようにする */}
+    {session.otoshiAt !== null && <View style={styles.section}>
+      <Text style={styles.heading} accessibilityRole="header">{otoshi ? 'お通し' : 'ファーストドリンク'}の時刻</Text>
+      <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt)} />
+      <Text style={styles.startHint}>L.O.・お席の時間はこの時刻から数えます。始まりをずらすときはここを直します。</Text>
+    </View>}
     <View style={styles.quick}>
       <Pressable accessibilityRole="button" onPress={() => { feedback.step(); onBack(session); }} style={({ pressed }) => [styles.textButton, pressed && { opacity: 0.6 }]}>
         <Text style={styles.textButtonLabel}>{session.status === 'seated' ? '案内を取り消す' : '1つ戻す'}</Text>
@@ -182,7 +189,6 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
         <SelectField label="コース" value={session.course} options={courseOptions(settings.drinkPlans, session.course)} onChange={course => onCourse(session, course)} />
         {session.course !== null && progress && <SelectField label="料理" value={session.menu} options={menuOptions(settings.courseMenus, session.menu)} onChange={menu => onMenu(session, menu)} />}
         <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
-        <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
         <LeaveRow key={`leave-${limitsOf(session, rules)?.seatEndAt}`} session={session} rules={rules} onSave={at => onLeaveAt(session, at)} />
         <View style={sheet.row}>
           <Text style={sheet.rowLabel}>卓</Text>
@@ -222,6 +228,7 @@ const styles = StyleSheet.create({
   // 区切り：お会計・料理の見出し、変更する（折りたたみ）
   section: { gap: 8, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
   heading: { fontSize: 13, fontWeight: '700', color: COLORS.muted },
+  startHint: { fontSize: 13, lineHeight: 18, color: COLORS.muted },
   bar: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: COLORS.dialFace },
   barFill: { height: '100%', borderRadius: 4, backgroundColor: COLORS.action },
   toggle: { minHeight: 44, justifyContent: 'center' },

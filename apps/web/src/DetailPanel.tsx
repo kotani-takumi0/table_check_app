@@ -55,7 +55,8 @@ function LeaveRow({ session, rules, onSave }: { session: Session; rules: Rules; 
   const value = limits?.seatEndAt ?? null;
   const [draft, setDraft] = useState(value === null ? '' : formatClock(value));
   const [error, setError] = useState(false);
-  if (value === null) return <div className="time-row"><span>退店</span><span className="muted">ファーストドリンクのあとで決められます</span></div>;
+  const startName = session.course === null && rules.otoshi ? 'お通し' : 'ファーストドリンク';
+  if (value === null) return <div className="time-row"><span>退店</span><span className="muted">{startName}のあとで決められます</span></div>;
   const changed = draft !== formatClock(value);
   return <div className="time-row leave-row">
     <label htmlFor="time-leave">退店</label>
@@ -85,10 +86,10 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
   const downInPanel = useRef(false);
   // 次の状態へのボタンは、押した直後の 0.5秒はもう一度押しても進めない（No.122。急いで2回押すと2段進んでいた）
   const guard = useTapGuard();
-  const timer = timerOf(session, time);
   const next = nextStatus(session.status);
   // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
   const rules = sessionRules(settings, session, settings.courseMenus);
+  const timer = timerOf(session, time, rules);
   const display = displayOf(session.status, session.course, rules);
   // コースはお通しを出さず、同じ欄にファーストドリンクの時刻を入れる
   // お通しを出さない店（No.14）も同じ欄にファーストドリンクの時刻を入れる
@@ -130,6 +131,12 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
       {/* 大きいボタンは押すと何が起きるかを「〜にする」で出す（No.123。見出しの今の状態と読み違えないように） */}
       {next ? <button className="panel-button primary panel-next" onClick={() => guard(() => onNext(session))}>{nextActionLabel(session, from, rules)}</button>
         : session.status === 'exited' && <button className="panel-button primary panel-next" onClick={() => guard(() => { onSeat(from); onClose(); })}>{nextActionLabel(session, from, rules)}</button>}
+      {/* No.132：お通し（コースはファーストドリンク）の時刻は、L.O.・お席の時間の数え始め。変更するにしまわず直せるようにする */}
+      {session.otoshiAt !== null && <section className="panel-section" aria-labelledby="panel-start">
+        <h3 id="panel-start" className="panel-heading">{otoshi ? 'お通し' : 'ファーストドリンク'}の時刻</h3>
+        <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt)} />
+        <p className="time-hint">L.O.・お席の時間はこの時刻から数えます。始まりをずらすときはここを直します。</p>
+      </section>}
       <div className="panel-quick">
         {/* お会計：今の状態を左に、押すと切り替える */}
         <span className="pay-state" id="panel-pay"><span className="pay-label">お会計</span><b className={paid ? '' : 'muted'}>{paid ? `会計済（${formatClock(session.paidAt ?? 0)}）` : '未払い'}</b></span>
@@ -187,7 +194,6 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
             <MenuPicker id="panel-menu" value={session.menu} menus={settings.courseMenus} onChange={menu => onMenu(session, menu)} />
           </div>}
           <TimeRow key={`seated-${session.seatedAt}`} label="案内" value={session.seatedAt} order={order} onSave={save('seatedAt', session.seatedAt)} />
-          <TimeRow key={`otoshi-${session.otoshiAt}`} label={otoshiLabel} value={session.otoshiAt} order={order} onSave={save('otoshiAt', session.otoshiAt ?? session.seatedAt)} />
           <LeaveRow key={`leave-${limitsOf(session, rules)?.seatEndAt}`} session={session} rules={rules} onSave={at => onLeaveAt(session, at)} />
           <div className="time-row">
             <span id="panel-tables">卓</span>

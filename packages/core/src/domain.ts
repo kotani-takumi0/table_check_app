@@ -45,7 +45,7 @@ export interface Session {
   exitedAt: number | null;
   paidAt: number | null;   // お会計済みの時刻。状態の進み・戻しとは独立
   guests: number | null;   // 人数（団体は全員の合計）。null は未入力
-  course: Course | null;   // null は通常。コースは otoshiAt にファーストドリンクの時刻を入れる
+  course: Course | null;   // null は通常。通常は otoshiAt にお通しの時刻、コースはファーストドリンクの時刻を入れる
   menu: string | null;     // どのコースか（courseMenus の id）。コースのときだけ。null は未選択
   dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
   leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
@@ -157,32 +157,42 @@ export function revert(session: Session): Session | null {
       : { ...session, status: 'lo_done', exitedAt: null };
   }
 }
-// L.O.・お席の時間を数え始める時刻。通常は案内、コースはファーストドリンク（全員が揃うまでは数えない）
-export function startOf(session: Session): number | null {
-  return session.course === null ? session.seatedAt : session.otoshiAt;
+// L.O.・お席の時間を数え始める時刻（No.132）。
+// お通しを出す店の通常卓はお通し、コースはファーストドリンク。出すまでは null でタイマーを止める。
+// お通しを出さない店の通常卓は、出す段が無く未提供の警告も無いので、案内から数える（タイマーが始まらないままにしない）
+export function startOf(session: Session, rules: Rules = RULES): number | null {
+  if (session.course !== null || rules.otoshi) return session.otoshiAt;
+  return session.seatedAt;
 }
-// 退店までは startOf から通しで数える。コースの開始待ちは null（タイマーを進めない）
-export function timerOf(session: Session, now: number): { label: string; elapsedMs: number | null } {
+// 数え始めの呼び方。詳細の「お通しから」などに出す
+function countLabel(session: Session, rules: Rules): string {
+  if (session.course !== null) return 'ファーストドリンクから';
+  return rules.otoshi ? 'お通しから' : '案内から';
+}
+// 退店までは startOf から通しで数える。お通し前・コースの開始待ちは null（タイマーを進めない）
+export function timerOf(session: Session, now: number, rules: Rules = RULES): { label: string; elapsedMs: number | null } {
   if (session.status === 'exited') return { label: '退店から', elapsedMs: Math.max(0, now - (session.exitedAt ?? now)) };
-  const start = startOf(session);
-  return { label: session.course === null ? '案内から' : 'ファーストドリンクから', elapsedMs: start === null ? null : Math.max(0, now - start) };
+  const start = startOf(session, rules);
+  return { label: countLabel(session, rules), elapsedMs: start === null ? null : Math.max(0, now - start) };
 }
 // お席の終わり（退店の時刻）と L.O. の時刻。ふつうは数え始めからお席の時間（120分）・L.O.（90分）。
-// 退店の時刻を決めた卓（leaveAt）はその時刻と、その「お席の時間 − L.O.」（30分）前。コースの開始待ちは数えないので null
+// 退店の時刻を決めた卓（leaveAt）はその時刻と、その「お席の時間 − L.O.」（30分）前。お通し前・開始待ちは数えないので null
 export function limitsOf(session: Session, rules: Rules = RULES): { lastOrderAt: number; seatEndAt: number } | null {
-  const start = startOf(session);
+  const start = startOf(session, rules);
   if (start === null) return null;
   const seatEndAt = session.leaveAt ?? start + rules.seatLimitMin * MINUTE;
   return { lastOrderAt: seatEndAt - (rules.seatLimitMin - rules.lastOrderMin) * MINUTE, seatEndAt };
 }
 export function alertOf(session: Session, now: number, rules: Rules = RULES): { level: Alert; reason: AlertReason } {
   const { timeLimitOff } = rules;
-  const start = startOf(session);
+  // お通し未提供は案内から数える。タイマーはお通しまで止まっていても、押し忘れはここで気づける（No.132）
+  // コース・お通しを出さない店は出さない
+  if (rules.otoshi && session.status === 'seated' && session.course === null && now - session.seatedAt >= rules.otoshiWarnMin * MINUTE) {
+    return { level: 'now', reason: 'otoshi_missing' };
+  }
   const limits = limitsOf(session, rules);
-  if (session.status === 'exited' || start === null || limits === null) return { level: 'none', reason: null };
+  if (session.status === 'exited' || limits === null) return { level: 'none', reason: null };
   if (!timeLimitOff && now >= limits.seatEndAt) return { level: 'now', reason: 'seat_limit' };
-  // コース・お通しを出さない店は「お通し未提供」を出さない
-  if (rules.otoshi && session.status === 'seated' && session.course === null && now - start >= rules.otoshiWarnMin * MINUTE) return { level: 'now', reason: 'otoshi_missing' };
   if (!timeLimitOff && session.status === 'otoshi' && now >= limits.lastOrderAt) return { level: 'soon', reason: 'last_order' };
   return { level: 'none', reason: null };
 }
@@ -192,13 +202,13 @@ export function setLeaveAt(session: Session, at: number | null): Session | null 
 }
 // L.O. の時間を過ぎても L.O.確認済みにしていないセッション（数え始めが古い順）
 // お通し前の卓は「お通し未提供」で警告済みで、通知の「L.O.確認済みにする」では状態が合わないので出さない
-// （コースはファーストドリンクから数えるので、開始待ちの卓はそもそも時間が来ない）
+// （お通し・ファーストドリンクから数えるので、出す前の卓はそもそも時間が来ない）
 // 店全体で時間制限を切っているときは出さない。全卓消去したお客さん（No.113）も出さない
 // rules は卓ごとに変えられる（コースごとの L.O.。sessionRules を渡す）
 export function lastOrderDue(sessions: Session[], now: number, rules: Rules | ((session: Session) => Rules) = RULES): Session[] {
   const rulesOf = typeof rules === 'function' ? rules : () => rules;
   return sessions
-    .flatMap(s => { const r = rulesOf(s); if (r.timeLimitOff) return []; const start = startOf(s); const limits = limitsOf(s, r); return s.status === 'otoshi' && s.clearedAt === null && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
+    .flatMap(s => { const r = rulesOf(s); if (r.timeLimitOff) return []; const start = startOf(s, r); const limits = limitsOf(s, r); return s.status === 'otoshi' && s.clearedAt === null && start !== null && limits !== null && now >= limits.lastOrderAt ? [{ s, start }] : []; })
     .sort((a, b) => a.start - b.start)
     .map(({ s }) => s);
 }
