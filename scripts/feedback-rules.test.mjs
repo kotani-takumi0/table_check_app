@@ -2,7 +2,7 @@
 // プロジェクトは demo- なので、本番や開発の Firebase にはつながない。
 import { readFileSync } from 'node:fs';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { Timestamp, doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 
 const testEnv = await initializeTestEnvironment({
   projectId: 'demo-minopal',
@@ -38,6 +38,14 @@ try {
   await assertFails(getDoc(doc(db, 'feedback', `${uid}_${ticket}`)));
   const anon = testEnv.unauthenticatedContext().firestore();
   await assertFails(sendBatch(anon, uid, 'd'.repeat(16)));
+  await testEnv.clearFirestore();
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'feedbackPace', uid), {
+      lastAt: Timestamp.fromMillis(Date.now() - 60_000),
+      ticket: 'z'.repeat(16),
+    });
+  });
+  await assertSucceeds(sendBatch(testEnv.authenticatedContext(uid).firestore(), uid, 'e'.repeat(16)));
   console.log('feedback rules: ok');
 } finally {
   await testEnv.cleanup();
