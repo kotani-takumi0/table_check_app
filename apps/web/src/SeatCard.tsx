@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { alertOf, dishProgress, displayOf, drinkPlanName, sessionRules, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, dishProgress, displayOf, drinkPlanName, isPickable, sessionRules, STATUS_LABEL, STATUS_SHORT, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { bandOf, dialLabel, dialOf, formatHourMinute, remainingLabel, remainingOf } from '@table-check/core/dial';
 import type { Seat } from '@table-check/core/layout';
@@ -14,7 +14,7 @@ interface CardProps {
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   mini: boolean;   // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
-  picking: boolean; // 移動先・追加先を選んでいる間：空席だけ押せる
+  picking: boolean; // 移動先・追加先を選んでいる間：空席と退店済みの卓だけ押せる（No.133）
   selected?: boolean; // 詳細・ご案内を開いている卓（緑の枠で囲む。No.107）
 }
 // 卓カード（No.107）。卓番・人数・区分・大きな経過・120分の物差し（L.O.の目盛り付き）と、下に段階の帯。
@@ -63,9 +63,15 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
     // 詳細をこの卓のそばに出すため、App が位置を探す目印
     'data-seat': seat.id,
   };
-  const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? session ? 'pick-disabled' : 'pick-target' : ''} ${pressing ? 'pressing' : ''} ${selected ? 'selected' : ''}`;
+  const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? isPickable(session) ? 'pick-target' : 'pick-disabled' : ''} ${pressing ? 'pressing' : ''} ${selected ? 'selected' : ''}`;
   if (!session) {
     return <button {...handlers} className={`card ${shape} empty ${modes}`} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>
+      <span className="seat-number">{seat.id}</span>
+    </button>;
+  }
+  // 移動先・追加先を選んでいる間は、退店済みの卓も空席と同じ形で出し、押すと選ぶ（No.133）
+  if (picking && session.status === 'exited') {
+    return <button {...handlers} className={`card ${shape} empty ${modes}`} aria-label={`${seat.id}番を選ぶ（退店済）`} onClick={() => onSeat(seat.id)}>
       <span className="seat-number">{seat.id}</span>
     </button>;
   }

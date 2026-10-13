@@ -239,10 +239,17 @@ export function isVisible(session: Session, now: number, rules: Rules = RULES): 
   if (session.clearedAt !== null) return false;
   return session.status !== 'exited' || (session.exitedAt !== null && now - session.exitedAt < rules.exitedKeepMin * MINUTE);
 }
-// 卓に出すお客さん：その卓を含む表示中のセッションのうち、最後に案内したもの
+// 卓に出すお客さん：その卓を含む表示中のセッションのうち、最後に案内したもの。
+// まだお店にいるお客さんを退店済みより先に出す（退店済みの卓に移した・足した団体は、退店した組より前に案内していることが多い。No.133）
 export function occupantOf(sessions: Session[], tableId: string, now: number, rules: Rules = RULES): Session | undefined {
-  return sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, now, rules))
+  const here = sessions.filter(s => s.tableIds.includes(tableId) && isVisible(s, now, rules));
+  const staying = here.filter(s => s.status !== 'exited');
+  return (staying.length > 0 ? staying : here)
     .reduce<Session | undefined>((latest, s) => !latest || s.seatedAt > latest.seatedAt ? s : latest, undefined);
+}
+// 移動先・追加先に選べる卓（No.133）：空席と、退店済みのお客さんだけが出ている卓
+export function isPickable(occupant: Session | undefined): boolean {
+  return occupant === undefined || occupant.status === 'exited';
 }
 // 全卓消去の警告用：まだお店にいて会計していない客の卓数（退店済は数えない）
 export function unpaidTableCount(sessions: Session[], now: number, rules: Rules = RULES): number {

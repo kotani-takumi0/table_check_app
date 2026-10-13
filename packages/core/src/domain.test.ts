@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isPickable, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -305,6 +305,25 @@ it('卓には、その卓を含む表示中のお客さんのうち最後に案�
   const gone = { ...advance(advance(advance(late, 11 * minute), 12 * minute), 13 * minute) };
   expect(gone.status).toBe('exited');
   expect(occupantOf([early, gone], '11', 13 * minute + 5 * minute)?.id).toBe('a');
+});
+describe('退店済みの卓への移動・追加（No.133）', () => {
+  const minute = 60_000;
+  // 12番の団体（先に案内）と、11番で退店したばかりの組（あとに案内）
+  const group = newSession('group', '12', 0);
+  const left = advance(advance(advance(newSession('left', '11', 10 * minute), 11 * minute), 12 * minute), 13 * minute);
+  it('退店済みだけが出ている卓は選べ、まだいるお客さんの卓は選べない', () => {
+    expect(isPickable(undefined)).toBe(true);
+    expect(isPickable(left)).toBe(true);
+    expect(isPickable(group)).toBe(false);
+  });
+  it('退店済みの卓に足した・移した組を、退店した組より先に出す', () => {
+    const added = addTable(group, '11', 14 * minute)!;
+    expect(occupantOf([added, left], '11', 15 * minute)?.id).toBe('group');
+    const moved = moveTable(group, '12', '11', 14 * minute)!;
+    expect(occupantOf([moved, left], '11', 15 * minute)?.id).toBe('group');
+    // 誰も来なければ、退店済みのまま5分出す
+    expect(occupantOf([group, left], '11', 15 * minute)?.id).toBe('left');
+  });
 });
 
 describe('通常の卓のタイマー（No.132）', () => {

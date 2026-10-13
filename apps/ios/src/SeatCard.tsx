@@ -17,7 +17,7 @@ interface Props {
   editing?: boolean;   // ほかの端末でこの卓の詳細を開いている（No.72）
   settings: ShopSettings;   // 店の設定（時間のルール・飲み放題の区分・コース。No.14・No.89・No.90）
   mini: boolean;      // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
-  picking: boolean;   // 移動先・追加先を選んでいる間：空席だけ押せる
+  picking: boolean;   // 移動先・追加先を選んでいる間：空席と退店済みの卓だけ押せる（No.133）
 }
 // 押した場所（画面の中の位置）。詳細・ご案内をそのそばに出す
 const pointOf = (event: GestureResponderEvent) => ({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY });
@@ -25,12 +25,13 @@ const pointOf = (event: GestureResponderEvent) => ({ x: event.nativeEvent.pageX,
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
 export function SeatCard({ seat, session, time, editing = false, settings, frame, onSeat, onOpen, mini, picking }: Props) {
   const { width, height } = frame;
-  if (!session) {
+  // 移動先・追加先を選んでいる間は、退店済みの卓も空席と同じ形で出し、押すと選ぶ（No.133）
+  if (!session || (picking && session.status === 'exited')) {
     // 空席：点線の枠（テーブルは角丸の四角、カウンターは円）
     const circle = seat.kind === 'counter' && !mini;
     const d = Math.min(width, height);
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`}
+      <Pressable accessibilityRole="button" accessibilityLabel={picking ? `${seat.id}番を選ぶ${session ? '（退店済）' : ''}` : `${seat.id}番 ご案内`}
         onPress={event => { feedback.tap(); onSeat(seat.id, pointOf(event)); }}
         style={[frame, styles.emptyBox]}>
         {({ pressed }) => (
