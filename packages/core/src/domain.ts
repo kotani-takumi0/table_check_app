@@ -258,12 +258,13 @@ export function occupantOf(sessions: Session[], tableId: string, now: number, ru
 export function isPickable(occupant: Session | undefined): boolean {
   return occupant === undefined || occupant.status === 'exited';
 }
-// 選んでいる間の案内帯（No.133）。退店済みの卓も選べるので、「空席」だけだと選べる卓と食い違う
+// 選んでいる間の案内帯（No.133）。iOS は1行で切れるので短くし、どこをタップするかを先に出す。
+// 空席だけでなく退店済みも選べることは、うしろの括弧に置く
 export function pickGuideLabel(mode: 'move' | 'add', from: string, tableIds: readonly string[]): string {
-  const seats = '空席（退店済みを含む）';
+  const seats = '空席か退店済み';
   return mode === 'move'
-    ? `${from}番の移動先の${seats}をタップしてください`
-    : `${tableIds.join('・')}番に追加する${seats}をタップしてください`;
+    ? `${from}番の移動先をタップ（${seats}）`
+    : `${tableIds.join('・')}番の追加先をタップ（${seats}）`;
 }
 // 全卓消去の警告用：まだお店にいて会計していない客の卓数（退店済は数えない）
 export function unpaidTableCount(sessions: Session[], now: number, rules: Rules = RULES): number {
