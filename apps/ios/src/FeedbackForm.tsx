@@ -49,7 +49,7 @@ export function FeedbackForm({ feedbackStore, shopName }: { feedbackStore: Feedb
     setNowMs(at);
   };
   const accept = (sentText: string) => {
-    if (keptDraft === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
+    if (feedbackText(keptDraft) === sentText) { keptDraft = ''; if (alive.current) setDraft(''); }
     rememberSent();
     feedback.done();
     if (alive.current) setResult({ tone: 'ok', message: FEEDBACK_SENT_MESSAGE });
