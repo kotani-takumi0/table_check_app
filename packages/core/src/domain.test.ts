@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isPickable, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isPickable, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, pickGuideLabel, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -333,6 +333,10 @@ describe('退店済みの卓への移動・追加（No.133）', () => {
     expect(isPickable(undefined)).toBe(true);
     expect(isPickable(left)).toBe(true);
     expect(isPickable(group)).toBe(false);
+  });
+  it('選んでいる間の案内は、空席に退店済みを含むと書く', () => {
+    expect(pickGuideLabel('move', '12', ['12'])).toBe('12番の移動先の空席（退店済みを含む）をタップしてください');
+    expect(pickGuideLabel('add', '11', ['11', '12'])).toBe('11・12番に追加する空席（退店済みを含む）をタップしてください');
   });
   it('退店済みの卓に足した・移した組を、退店した組より先に出す', () => {
     const added = addTable(group, '11', 14 * minute)!;
