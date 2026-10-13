@@ -1,4 +1,4 @@
-import { ROADMAP_CTA_DETAIL, ROADMAP_CTA_TITLE, ROADMAP_FROM_FEEDBACK_LABEL, ROADMAP_NOTE, ROADMAP_STAGE_LABEL, roadmapGroups } from '@table-check/core/roadmap';
+import { ROADMAP_CTA_DETAIL, ROADMAP_CTA_TITLE, ROADMAP_EMPTY, ROADMAP_FROM_FEEDBACK_LABEL, ROADMAP_NOTE, ROADMAP_STAGE_LABEL, roadmapGroups } from '@table-check/core/roadmap';
 import type { FeedbackStore } from '@table-check/core/feedback';
 import { FeedbackForm } from './FeedbackForm';
 import { ReleaseNotes } from './ReleaseNotes';
@@ -34,8 +34,13 @@ export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, inert
 }
 
 function Roadmap({ onFeedback }: { onFeedback(): void }) {
+  const groups = roadmapGroups();
+  if (groups.length === 0) return <div className="notices-panel notices-empty">
+    <p className="notices-empty-text">{ROADMAP_EMPTY}</p>
+    <button type="button" className="notices-cta-button" onClick={onFeedback}>ご意見を送る</button>
+  </div>;
   return <>
-    {roadmapGroups().map(group => <section key={group.stage} aria-labelledby={`roadmap-${group.stage}`}>
+    {groups.map(group => <section key={group.stage} aria-labelledby={`roadmap-${group.stage}`}>
       <h2 id={`roadmap-${group.stage}`} className="notices-stage">{ROADMAP_STAGE_LABEL[group.stage]}</h2>
       <div className="notices-panel">
         {group.items.map(item => <article key={item.id} className="notices-row">

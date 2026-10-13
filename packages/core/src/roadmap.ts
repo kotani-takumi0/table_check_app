@@ -13,6 +13,7 @@ export const ROADMAP_FROM_FEEDBACK_LABEL = 'ご意見から生まれた機能で
 export const ROADMAP_NOTE = '予定は変わることがあります。時期はお約束できないため、「準備中」「検討中」で表しています。';
 export const ROADMAP_CTA_TITLE = 'ほしい機能はありますか？';
 export const ROADMAP_CTA_DETAIL = 'いただいたご意見をもとに予定を決めています。';
+export const ROADMAP_EMPTY = 'いまお知らせできる予定はありません。使っていて気になることがあれば、ご意見を送ってください。';
 
 export interface RoadmapItem {
   id: string;
@@ -22,37 +23,8 @@ export interface RoadmapItem {
   fromFeedback: boolean;  // ご意見から生まれた機能です。店や人の名前は持たない
 }
 
-// 見本の例で仮置きしている。載せる予定は、出す前に選ぶ
-export const ROADMAP: RoadmapItem[] = [
-  {
-    id: 'overtime-seats',
-    stage: 'preparing',
-    title: '時間を過ぎた席が、ひと目で分かるようになります',
-    detail: '時間超過の席は赤い枠で囲み、時間切れの画面でも警告をいちばん上に大きく出します。',
-    fromFeedback: true,
-  },
-  {
-    id: 'phone-seat-text',
-    stage: 'preparing',
-    title: 'スマホでも卓番号と人数が大きく読めるようになります',
-    detail: '小さかった卓番号・人数・状態の文字を大きくします。',
-    fromFeedback: true,
-  },
-  {
-    id: 'voice-seating',
-    stage: 'considering',
-    title: '「○卓○名様ご案内です」の声で着席にできるようになります',
-    detail: 'ボタンの押し忘れを減らすための機能です。声は保存しません。',
-    fromFeedback: false,
-  },
-  {
-    id: 'day-review',
-    stage: 'considering',
-    title: '営業のあとに、1日の席の動きを振り返れるようになります',
-    detail: '来店組数や平均の滞在時間、混んだ時間帯をまとめて見られます。',
-    fromFeedback: false,
-  },
-];
+// 載せる予定は、出す前に選んでから足す。空のあいだは画面に案内だけを出し、メニューに点は出さない
+export const ROADMAP: RoadmapItem[] = [];
 
 export function roadmapGroups(): { stage: RoadmapStage; items: RoadmapItem[] }[] {
   return ROADMAP_STAGES
@@ -65,10 +37,14 @@ export const SEEN_ROADMAP_KEY = 'minopal:seenRoadmap';
 export function roadmapSeenValue(): string {
   return ROADMAP.map(item => item.id).join(',');
 }
-// seen が null の端末（この画面をまだ開いていない）も、最初の1回は点を出す
-export function shouldShowRoadmapDot(seen: string | null): boolean {
-  if (ROADMAP.length === 0) return false;
+// 予定の id と、この端末で見た id の文字列から、点を出すか決める。予定が空なら出さない。
+// seen が null や空の端末（まだ開いていない）は、予定があるときだけ最初の1回を出す
+export function roadmapHasUnseen(ids: readonly string[], seen: string | null): boolean {
+  if (ids.length === 0) return false;
   if (seen === null || seen === '') return true;
   const seenIds = new Set(seen.split(','));
-  return ROADMAP.some(item => !seenIds.has(item.id));
+  return ids.some(id => !seenIds.has(id));
+}
+export function shouldShowRoadmapDot(seen: string | null): boolean {
+  return roadmapHasUnseen(ROADMAP.map(item => item.id), seen);
 }

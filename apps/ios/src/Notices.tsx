@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { ROADMAP_CTA_DETAIL, ROADMAP_CTA_TITLE, ROADMAP_FROM_FEEDBACK_LABEL, ROADMAP_NOTE, ROADMAP_STAGE_LABEL, roadmapGroups } from '@table-check/core/roadmap';
+import { ROADMAP_CTA_DETAIL, ROADMAP_CTA_TITLE, ROADMAP_EMPTY, ROADMAP_FROM_FEEDBACK_LABEL, ROADMAP_NOTE, ROADMAP_STAGE_LABEL, roadmapGroups } from '@table-check/core/roadmap';
 import type { FeedbackStore } from '@table-check/core/feedback';
 import { FeedbackForm } from './FeedbackForm';
 import { ReleaseNotes } from './ReleaseNotes';
@@ -49,9 +49,18 @@ export function Notices({ tab, onTab, roadmapNew, feedbackStore, shopName, top, 
 }
 
 function Roadmap({ onFeedback, mini }: { onFeedback(): void; mini: boolean }) {
+  const groups = roadmapGroups();
+  if (groups.length === 0) return (
+    <View style={styles.emptyPanel}>
+      <Text style={styles.emptyText}>{ROADMAP_EMPTY}</Text>
+      <Pressable accessibilityRole="button" onPress={onFeedback} style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}>
+        <Text style={styles.emptyButtonLabel}>ご意見を送る</Text>
+      </Pressable>
+    </View>
+  );
   return (
     <View>
-      {roadmapGroups().map(group => (
+      {groups.map(group => (
         <View key={group.stage}>
           <Text style={styles.stage} accessibilityRole="header">{ROADMAP_STAGE_LABEL[group.stage]}</Text>
           <View style={styles.panel}>
@@ -122,4 +131,8 @@ const styles = StyleSheet.create({
   ctaButton: { height: 48, paddingHorizontal: 20, borderWidth: 1, borderColor: KEY, borderRadius: 8, backgroundColor: PAGE, alignItems: 'center', justifyContent: 'center' },
   ctaButtonLabel: { fontSize: 14, fontWeight: '700', color: KEY },
   pressed: { opacity: 0.6 },
+  emptyPanel: { minHeight: 280, alignItems: 'center', justifyContent: 'center', gap: 16, paddingVertical: 32, paddingHorizontal: 18, borderWidth: 1, borderColor: EDGE, borderRadius: 12, backgroundColor: PAGE },
+  emptyText: { fontSize: 14, lineHeight: 22, color: MUTED, textAlign: 'center' },
+  emptyButton: { height: 48, paddingHorizontal: 20, borderWidth: 1, borderColor: KEY, borderRadius: 8, backgroundColor: PAGE, alignItems: 'center', justifyContent: 'center' },
+  emptyButtonLabel: { fontSize: 14, fontWeight: '700', color: KEY },
 });
