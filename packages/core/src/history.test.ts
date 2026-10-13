@@ -66,6 +66,8 @@ describe('CSV', () => {
     const served: Session = { ...course, dishesServed: 4, dishServedAt: [null, at(3, 18, 20), at(3, 18, 35), at(3, 18, 52)] };
     const cells = lines(sessionsCsv([served], settings))[1].split(',');
     expect(cells.at(-1)).toBe('1品目 時刻なし / 2品目 18:20 / 3品目 18:35（+15分） / 4品目 18:52（+17分）');
+    // 時刻を残す前の記録も、出した品数だけ「時刻なし」で出す
+    expect(lines(sessionsCsv([{ ...course, dishesServed: 2 }], settings))[1].split(',').at(-1)).toBe('1品目 時刻なし / 2品目 時刻なし');
   });
   it('名前を変えた区分・コースも、記録に写したそのときの名前で出す（No.113）', () => {
     const recorded = { ...course, record: { drinkPlanName: '前の名前', courseName: '前のコース名' } };

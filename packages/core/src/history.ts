@@ -1,5 +1,5 @@
 import { menuOf, priceLabel } from './courseMenus';
-import { formatClock, STATUS_LABEL, type Session, type TableMove } from './domain';
+import { formatClock, servedTimes, STATUS_LABEL, type Session, type TableMove } from './domain';
 import type { SessionRecord } from './sessionRecord';
 import type { ShopSettings } from './shopSettings';
 
@@ -70,7 +70,8 @@ export function sessionsCsv(sessions: (Session & { record?: Partial<SessionRecor
       session.exitedByClosing ? 'はい' : '',
       clock(session.clearedAt),
       tableLogText(session.tableLog),
-      dishTimesText(session.dishServedAt),
+      // 時刻を残す前の版で出した品も「時刻なし」で数える
+      dishTimesText(servedTimes(session, session.dishesServed)),
     ];
   });
   return '\ufeff' + [CSV_HEADER, ...rows].map(row => row.map(field).join(',')).join('\r\n') + '\r\n';
