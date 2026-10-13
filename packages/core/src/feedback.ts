@@ -58,6 +58,12 @@ export interface FeedbackStore {
   readonly delivers: boolean;
 }
 
+// 店が替わったとき。下書きを消し、届いたか確かめている最中でも押せない状態を解く（意図どおり）
+export function feedbackShopSwitch(keptShop: string, keptDraft: string, shopId: string): { shop: string; draft: string; checking: false } {
+  if (keptShop === shopId) return { shop: keptShop, draft: keptDraft, checking: false };
+  return { shop: shopId, draft: '', checking: false };
+}
+
 // 送る文。前後の空白を落とし、空・長すぎるときは null
 export function feedbackText(draft: string): string | null {
   const text = draft.trim();

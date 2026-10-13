@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackShopSwitch, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
 import { version } from '../../../package.json';
 import { feedback } from './feedback';
 import { Glass } from './Glass';
@@ -11,19 +11,22 @@ const APP_VERSION = `v${version}`;
 // メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
 let keptDraft = '';
 let keptShop = '';
-function draftForShop(shopId: string): string {
-  if (keptShop !== shopId) { keptDraft = ''; keptShop = shopId; }
-  return keptDraft;
+function draftForShop(shopId: string): { draft: string; checking: false } {
+  const next = feedbackShopSwitch(keptShop, keptDraft, shopId);
+  keptShop = next.shop;
+  keptDraft = next.draft;
+  return next;
 }
 
 // ご意見を送る（お知らせのタブ。Web の FeedbackForm と同じ。No.125）。連続では送れない
 export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStore: FeedbackStore; shopName: string; shopId: string }) {
-  const [draft, setDraft] = useState(() => draftForShop(shopId));
+  const [draft, setDraft] = useState(() => draftForShop(shopId).draft);
   const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
-  useEffect(() => { setDraft(draftForShop(shopId)); setResult(null); setChecking(false); }, [shopId]);
+  // 確かめている途中で店が替わったら、下書きは消え、押せない状態も解ける（意図どおり）
+  useEffect(() => { const next = draftForShop(shopId); setDraft(next.draft); setResult(null); setChecking(next.checking); }, [shopId]);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [sentAt, setSentAt] = useState<number | null>(null);
@@ -89,7 +92,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
       <Text style={styles.lead}>使いにくいところ・ほしい機能・おかしな動きなど、なんでも書いてください。作っている人に届きます。</Text>
       <Glass tint={0.84} style={styles.panel}>
         <Text style={styles.label}>ご意見</Text>
-        <TextInput accessibilityLabel="ご意見" style={styles.input} multiline maxLength={FEEDBACK_MAX} editable={!busy} textAlignVertical="top"
+        <TextInput accessibilityLabel="ご意見" style={[styles.input, checking && styles.inputHeld]} multiline maxLength={FEEDBACK_MAX} editable={!busy && !checking} textAlignVertical="top"
           placeholder="例：トイレチェックのボタンが押しにくい" placeholderTextColor={COLORS.muted}
           value={draft} onChangeText={next => { updateDraft(next); setResult(null); }} />
         <View style={styles.foot}>
@@ -101,7 +104,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
         {result && <Text style={[styles.status, result.tone === 'pending' && styles.pending, result.tone === 'error' && styles.error]} accessibilityRole={result.tone === 'error' ? 'alert' : 'text'} accessibilityLiveRegion="polite">{result.message}</Text>}
         <Pressable accessibilityRole="button" disabled={busy || checking || text === null || cooldown > 0} onPress={send}
           style={({ pressed }) => [styles.send, (busy || checking || text === null || cooldown > 0) && styles.disabled, pressed && styles.pressed]}>
-          <Text style={styles.sendLabel}>{busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}</Text>
+          <Text style={styles.sendLabel}>{checking ? '確かめています…' : busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}</Text>
         </Pressable>
       </Glass>
     </View>
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
   panel: { gap: 8, padding: 16, borderRadius: 20 },
   label: { fontSize: 14, fontWeight: '700', color: COLORS.text },
   input: { minHeight: 168, padding: 12, borderWidth: 1, borderColor: COLORS.lineStrong, borderRadius: 12, backgroundColor: COLORS.surface, fontSize: 16, lineHeight: 24, color: COLORS.text },
+  inputHeld: { color: COLORS.muted },
   foot: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   note: { flex: 1, fontSize: 12, lineHeight: 20, color: COLORS.muted },
   count: { fontSize: 12, color: COLORS.muted, fontVariant: ['tabular-nums'] },

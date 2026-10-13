@@ -514,6 +514,7 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .notices-feedback-panel { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; }
 .notices-label { font-size: 14px; font-weight: 700; }
 .notices-text { min-height: 168px; padding: 12px; line-height: 1.6; resize: vertical; }
+.notices-text:read-only { color: var(--muted); }
 .notices-feedback-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .notices-feedback-foot .notices-note { margin: 0; flex: 1; }
 .notices-count { flex: none; color: var(--muted); font-family: var(--num); font-size: 12px; font-variant-numeric: tabular-nums; }

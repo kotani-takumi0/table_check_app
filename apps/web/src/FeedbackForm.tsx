@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
+import { FEEDBACK_ERROR_MESSAGE, FEEDBACK_MAX, FEEDBACK_SENT_AT_KEY, FEEDBACK_SENT_MESSAGE, FEEDBACK_UNCONFIRMED_MESSAGE, FEEDBACK_WAIT_MESSAGE, FeedbackRejected, feedbackAccepted, feedbackCooldownMs, feedbackShopSwitch, feedbackText, type FeedbackStore } from '@table-check/core/feedback';
 import { APP_VERSION } from './version';
 
 // メニューで別の画面に移るとこの部品は外れる。下書きはここに残し、戻したときに出す。店が替わったら空にする
 let keptDraft = '';
 let keptShop = '';
-function draftForShop(shopId: string): string {
-  if (keptShop !== shopId) { keptDraft = ''; keptShop = shopId; }
-  return keptDraft;
+function draftForShop(shopId: string): { draft: string; checking: false } {
+  const next = feedbackShopSwitch(keptShop, keptDraft, shopId);
+  keptShop = next.shop;
+  keptDraft = next.draft;
+  return next;
 }
 
 function readSentAt(): number | null {
@@ -21,12 +23,13 @@ function readSentAt(): number | null {
 
 // ご意見を送る（お知らせのタブ。もとの画面。No.125）。書いた文と、版・店名を一緒に送る。連続では送れない
 export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStore: FeedbackStore; shopName: string; shopId: string }) {
-  const [draft, setDraft] = useState(() => draftForShop(shopId));
+  const [draft, setDraft] = useState(() => draftForShop(shopId).draft);
   const updateDraft = (next: string) => { keptDraft = next; setDraft(next); };
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ tone: 'ok' | 'pending' | 'error'; message: string } | null>(null);
-  useEffect(() => { setDraft(draftForShop(shopId)); setResult(null); setChecking(false); }, [shopId]);
+  // 確かめている途中で店が替わったら、下書きは消え、押せない状態も解ける（意図どおり）
+  useEffect(() => { const next = draftForShop(shopId); setDraft(next.draft); setResult(null); setChecking(next.checking); }, [shopId]);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [sentAt, setSentAt] = useState<number | null>(readSentAt);
@@ -78,7 +81,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
     <p className="notices-lead">使いにくいところ・ほしい機能・おかしな動きなど、なんでも書いてください。作っている人に届きます。</p>
     <div className="notices-panel notices-feedback-panel">
       <label htmlFor="feedback-text" className="notices-label">ご意見</label>
-      <textarea id="feedback-text" className="field-select notices-text" rows={7} maxLength={FEEDBACK_MAX} value={draft} disabled={busy}
+      <textarea id="feedback-text" className="field-select notices-text" rows={7} maxLength={FEEDBACK_MAX} value={draft} disabled={busy} readOnly={checking}
         placeholder="例：トイレチェックのボタンが押しにくい" aria-describedby="feedback-note" onChange={event => { updateDraft(event.target.value); setResult(null); }} />
       <div className="notices-feedback-foot">
         <p id="feedback-note" className="notices-note">
@@ -88,7 +91,7 @@ export function FeedbackForm({ feedbackStore, shopName, shopId }: { feedbackStor
       </div>
       {result && <p className={result.tone === 'ok' ? 'notices-status' : result.tone === 'pending' ? 'notices-pending' : 'notices-error'} role={result.tone === 'error' ? 'alert' : 'status'}>{result.message}</p>}
       <button type="button" className="panel-button primary notices-send" disabled={busy || checking || text === null || cooldown > 0} onClick={send}>
-        {busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}
+        {checking ? '確かめています…' : busy ? '送っています…' : cooldown > 0 ? `あと${Math.ceil(cooldown / 1000)}秒` : '送る'}
       </button>
     </div>
   </div>;
