@@ -680,6 +680,26 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .mini .toast-button { height: 32px; padding: 0 8px; font-size: 12px; }
 /* 幅の狭いスマホでは時刻とトイレのチップを優先し、バージョンは出さない */
 @media (max-width: 419px) { .app-version { display: none; } }
+/* ベルの手前で「清掃」「120分」が切れないよう、間隔と残り時間を詰める。残りは 14px、名前は 11px まで */
+@media (max-width: 419px) {
+  .mini .shop-timer { gap: 2px; padding: 0 2px 0 4px; }
+  .mini .shop-timer-rest { font-size: 14px; }
+  .mini .shop-timer-done { height: 28px; margin-left: 0; padding: 0 4px; font-size: 12px; }
+  .mini .toolbar-right { gap: 4px; }
+  .mini .notice-bell { gap: 3px; padding: 0 3px 0 4px; }
+  .mini .notice-bell .toolbar-icon { width: 18px; height: 18px; }
+}
+/* さらに狭いときは名前を出さず、印と残りだけにする（チェックも清掃も隠さない） */
+@media (max-width: 374px) {
+  .mini .shop-timer-name.short { display: none; }
+  .mini .shop-timer { gap: 1px; padding: 0 1px; }
+  .mini .shop-timer-done { padding: 0 3px; }
+  .mini .toolbar { gap: 2px; padding-right: 4px; }
+  .mini .toolbar-right { gap: 2px; }
+  .mini .toolbar time { font-size: 15px; }
+  .mini .list-toggle, .mini .clear-all { width: 32px; }
+  .mini .notice-bell { gap: 2px; padding: 0 2px 0 3px; }
+}
 /* スマホは2段：1段目にアイコンと名前、2段目に間隔と「消す」（間隔の ＋ と「消す」が重ならないように） */
 @media (max-width: 600px) {
   .shop-timer-row { grid-template-columns: 52px minmax(0, 1fr) auto; }
