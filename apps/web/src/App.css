@@ -109,8 +109,17 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 
 /* フロア（No.108）：全面を同じ大きさの正方形のマスで敷き詰める。マスの大きさは、枠（.floor-frame）に縦横とも入るいちばん大きい正方形
    （横向きのタブレットで約64px）。--cell は floorCellPx と同じで、下限（--min-cell）よりは小さくしない（No.146）。
-   入りきらない分は、この枠だけを縦に、必要なら横にもスクロールする。上の帯は枠の外なので動かない */
-.floor-frame { flex: 1; min-height: 0; overflow: auto; container-type: size; }
+   入りきらない分は、この枠だけを縦に、必要なら横にもスクロールする。上の帯は枠の外なので動かない。
+   右にまだ卓があるときは、枠の右端を薄い影にして横に送れると分かるようにする（端まで送ると消す） */
+.floor-scroll { position: relative; flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.floor-scroll::after {
+  content: ''; position: absolute; z-index: 2; top: 0; right: var(--floor-bar, 0px); bottom: 0; width: 36px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(to right, transparent, rgb(243 246 244 / 0.2) 42%, var(--tile));
+  box-shadow: inset -18px 0 16px -14px rgb(27 42 34 / 0.34);
+}
+.floor-scroll.more-x::after { opacity: 1; }
+.floor-frame { flex: 1; min-height: 0; min-width: 0; overflow: auto; container-type: size; }
 .floor {
   --gap: 6px; --pad-x: 16px; --pad-y: 14px; --min-cell: 56px;
   --fit-w: calc((100cqw - 2 * var(--pad-x) - (var(--cols) - 1) * var(--gap)) / var(--cols));

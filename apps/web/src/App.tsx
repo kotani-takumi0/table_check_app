@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, occupantOf, pickGuideLabel, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
 import { bellSeatId, NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
 import { FLOOR_CHROME, MIN_LABEL_PX, MIN_TIME_PX } from '@table-check/core/floorScale';
@@ -232,6 +232,16 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // 通知のベルで、画面の外の卓まで動いて少し光らせる（No.146）。帯は固定のまま、配置図だけをスクロールする
   const floorFrame = useRef<HTMLDivElement>(null);
   const [flashSeat, setFlashSeat] = useState<string | null>(null);
+  // 右にまだ卓があるときだけ、枠の右端に影を出す（端まで送ったら消す。No.146）
+  const [floorMoreX, setFloorMoreX] = useState(false);
+  const syncFloorMore = useCallback(() => {
+    const frame = floorFrame.current;
+    if (!frame) return;
+    const bar = frame.offsetWidth - frame.clientWidth;
+    frame.parentElement?.style.setProperty('--floor-bar', `${bar}px`);
+    const more = frame.scrollWidth - frame.clientWidth - frame.scrollLeft > 2;
+    setFloorMoreX(current => current === more ? current : more);
+  }, []);
   const revealSeat = (tableId: string) => {
     setFlashSeat(null);
     window.requestAnimationFrame(() => setFlashSeat(tableId));
@@ -263,6 +273,16 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const grid = turned?.grid ?? GRID;
   const seats = turned?.seats ?? layout.seats;
   const labels = turned?.labels ?? layout.labels;
+  useLayoutEffect(() => {
+    const frame = floorFrame.current;
+    if (!frame || screen !== 'floor') return;
+    syncFloorMore();
+    const observer = new ResizeObserver(syncFloorMore);
+    observer.observe(frame);
+    const floor = frame.querySelector('.floor');
+    if (floor) observer.observe(floor);
+    return () => observer.disconnect();
+  }, [syncFloorMore, screen, grid.cols, grid.rows, mini]);
   return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pickGuideLabel(pick.mode, pick.from, picked.tableIds)}</strong>
@@ -303,7 +323,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             return recorded.length;
           }} inert={modal || menuOpen} />
       : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} shopId={account ?? 'guest'} inert={modal || menuOpen} />
-      : <div className="floor-frame" ref={floorFrame}>
+      : <div className={`floor-scroll${floorMoreX ? ' more-x' : ''}`}>
+        <div className="floor-frame" ref={floorFrame} onScroll={syncFloorMore}>
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
         {/* No.146：マスの下限・余白は floorScale の FLOOR_CHROME。入りきらなければこの枠だけがスクロールする */}
         <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{
@@ -314,6 +335,7 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
       {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} settings={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} selected={(opened !== undefined && openFrom === position.id) || seating === position.id} flashing={flashSeat === position.id} />)}
         </section>
+        </div>
       </div>}
     {noticesOpen && screen === 'floor' && <Toasts toasts={toasts} shownKey={shownNotice} run={noticeRun} onShow={key => openNotices(key)} onTuck={() => setNoticesOpen(false)} onAction={() => setNoticeRun(run => run + 1)} />}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
