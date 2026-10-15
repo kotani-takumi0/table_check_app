@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { isVisible, occupantOf, pickGuideLabel, sessionRules, unpaidTableCount, type Session } from '@table-check/core/domain';
-import { NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
+import { bellSeatId, NOTICE_ACTION, noticesOf } from '@table-check/core/notices';
+import { FLOOR_CHROME, MIN_LABEL_PX, MIN_TIME_PX } from '@table-check/core/floorScale';
 import { GRID } from '@table-check/core/layout';
 import { DEFAULT_LAYOUT, portraitOf, type ShopLayout, type ShopLayoutStore } from '@table-check/core/shopLayout';
 import { LayoutEditor } from './LayoutEditor';
@@ -148,7 +149,8 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
     return () => clearInterval(interval);
   }, []);
   // 通知（No.109）：L.O.とお店のタイマー。「済にする」などを押すまで残し、ポップアップを閉じてもヘッダーの「通知」から開き直せる
-  const toasts: Toast[] = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers).map(notice => ({
+  const notices = noticesOf(sessions, shopTimers, time, session => sessionRules(shopSettings, session, shopSettings.courseMenus), shopSettings.shopTimers);
+  const toasts: Toast[] = notices.map(notice => ({
     key: notice.key, tone: notice.tone, message: notice.message,
     icon: notice.kind === 'shop_timer' ? <ShopTimerGlyph icon={shopSettings.shopTimers.find(timer => timer.id === notice.timerId)?.icon ?? ''} className="toast-glyph" />
       : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
@@ -226,6 +228,44 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   // 縦向きは手描きの配置図と同じ向き（時計回りに90°）。スマホは小さいカード＋タップで詳細
   const portrait = useMediaQuery('(orientation: portrait)');
   const mini = useMediaQuery('(max-width: 600px), (max-height: 600px)');
+  const chrome = mini ? FLOOR_CHROME.mini : FLOOR_CHROME.regular;
+  // 通知のベルで、画面の外の卓まで動いて少し光らせる（No.146）。帯は固定のまま、配置図だけをスクロールする
+  const floorFrame = useRef<HTMLDivElement>(null);
+  const [flashSeat, setFlashSeat] = useState<string | null>(null);
+  // 右にまだ卓があるときだけ、枠の右端に影を出す（端まで送ったら消す。No.146）
+  const [floorMoreX, setFloorMoreX] = useState(false);
+  const syncFloorMore = useCallback(() => {
+    const frame = floorFrame.current;
+    if (!frame) return;
+    const bar = frame.offsetWidth - frame.clientWidth;
+    frame.parentElement?.style.setProperty('--floor-bar', `${bar}px`);
+    const more = frame.scrollWidth - frame.clientWidth - frame.scrollLeft > 2;
+    setFloorMoreX(current => current === more ? current : more);
+  }, []);
+  const revealSeat = (tableId: string) => {
+    setFlashSeat(null);
+    window.requestAnimationFrame(() => setFlashSeat(tableId));
+  };
+  useEffect(() => {
+    if (!flashSeat || screen !== 'floor') return;
+    const frame = floorFrame.current;
+    const seat = frame?.querySelector<HTMLElement>(`[data-seat="${CSS.escape(flashSeat)}"]`);
+    if (frame && seat) {
+      const seatBox = seat.getBoundingClientRect();
+      const frameBox = frame.getBoundingClientRect();
+      const visible = seatBox.top >= frameBox.top - 1 && seatBox.bottom <= frameBox.bottom + 1 && seatBox.left >= frameBox.left - 1 && seatBox.right <= frameBox.right + 1;
+      if (!visible) {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        frame.scrollTo({
+          top: Math.max(0, seatBox.top - frameBox.top + frame.scrollTop - (frame.clientHeight - seatBox.height) / 2),
+          left: Math.max(0, seatBox.left - frameBox.left + frame.scrollLeft - (frame.clientWidth - seatBox.width) / 2),
+          behavior: reduce ? 'auto' : 'smooth',
+        });
+      }
+    }
+    const timer = window.setTimeout(() => setFlashSeat(current => current === flashSeat ? null : current), 1400);
+    return () => window.clearTimeout(timer);
+  }, [flashSeat, screen]);
   // 新しい版（No.83）：詳細・ダイアログ・メニュー・卓選び・席の配置・ご意見を書いている途中では読み込み直さない
   const { updateReady, reload } = useAppUpdate(modal || menuOpen || Boolean(pick) || screen === 'layout' || screen === 'course' || (screen === 'notices' && noticeTab === 'feedback'), syncState);
   // 縦向きは、置いてある行までを回して出す（No.108。何も置いていない下の行は出さない）
@@ -233,13 +273,28 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
   const grid = turned?.grid ?? GRID;
   const seats = turned?.seats ?? layout.seats;
   const labels = turned?.labels ?? layout.labels;
+  useLayoutEffect(() => {
+    const frame = floorFrame.current;
+    if (!frame || screen !== 'floor') return;
+    syncFloorMore();
+    const observer = new ResizeObserver(syncFloorMore);
+    observer.observe(frame);
+    const floor = frame.querySelector('.floor');
+    if (floor) observer.observe(floor);
+    return () => observer.disconnect();
+  }, [syncFloorMore, screen, grid.cols, grid.rows, mini]);
   return <main className={`app ${portrait ? 'portrait' : ''} ${mini ? 'mini' : ''}`}>
     {pick && picked ? <div className="pick-bar" role="status">
       <strong>{pickGuideLabel(pick.mode, pick.from, picked.tableIds)}</strong>
       <button className="toast-button" onClick={() => setPick(null)}>やめる</button>
     </div> : <Header inert={modal} trial={trial} time={time} syncState={syncState} showSync={Boolean(store.subscribeSync || shopTimerStore.subscribeSync)} timers={shopSettings.shopTimers} shopTimers={shopTimers} onShopTimerDone={markShopTimerDone} canClearAll={sessions.some(s => isVisible(s, time, shopSettings))} onClearAll={openClear} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(open => !open)}
       timeLimitOff={timeLimitOff} onOpenSettings={() => selectScreen('settings')} updateReady={updateReady} onUpdate={reload}
-      noticeCount={toasts.length} noticesOpen={noticesOpen && screen === 'floor'} onOpenNotices={() => { if (screen !== 'floor') selectScreen('floor'); openNotices(shownNotice); }} />}
+      noticeCount={toasts.length} noticesOpen={noticesOpen && screen === 'floor'} onOpenNotices={() => {
+        if (screen !== 'floor') selectScreen('floor');
+        openNotices(shownNotice);
+        const seatId = bellSeatId(notices, shownNotice);
+        if (seatId) revealSeat(seatId);
+      }} />}
     {screen === 'layout' ? <LayoutEditor layout={layout} occupied={new Set(sessions.filter(s => isVisible(s, time, shopSettings)).flatMap(s => s.tableIds))}
         onSave={async next => {
           const missing = [...new Set(sessions.filter(s => isVisible(s, now(), shopSettings)).flatMap(s => s.tableIds))].filter(id => !next.seats.some(seat => seat.id === id));
@@ -268,13 +323,19 @@ export default function App({ store, shopTimerStore, editingStore, shopSettingsS
             return recorded.length;
           }} inert={modal || menuOpen} />
       : screen === 'notices' ? <Notices tab={noticeTab} onTab={setNoticeTab} roadmapNew={roadmapNew} feedbackStore={feedbackStore} shopName={shopSettings.shopName} shopId={account ?? 'guest'} inert={modal || menuOpen} />
-      : <div className="floor-frame">
+      : <div className={`floor-scroll${floorMoreX ? ' more-x' : ''}`}>
+        <div className="floor-frame" ref={floorFrame} onScroll={syncFloorMore}>
         {/* No.108：全面を同じ大きさの正方形のマスで敷き詰める。何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする */}
-        <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{ '--cols': grid.cols, '--rows': grid.rows } as CSSProperties}>
+        {/* No.146：マスの下限・余白は floorScale の FLOOR_CHROME。入りきらなければこの枠だけがスクロールする */}
+        <section inert={modal || (menuOpen && !pick)} className="floor" aria-label="フロア図" style={{
+          '--cols': grid.cols, '--rows': grid.rows, '--gap': `${chrome.gap}px`, '--pad-x': `${chrome.padX}px`, '--pad-y': `${chrome.padY}px`, '--min-cell': `${chrome.minCell}px`,
+          '--label-min': `${MIN_LABEL_PX}px`, '--time-min': `${MIN_TIME_PX}px`,
+        } as CSSProperties}>
         {Array.from({ length: grid.cols * grid.rows }, (_, i) => <span key={`cell-${i}`} className="floor-cell" aria-hidden="true" style={{ gridColumn: i % grid.cols + 1, gridRow: Math.floor(i / grid.cols) + 1 }} />)}
         {labels.map((label, i) => <div key={i} className="floor-label" aria-hidden="true" style={{ gridColumn: `${label.col} / span ${label.colSpan}`, gridRow: `${label.row} / span ${label.rowSpan}` }}>{label.text}</div>)}
-      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} settings={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} selected={(opened !== undefined && openFrom === position.id) || seating === position.id} />)}
+      {seats.map(position => <SeatCard key={position.id} seat={position} session={occupantOf(sessions, position.id, time, shopSettings)} time={time} settings={shopSettings} editing={(() => { const occupant = occupantOf(sessions, position.id, time, shopSettings); return occupant !== undefined && editingIds.has(occupant.id); })()} onSeat={pick ? applyPick : requestSeat} onOpen={openPanel} mini={mini} picking={Boolean(pick)} selected={(opened !== undefined && openFrom === position.id) || seating === position.id} flashing={flashSeat === position.id} />)}
         </section>
+        </div>
       </div>}
     {noticesOpen && screen === 'floor' && <Toasts toasts={toasts} shownKey={shownNotice} run={noticeRun} onShow={key => openNotices(key)} onTuck={() => setNoticesOpen(false)} onAction={() => setNoticeRun(run => run + 1)} />}
     {menuOpen && !pick && <div className="list-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
