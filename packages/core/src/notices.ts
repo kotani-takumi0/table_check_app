@@ -24,3 +24,15 @@ export function noticesOf(sessions: Session[], shopTimers: ShopTimerDone, now: n
   });
   return [...lastOrder, ...shop];
 }
+// 通知のベルで配置図を動かす卓（No.146）。いま開く通知が卓ならその卓。
+// 店のタイマーなど卓が無い通知のときは、並んでいる卓の通知の先頭。卓の通知が無ければ null
+export function bellSeatId(notices: Notice[], shownKey: string | null): string | null {
+  const tableOf = (notice: Notice | undefined) => notice?.kind === 'last_order' ? notice.session.tableIds[0] ?? null : null;
+  const shown = tableOf(notices.find(notice => notice.key === shownKey));
+  if (shown) return shown;
+  for (const notice of notices) {
+    const id = tableOf(notice);
+    if (id) return id;
+  }
+  return null;
+}
