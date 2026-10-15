@@ -108,15 +108,17 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .pick-bar strong { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 16px; }
 
 /* フロア（No.108）：全面を同じ大きさの正方形のマスで敷き詰める。マスの大きさは、枠（.floor-frame）に縦横とも入るいちばん大きい正方形
-   （横向きのタブレットで約64px）。低すぎる画面（スマホの横向きなど）は --min-cell より小さくせず、入らない分は縦にスクロールする */
-.floor-frame { flex: 1; min-height: 0; overflow-y: auto; container-type: size; }
+   （横向きのタブレットで約64px）。--cell は floorCellPx と同じで、下限（--min-cell）よりは小さくしない（No.146）。
+   入りきらない分は、この枠だけを縦に、必要なら横にもスクロールする。上の帯は枠の外なので動かない */
+.floor-frame { flex: 1; min-height: 0; overflow: auto; container-type: size; }
 .floor {
   --gap: 6px; --pad-x: 16px; --pad-y: 14px; --min-cell: 56px;
   --fit-w: calc((100cqw - 2 * var(--pad-x) - (var(--cols) - 1) * var(--gap)) / var(--cols));
   --fit-h: calc((100cqh - 2 * var(--pad-y) - (var(--rows) - 1) * var(--gap)) / var(--rows));
-  --cell: min(var(--fit-w), max(var(--fit-h), var(--min-cell)));
-  min-height: 100%; padding: var(--pad-y) var(--pad-x); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell));
-  gap: var(--gap); justify-content: center; align-content: center; isolation: isolate;
+  --cell: max(var(--min-cell), min(var(--fit-w), var(--fit-h)));
+  width: max-content; min-width: 100%; min-height: 100%; padding: var(--pad-y) var(--pad-x); display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell));
+  gap: var(--gap); justify-content: center; justify-content: safe center; align-content: center; align-content: safe center; isolation: isolate;
 }
 /* 何も置いていないマスも薄い面で見せ、画面全体が1枚のマス目だと分かるようにする（卓・目印はこの上に重ねる） */
 .floor-cell { border-radius: 8px; background: #e9eeeb; pointer-events: none; }
@@ -210,6 +212,12 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 .empty:hover:not(:disabled) { background: var(--page); }
 /* 詳細・ご案内を開いている卓は緑の枠で囲む（パネルの矢印の代わり） */
 .card.selected { outline: 3px solid var(--key); outline-offset: 3px; }
+/* 通知のベルで動かした卓（No.146）。少し光って、すぐ元に戻る */
+.card.seat-flash { animation: seat-flash 1.4s ease-out; }
+@keyframes seat-flash {
+  0%, 40% { box-shadow: 0 0 0 3px var(--now), 0 0 0 8px rgb(217 48 54 / 0.28); }
+  100% { box-shadow: var(--lift); }
+}
 .pressing { outline: 3px solid var(--key); outline-offset: -3px; }
 /* 編集中の印（No.72）：ほかの端末で詳細を開いている卓。上の辺の真ん中に小さな札を重ねる */
 .card.editing { outline: 2px dashed var(--key); outline-offset: -2px; }
@@ -641,18 +649,19 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 .mini .settings.has-toc { grid-template-columns: minmax(0, 1fr); }
 .mini .settings-toc { display: none; }
 .mini .layout-editor { padding: 12px 8px; }
-/* 小さいスマホでも卓番・経過・段階が読める高さを確保し、足りなければフロア図を縦にスクロール */
+/* 小さいスマホでも卓番・経過が読める大きさを確保し、44px より小さいマスにはしない。足りなければ配置図だけをスクロール（No.146） */
 .mini .floor { --gap: 4px; --pad-x: 8px; --pad-y: 8px; --min-cell: 44px; }
-.mini .floor-label { letter-spacing: 0.1em; font-size: 12px; }
+.mini .floor-label { letter-spacing: 0.1em; font-size: max(var(--label-min, 11px), 12px); }
 .card.mini { border-radius: 8px; }
 .card.mini .card-body { gap: 3px; padding: 4px 3px; }
-.card.mini .seat-number { font-size: 12px; color: var(--ink-2); }
+.card.mini .seat-number { font-size: max(var(--label-min, 11px), 12px); color: var(--ink-2); }
 .card.mini.empty .seat-number { font-size: 14px; }
-.card.mini .guest-count { display: block; margin-top: 1px; font-size: 10px; text-align: center; }
-.card.mini .guest-num { font-size: 12px; }
-.card.mini .elapsed { font-size: clamp(13px, min(26cqw, 30cqh), 22px); }
-.card.mini .elapsed.waiting { font-size: 11px; }
-.card.mini .card-status { height: 20px; font-size: min(12px, 18cqw); }
+.card.mini .guest-count { display: block; margin-top: 1px; font-size: var(--label-min, 11px); text-align: center; }
+.card.mini .guest-num { font-size: max(var(--label-min, 11px), 12px); }
+.card.mini .paid-inline { font-size: var(--label-min, 11px); }
+.card.mini .elapsed { font-size: clamp(var(--time-min, 14px), min(26cqw, 30cqh), 22px); }
+.card.mini .elapsed.waiting { font-size: var(--label-min, 11px); }
+.card.mini .card-status { height: 20px; font-size: max(var(--label-min, 11px), min(12px, 18cqw)); }
 /* カウンターのような低いマスは、段階の帯を省いて卓番と経過だけにする（段階は読み上げと詳細で分かる）。警告は下の細い色の線で出す */
 @container (max-height: 72px) {
   .card.mini.occupied .card-status { display: none; }
@@ -681,6 +690,7 @@ select.field-select { appearance: none; padding-right: 36px; background: var(--p
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .card.seat-flash { animation: none !important; box-shadow: 0 0 0 3px var(--now); }
 }
 /* 動きを減らす設定でも、通知をしまうまでの10秒は数える（線は縮めない）。上の「動きを止める」決まりに負けないよう、その後ろに置く */
 @keyframes notice-wait { to { opacity: 1; } }

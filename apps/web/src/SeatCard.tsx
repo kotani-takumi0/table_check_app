@@ -16,10 +16,11 @@ interface CardProps {
   mini: boolean;   // スマホ：卓番・段階・時:分だけ出し、タップで詳細パネル
   picking: boolean; // 移動先・追加先を選んでいる間：空席と退店済みの卓だけ押せる（No.133）
   selected?: boolean; // 詳細・ご案内を開いている卓（緑の枠で囲む。No.107）
+  flashing?: boolean; // 通知のベルで動かした卓を、少しのあいだ光らせる（No.146）
 }
 // 卓カード（No.107）。卓番・人数・区分・大きな経過・120分の物差し（L.O.の目盛り付き）と、下に段階の帯。
 // テーブルはタップで詳細パネル（退店済はご案内）、カウンターはタップで次の状態へ。どちらも長押し（600ms）で詳細パネル
-export function SeatCard({ seat, session, time, editing = false, settings, onSeat, onOpen, mini, picking, selected = false }: CardProps) {
+export function SeatCard({ seat, session, time, editing = false, settings, onSeat, onOpen, mini, picking, selected = false, flashing = false }: CardProps) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [pressing, setPressing] = useState(false);
@@ -63,7 +64,7 @@ export function SeatCard({ seat, session, time, editing = false, settings, onSea
     // 詳細をこの卓のそばに出すため、App が位置を探す目印
     'data-seat': seat.id,
   };
-  const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? isPickable(session) ? 'pick-target' : 'pick-disabled' : ''} ${pressing ? 'pressing' : ''} ${selected ? 'selected' : ''}`;
+  const modes = `${mini ? 'mini' : ''} ${seat.colSpan === 1 ? 'slim' : ''} ${picking ? isPickable(session) ? 'pick-target' : 'pick-disabled' : ''} ${pressing ? 'pressing' : ''} ${selected ? 'selected' : ''} ${flashing ? 'seat-flash' : ''}`;
   if (!session) {
     return <button {...handlers} className={`card ${shape} empty ${modes}`} aria-label={picking ? `${seat.id}番を選ぶ` : `${seat.id}番 ご案内`} onClick={() => onSeat(seat.id)}>
       <span className="seat-number">{seat.id}</span>
