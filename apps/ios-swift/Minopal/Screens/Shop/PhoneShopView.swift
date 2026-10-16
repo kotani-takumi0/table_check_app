@@ -183,6 +183,9 @@ struct PhoneShopView: View {
     private var chips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                if state.settings.rules.timeLimitOff {
+                    TimeLimitOffChip { tab = .settings }
+                }
                 ForEach(FloorFocus.allCases, id: \.self) { item in
                     focusChip(item)
                 }

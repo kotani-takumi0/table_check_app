@@ -190,6 +190,30 @@ private struct Pie: Shape {
     }
 }
 
+// 時間制限なしの目印（Web・今の iOS 版のヘッダーと同じ）。切ったまま忘れないよう、その間は出しておく。押すと設定を開く
+struct TimeLimitOffChip: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("時間制限なし")
+                .minopalFont(14, .bold, relativeTo: .subheadline)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 36)
+                .background(Palette.page, in: Capsule())
+                .overlay(Capsule().strokeBorder(Palette.edge, lineWidth: 1))
+                .frame(minHeight: Metrics.minTap)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .accessibilityLabel("時間制限なし（押すと設定）")
+        .accessibilityIdentifier("limit-off")
+    }
+}
+
 // 同期の状態：同期済み（印と文字）・送信待ち・オフライン。onlyIcon は iPad でサイドバーを開いているとき
 struct SyncStatusView: View {
     let state: SyncState

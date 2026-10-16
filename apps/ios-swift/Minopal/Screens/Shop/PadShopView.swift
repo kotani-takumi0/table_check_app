@@ -121,6 +121,11 @@ struct PadShopView: View {
                     ToolbarItem(placement: .topBarLeading) { timers }
                 }
             }
+            if state.settings.rules.timeLimitOff {
+                ToolbarItem(placement: .topBarLeading) {
+                    TimeLimitOffChip { page = .settings }
+                }
+            }
             if !state.notices.isEmpty && !state.noticeBoard.open {
                 ToolbarItem(placement: .topBarTrailing) {
                     NoticeBell(count: state.notices.count) { state.openNotices() }
