@@ -6,15 +6,6 @@ public enum Status: String, CaseIterable, Sendable {
     case otoshi
     case loDone = "lo_done"
     case exited
-
-    public var label: String {
-        switch self {
-        case .seated: "ご案内済み"
-        case .otoshi: "お通し提供済み"
-        case .loDone: "L.O.確認済み"
-        case .exited: "退店済み"
-        }
-    }
 }
 
 // 卓の動き（No.113）。move は from → to、add は to を足した、remove は from を外した
@@ -84,8 +75,8 @@ public let tableLogMax = 200
 
 // 前の版のアプリが知っている飲み放題の区分とコース（domain.ts の DEFAULT_DRINK_PLANS、courseMenus.ts の DEFAULT_COURSE_MENUS の id）。
 // firestore.rules の isCourseOrNull・isMenuOrNull も同じ一覧
-public let legacyDrinkPlanIds = ["no_drinks", "drinks", "premium_drinks"]
-public let legacyMenuIds = ["nijikai", "casual", "meat_share", "cheese", "premium"]
+public let legacyDrinkPlanIds = defaultDrinkPlans.map(\.id)
+public let legacyMenuIds = defaultCourseMenus.map(\.id)
 
 // 区分・コースの id は英小文字・数字・_ の24文字まで（domain.ts の isCourse、courseMenus.ts の isMenuId と同じ）
 public func isCourse(_ value: Any?) -> Bool {
@@ -103,6 +94,3 @@ public func newSession(id: String, tableId: String, at: Int, guests: Int? = nil,
     Session(id: id, tableIds: [tableId], status: .seated, seatedAt: at, guests: guests, course: course,
             menu: course != nil && isMenuId(menu) ? menu : nil)
 }
-
-// 今の時刻（ミリ秒）。サーバーとのずれ（clock.ts の setServerOffset）は卓の計算を移すとき（No.148）に足す
-public func nowMs() -> Int { Int(Date().timeIntervalSince1970 * 1000) }

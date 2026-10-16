@@ -26,7 +26,7 @@ struct TrialFloorView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("table-\(tableId)")
-                    .accessibilityValue(session?.status.label ?? "空席")
+                    .accessibilityValue(session.map { displayOf($0.status, course: $0.course).label } ?? "空席")
                 }
             }
             .padding()
@@ -78,7 +78,7 @@ private struct TableTile: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(tableId).font(.title2.bold())
-            Text(session?.status.label ?? "空席").font(.caption)
+            Text(session.map { displayOf($0.status, course: $0.course).label } ?? "空席").font(.caption)
             if let guests = session?.guests {
                 Text("\(guests)名").font(.caption)
             }
