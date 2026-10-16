@@ -48,6 +48,7 @@ final class NewsUITests: XCTestCase {
         tap(app.buttons["最近の更新"])
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "版ごとに、新しくなったところ")).firstMatch.waitForExistence(timeout: 5),
                       "最近の更新が出ない")
-        XCTAssertTrue(app.staticTexts["v2.5.1"].exists, "版ごとのまとめが出ない")
+        // いちばん新しい版はいちばん上に出る（版が増えても画面の中にある）
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "v[0-9]+\\.[0-9]+\\.[0-9]+")).firstMatch.exists, "版ごとのまとめが出ない")
     }
 }
