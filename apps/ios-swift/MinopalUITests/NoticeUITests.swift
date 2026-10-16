@@ -13,7 +13,7 @@ final class NoticeUITests: XCTestCase {
     func testNoticesAndUndo() throws {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
 
         let table = app.buttons["table-1"]

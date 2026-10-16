@@ -13,7 +13,7 @@ final class NewsUITests: XCTestCase {
         let pad = UIDevice.current.userInterfaceIdiom == .pad
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
 
         openLoginScreen(app)

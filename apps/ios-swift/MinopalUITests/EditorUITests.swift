@@ -12,7 +12,7 @@ final class EditorUITests: XCTestCase {
     func testFirstPageAndLayout() throws {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
         let pad = UIDevice.current.userInterfaceIdiom == .pad
 
@@ -59,7 +59,7 @@ final class EditorUITests: XCTestCase {
     func testCourseEditor() throws {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
         let pad = UIDevice.current.userInterfaceIdiom == .pad
 

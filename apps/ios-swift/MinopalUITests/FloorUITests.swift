@@ -10,7 +10,7 @@ final class FloorUITests: XCTestCase {
     // ご案内 → 卓を追加（団体）→ 次の段階へ → 1つ戻す → 案内を取り消す（どれも Firestore を通って画面に戻ってくる）
     @MainActor
     func testGuestSeatsGroupsAdvancesAndClearsTable() {
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
 
         // 前に流したときの「ログインせずに使う」が残っていれば、最初の画面を飛ばして卓が出る
@@ -61,7 +61,7 @@ final class FloorUITests: XCTestCase {
     func testAccountSeatsAndClearsTable() throws {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
 
         // 前に流したときのログインが残っていれば、ログアウトして最初の画面に戻る
