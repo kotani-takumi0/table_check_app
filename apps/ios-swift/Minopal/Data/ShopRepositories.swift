@@ -126,9 +126,21 @@ final class ShopLayoutRepository {
         listener?.remove()
         listener = nil
     }
-    // 席の配置を一度でも保存したか（最初のページを出すかを決める。No.087）。手元のキャッシュではなくサーバーで確かめ、分からなければ nil
-    func isSaved() async -> Bool? {
-        do { return try await document.getDocument(source: .server).exists } catch { return nil }
+    // 席の配置を一度でも保存したか（最初のページを出すかを決める。No.087）。手元のキャッシュではなくサーバーで確かめ、分からなければ nil。
+    // 電波が弱いときに店を開くのを待たせないよう、waitSeconds までに返事が無ければ分からない（nil）にする
+    static let savedWaitSeconds = 5.0
+    func isSaved(waitSeconds: Double = savedWaitSeconds) async -> Bool? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool?, Never>) in
+            let once = Once()
+            document.getDocument(source: .server) { snapshot, error in
+                MainActor.assumeIsolated {
+                    if once.claim() { continuation.resume(returning: error == nil ? snapshot?.exists : nil) }
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + waitSeconds) {
+                MainActor.assumeIsolated { if once.claim() { continuation.resume(returning: nil) } }
+            }
+        }
     }
     // 配置の移り変わり（No.113）：保存した時点の配置を layoutHistory に足す（配置と同じ書き込みにまとめる）
     private func addHistory(_ batch: WriteBatch, _ layout: ShopLayout) {

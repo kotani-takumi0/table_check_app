@@ -11,6 +11,8 @@ struct CourseEditorView: View {
     @State private var priceText: String
     @State private var saveError = ""
     @State private var confirmingDelete = false
+    // 料理の順番を変えた・料理を消した（使っている途中のコースではできない）
+    @State private var reordered = false
     @Environment(\.dismiss) private var dismiss
 
     // courseId が nil（または、ほかの端末で消えていた）なら新しいコースを足す
@@ -130,9 +132,9 @@ struct CourseEditorView: View {
                                               set: { if draft.dishes.indices.contains(i) { draft.dishes[i] = limitedText($0, CourseLimits.dish) } }))
                 .modifier(RowInput())
                 .accessibilityLabel("\(i + 1)品目")
-            dishButton("arrow.up", "\(i + 1)品目を上へ", disabled: inUse || i == 0) { draft.dishes = moveDish(draft.dishes, index: i, -1) }
-            dishButton("arrow.down", "\(i + 1)品目を下へ", disabled: inUse || i == draft.dishes.count - 1) { draft.dishes = moveDish(draft.dishes, index: i, 1) }
-            dishButton("trash", "\(i + 1)品目を消す", disabled: inUse, danger: true) { draft.dishes.remove(at: i) }
+            dishButton("arrow.up", "\(i + 1)品目を上へ", disabled: inUse || i == 0) { draft.dishes = moveDish(draft.dishes, index: i, -1); reordered = true }
+            dishButton("arrow.down", "\(i + 1)品目を下へ", disabled: inUse || i == draft.dishes.count - 1) { draft.dishes = moveDish(draft.dishes, index: i, 1); reordered = true }
+            dishButton("trash", "\(i + 1)品目を消す", disabled: inUse, danger: true) { draft.dishes.remove(at: i); reordered = true }
         }
     }
 
@@ -154,6 +156,12 @@ struct CourseEditorView: View {
     }
 
     private func save() {
+        // 直している途中で卓がこのコースを使い始めたら、順番を変えた・消した料理は保存しない（出した品数がずれるので）
+        if inUse && reordered {
+            Haptics.warning()
+            saveError = "直している間に\(usedBy.joined(separator: "・"))番がこのコースを使い始めました。料理の順番を変えたり消したりはできないので、もどってから直し直してください"
+            return
+        }
         guard let menus = putCourse(state.settings.courseMenus, draft) else {
             Haptics.warning()
             saveError = "コースは\(CourseLimits.menus)個までです。ほかのコースを消してから保存してください"
