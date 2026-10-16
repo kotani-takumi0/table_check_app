@@ -11,6 +11,11 @@ struct ShopScreen: View {
     @State private var noticeBoard = NoticeBoard()
     @State private var undo = UndoBoard()
     @State private var news = NewsBoard()
+    @State private var notifier = LocalNotifier.shared
+    @AppStorage(DeviceSettings.notificationsKey) private var notificationsOn = true
+    @AppStorage(DeviceSettings.notificationsAskedKey) private var notificationsAsked = false
+    @State private var askingNotifications = false
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(base: ShopBase, account: String?, demoSeed: Bool = false, onLeave: @escaping () -> Void) {
@@ -37,6 +42,10 @@ struct ShopScreen: View {
                 let count = state.closeOut()
                 if count > 0 { undo.tell("閉店時刻を過ぎたので、\(count)組を退店にしました") }
             }
+            // 端末の通知（No.151）：お客さん・済にした時刻・設定・許可が変わったら、予約を作り直す
+            .onChange(of: NotificationPlan(scheduled: state.scheduledNotices, on: notificationsOn, allowed: notifier.allowed), initial: true) { _, plan in
+                notifier.reschedule(plan.scheduled)
+            }
         }
         // 営業中に画面が暗くならないようにする（今の iOS 版の useKeepAwake と同じ。店の画面を出している間だけ）
         .onAppear {
@@ -46,6 +55,24 @@ struct ShopScreen: View {
         .onDisappear {
             services.stop()
             KeepAwake.release()
+            notifier.clear()
+        }
+        // 初めて店の画面を開いたときに一度だけ、通知のことを説明してから iOS の許可を求める（断ってもそのまま使える。あとから設定で変えられる）
+        .task {
+            await notifier.refresh()
+            if notifier.status == .notDetermined && notificationsOn && !notificationsAsked { askingNotifications = true }
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase == .active { Task { await notifier.refresh() } }
+        }
+        .alert("通知を出してもよいですか？", isPresented: $askingNotifications) {
+            Button("あとで", role: .cancel) { notificationsAsked = true }
+            Button("通知を許可する") {
+                notificationsAsked = true
+                Task { await notifier.requestPermission() }
+            }
+        } message: {
+            Text(notificationMessage)
         }
         #if DEBUG
         // 画面の確かめ用のテストデータ（エミュレータで、起動の引数に -MinopalDemoSeed があるときだけ）。配置を読み終えてから入れる
@@ -70,6 +97,14 @@ private enum KeepAwake {
         count = max(0, count - 1)
         UIApplication.shared.isIdleTimerDisabled = count > 0
     }
+}
+
+let notificationMessage = "L.O.・店のタイマーの時間を、アプリを閉じているときやロック中にも、音で知らせます。通知に出すのは卓番と内容だけです。"
+
+private struct NotificationPlan: Equatable {
+    let scheduled: [ScheduledNotice]
+    let on: Bool
+    let allowed: Bool
 }
 
 private struct CloseOutCheck: Equatable {

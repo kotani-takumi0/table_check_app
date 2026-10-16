@@ -6,6 +6,7 @@ struct MinopalApp: App {
 
     init() {
         connection = FirebaseSetup.configure()
+        LocalNotifier.shared.install()
     }
 
     var body: some Scene {

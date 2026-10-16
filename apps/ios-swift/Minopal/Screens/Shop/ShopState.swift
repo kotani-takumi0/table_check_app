@@ -83,6 +83,11 @@ struct ShopState {
         if let seatId = bellSeatId(notices, shownKey: noticeBoard.shownKey) { noticeBoard.reveal(seatId) }
     }
 
+    // 端末の通知に予約する分（No.151）：画面の通知と同じ知らせの、これから時間が来る分
+    var scheduledNotices: [ScheduledNotice] {
+        MinopalCore.scheduledNotices(sessions, shopTimers: services.timers.done, now: now, rulesOf: rules, timers: settings.shopTimers)
+    }
+
     // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
     func rules(_ session: Session) -> Rules { sessionRules(settings.rules, session, menus: settings.courseMenus) }
     // 卓に出ているお客さん（無ければ空席）

@@ -39,7 +39,7 @@ enum SettingsPage: String, CaseIterable, Hashable, Identifiable {
         case .timers: "\(state.settings.shopTimers.count)件"
         case .record: "書き出し"
         case .time: "L.O. \(state.settings.rules.lastOrderMin)分"
-        case .device: "音・外観"
+        case .device: "通知・音・外観"
         }
     }
 }
@@ -316,13 +316,55 @@ private struct TimeRuleSections: View {
     }
 }
 
-// この端末（iOS だけ）：音・ハプティクス・外観。この端末だけで覚える
+// この端末（iOS だけ）：通知・音・ハプティクス・外観。この端末だけで覚える
 private struct DeviceSections: View {
+    @AppStorage(DeviceSettings.notificationsKey) private var notifications = true
+    @AppStorage(DeviceSettings.notificationsAskedKey) private var notificationsAsked = false
+    @State private var notifier = LocalNotifier.shared
+    @Environment(\.openURL) private var openURL
     @AppStorage(DeviceSettings.soundKey) private var sound = true
     @AppStorage(DeviceSettings.hapticsKey) private var haptics = true
     @AppStorage(DeviceSettings.appearanceKey) private var appearance = Appearance.system
 
     var body: some View {
+        // 端末の通知（No.151）。マナーモード（消音）では鳴らないので、下に案内を出す
+        Section(header: SettingsHeading(text: "通知"),
+                footer: SettingsFootnote(text: "マナーモード（消音）のときは音が鳴りません。営業中はマナーモードになっていないか確かめてください。")) {
+            SettingsSwitchRow(title: "通知", help: "アプリを閉じているときやロック中に、L.O.・店のタイマーの時間を音で知らせます。開いているときは画面のバナーで知らせます。",
+                              isOn: Binding(get: { notifications }, set: { on in
+                                  notifications = on
+                                  // 入れたときにまだ iOS の許可を聞いていなければ、ここで聞く
+                                  if on && notifier.status == .notDetermined {
+                                      notificationsAsked = true
+                                      Task { await notifier.requestPermission() }
+                                  }
+                              }))
+            if notifications {
+                switch notifier.status {
+                case .denied:
+                    // 断ったあとは iOS の設定でしか入れられない
+                    Button("iOS の設定で通知を許可する") {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    }
+                    .minopalFont(17, relativeTo: .body)
+                    .foregroundStyle(Palette.keyText)
+                    .frame(minHeight: Metrics.minTap)
+                    .accessibilityIdentifier("notifications-open-settings")
+                case .notDetermined:
+                    Button("通知を許可する") {
+                        notificationsAsked = true
+                        Task { await notifier.requestPermission() }
+                    }
+                    .minopalFont(17, relativeTo: .body)
+                    .foregroundStyle(Palette.keyText)
+                    .frame(minHeight: Metrics.minTap)
+                    .accessibilityIdentifier("notifications-allow")
+                default:
+                    EmptyView()
+                }
+            }
+        }
+        .task { await notifier.refresh() }
         Section(header: SettingsHeading(text: "音とハプティクス"), footer: SettingsFootnote(text: "この端末だけの設定です。ほかの端末には反映されません。")) {
             SettingsSwitchRow(title: "通知の音", help: "L.O.・店のタイマーの通知が来たときに鳴らします。消音モードのときは鳴りません。", isOn: $sound)
             SettingsSwitchRow(title: "ハプティクス", help: "押したとき・通知が来たときに軽く震えます。", isOn: $haptics)
