@@ -13,14 +13,17 @@ final class SessionRepository {
     let base: ShopBase
 
     @ObservationIgnored private let db: Firestore
+    // 記録に写すもの（No.113）：店の設定（区分・コースの名前と時間のルール）と、書いた端末の種類・版
+    @ObservationIgnored private let recordSource: (settings: () -> ShopSettings, app: AppInfo)?
     @ObservationIgnored private var tables: [String: String?] = [:]
     @ObservationIgnored private var rawSessions: [Session] = []
     @ObservationIgnored private var tablesMetadata: SnapshotMetadata?
     @ObservationIgnored private var sessionsMetadata: SnapshotMetadata?
     @ObservationIgnored private var listeners: [ListenerRegistration] = []
 
-    init(base: ShopBase, db: Firestore = Firestore.firestore()) {
+    init(base: ShopBase, recordSource: (settings: () -> ShopSettings, app: AppInfo)? = nil, db: Firestore = Firestore.firestore()) {
         self.base = base
+        self.recordSource = recordSource
         self.db = db
     }
 
@@ -74,10 +77,14 @@ final class SessionRepository {
             : metadata.contains { $0!.hasPendingWrites } ? .pending : .synced
     }
 
-    // お客さんと、そのお客さんがいる卓を一度に書く。お客さんの項目は merge で毎回すべて書く（記録の項目を消さないため）
+    // お客さんと、そのお客さんがいる卓を一度に書く。お客さんの項目は merge で毎回すべて書く。
+    // 記録（No.113）は名前が分からない項目を書かずに前の値を残すので、merge で書く
     func put(_ session: Session) {
         let batch = db.batch()
         var document = toSessionDocument(session)
+        if let recordSource {
+            document.merge(sessionRecord(session, settings: recordSource.settings(), app: recordSource.app).toDocument()) { $1 }
+        }
         document["updatedAt"] = FieldValue.serverTimestamp()
         batch.setData(document, forDocument: db.collection(base.path("sessions")).document(session.id), merge: true)
         for tableId in session.tableIds {

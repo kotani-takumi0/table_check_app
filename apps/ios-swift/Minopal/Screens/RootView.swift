@@ -6,6 +6,7 @@ import SwiftUI
 struct RootView: View {
     let connection: FirebaseConnection
     @State private var auth = AuthService()
+    @State private var clock = ServerClock()
     @AppStorage(loginModeKey) private var storedMode: String?
 
     var body: some View {
@@ -23,6 +24,11 @@ struct RootView: View {
         }
         // 店が変わったら（ログイン・ログアウト）画面の重なりを作り直す。作り直さないと、ログインの画面が卓の画面の上に残る
         .id(shopBase.map { $0.path("") } ?? "first-page")
+        // ログインしている間は、サーバーとの時差を測る（利用者が変わったら測り直す）
+        .task(id: auth.user?.uid) {
+            clock.stop()
+            if let uid = auth.user?.uid { clock.start(uid: uid) }
+        }
     }
 
     // 選んだ使い方とログインが合っているときだけ店を開く（エミュレータを止めてログインが消えたときなどは最初の画面に戻す）
