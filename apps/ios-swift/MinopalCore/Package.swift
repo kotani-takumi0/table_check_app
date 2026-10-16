@@ -9,7 +9,8 @@ let package = Package(
         .library(name: "MinopalCore", targets: ["MinopalCore"]),
     ],
     targets: [
-        .target(name: "MinopalCore"),
+        // お知らせ・予定の文章（scripts/export-ios-content.mjs が TS から書き出す）
+        .target(name: "MinopalCore", resources: [.copy("Resources/content.json")]),
         .testTarget(name: "MinopalCoreTests", dependencies: ["MinopalCore"]),
     ]
 )
