@@ -33,17 +33,51 @@ private func ruleKey(_ rules: Rules) -> String {
 // 店全体で時間制限を切っているときは L.O. の通知を出さない。rulesOf は卓ごとに変えられる（コースごとの L.O.。sessionRules を渡す）
 public func noticesOf(_ sessions: [Session], shopTimers: ShopTimerDone, now: Int, rulesOf: (Session) -> Rules, timers: [ShopTimer] = defaultShopTimers) -> [Notice] {
     let lastOrder = lastOrderDue(sessions, now: now, rulesOf: rulesOf).map { session -> Notice in
-        let rules = rulesOf(session)
-        let start = startOf(session, rules: rules).map(String.init) ?? "null"
-        let leave = session.leaveAt.map { ":\($0)" } ?? ""
-        return Notice(key: "lo:\(session.id):\(start)\(leave)\(ruleKey(rules))", tone: .warning,
-                      message: "\(session.tableIds.joined(separator: "・"))卓 ラストオーダーの時間です", kind: .lastOrder, session: session)
+        Notice(key: lastOrderKey(session, rulesOf(session)), tone: .warning, message: lastOrderMessage(session), kind: .lastOrder, session: session)
     }
     let shop = timers.compactMap { timer -> Notice? in
         let state = shopTimerState(intervalMin: timer.intervalMin, doneAt: shopTimers[timer.id], now: now)
-        return state.due ? Notice(key: "\(timer.id):\(state.dueAt)", tone: .danger, message: "\(timer.label)の時間です", kind: .shopTimer, timerId: timer.id) : nil
+        return state.due ? Notice(key: "\(timer.id):\(state.dueAt)", tone: .danger, message: shopTimerMessage(timer), kind: .shopTimer, timerId: timer.id) : nil
     }
     return lastOrder + shop
+}
+private func lastOrderKey(_ session: Session, _ rules: Rules) -> String {
+    let start = startOf(session, rules: rules).map(String.init) ?? "null"
+    let leave = session.leaveAt.map { ":\($0)" } ?? ""
+    return "lo:\(session.id):\(start)\(leave)\(ruleKey(rules))"
+}
+// 通知の文は卓番と内容だけ（ロック画面はお客さんからも見えるので、人数・メモ・名前は出さない。No.151）
+private func lastOrderMessage(_ session: Session) -> String { "\(session.tableIds.joined(separator: "・"))卓 ラストオーダーの時間です" }
+private func shopTimerMessage(_ timer: ShopTimer) -> String { "\(timer.label)の時間です" }
+
+// 端末の通知（No.151。iOS だけなので TS には無い）：画面の通知（noticesOf）と同じ知らせを、これから時間が来る分だけ前もって予約する。
+// アプリを閉じていても、ロック中でも鳴らすため。key・文は画面の通知と同じ。時間の来た分（画面に出ている分）は入れない。
+// 予約したあとにほかの端末で時刻を変えたときは、この端末でアプリを開くまで古いまま（ローカル通知で作ると決めた。No.151）
+public struct ScheduledNotice: Equatable, Sendable {
+    public var key: String
+    public var fireAt: Int
+    public var message: String
+}
+// iOS が1つのアプリに予約させる通知は 64 件まで。早い順にここまで
+public let scheduledNoticeMax = 60
+public func scheduledNotices(_ sessions: [Session], shopTimers: ShopTimerDone, now: Int, rulesOf: (Session) -> Rules,
+                             timers: [ShopTimer] = defaultShopTimers) -> [ScheduledNotice] {
+    // L.O.：lastOrderDue と同じ卓（お通し・ファーストドリンクのあと、L.O.確認の前。全卓消去していない。時間制限なしでない）
+    let lastOrder = sessions.compactMap { session -> ScheduledNotice? in
+        let rules = rulesOf(session)
+        guard !rules.timeLimitOff, session.status == .otoshi, session.clearedAt == nil,
+              let limits = limitsOf(session, rules: rules), limits.lastOrderAt > now else { return nil }
+        return ScheduledNotice(key: lastOrderKey(session, rules), fireAt: limits.lastOrderAt, message: lastOrderMessage(session))
+    }
+    // 店のタイマー：済にした時刻から間隔がたつと時間になる（一度も済にしていなければ、もう時間が来ている）
+    let shop = timers.compactMap { timer -> ScheduledNotice? in
+        let state = shopTimerState(intervalMin: timer.intervalMin, doneAt: shopTimers[timer.id], now: now)
+        return state.due ? nil : ScheduledNotice(key: "\(timer.id):\(state.dueAt)", fireAt: state.dueAt, message: shopTimerMessage(timer))
+    }
+    return Array((lastOrder + shop).enumerated()
+        .sorted { $0.element.fireAt != $1.element.fireAt ? $0.element.fireAt < $1.element.fireAt : $0.offset < $1.offset }
+        .map(\.element)
+        .prefix(scheduledNoticeMax))
 }
 public func noticesOf(_ sessions: [Session], shopTimers: ShopTimerDone, now: Int, rules: Rules = .standard, timers: [ShopTimer] = defaultShopTimers) -> [Notice] {
     noticesOf(sessions, shopTimers: shopTimers, now: now, rulesOf: { _ in rules }, timers: timers)
