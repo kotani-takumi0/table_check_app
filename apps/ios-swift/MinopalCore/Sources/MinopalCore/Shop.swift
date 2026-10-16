@@ -19,6 +19,10 @@ public let defaultTableIds = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
 public enum SyncState: Sendable {
     case synced, pending, offline
 }
+// 複数の購読のうち、いちばん悪い状態を表示する
+public func worstSyncState(_ states: [SyncState]) -> SyncState {
+    states.contains(.offline) ? .offline : states.contains(.pending) ? .pending : .synced
+}
 
 // どの Firebase につないでいるか。Firebase エミュレータのプロジェクト（demo- で始まる）には本物のデータが無い。
 // それ以外（table-check-dev・table-check-prod）は店のデータが入っているので、試しの版では「ログインせずに使う」（いちばん上の店）を開かない
