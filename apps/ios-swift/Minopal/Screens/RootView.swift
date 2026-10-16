@@ -8,6 +8,9 @@ struct RootView: View {
     @State private var clock = ServerClock()
     @AppStorage(loginModeKey) private var storedMode: String?
     @AppStorage(DeviceSettings.appearanceKey) private var appearance = Appearance.system
+    // 最初のページを出すかを確かめた店と、その答え
+    @State private var checkedBase: ShopBase?
+    @State private var needsFirstPage = false
 
     var body: some View {
         Group {
@@ -16,9 +19,20 @@ struct RootView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Palette.tile)
             } else if let base = shopBase {
-                ShopScreen(base: base, account: auth.user?.email, demoSeed: demoSeedRequested) {
-                    try? auth.signOut()
-                    storedMode = nil
+                if base != .guest && checkedBase != base {
+                    // ログインした店：席の配置をまだ保存していなければ最初のページを出す（No.087）。確かめられない（オフラインなど）ときはそのまま使う
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Palette.tile)
+                        .task(id: base.path("")) {
+                            let saved = await ShopLayoutRepository(base: base, app: nil).isSaved()
+                            needsFirstPage = saved == false
+                            checkedBase = base
+                        }
+                } else if base != .guest && needsFirstPage {
+                    FirstPageView(base: base, account: auth.user?.email, onStarted: { needsFirstPage = false }, onLeave: leave)
+                } else {
+                    ShopScreen(base: base, account: auth.user?.email, demoSeed: demoSeedRequested, onLeave: leave)
                 }
             } else {
                 NavigationStack {
@@ -35,6 +49,11 @@ struct RootView: View {
             clock.stop()
             if let uid = auth.user?.uid { clock.start(uid: uid) }
         }
+    }
+
+    private func leave() {
+        try? auth.signOut()
+        storedMode = nil
     }
 
     private var demoSeedRequested: Bool {

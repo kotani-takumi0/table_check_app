@@ -8,7 +8,7 @@ struct PhoneShopView: View {
     let onLeave: () -> Void
     @State private var tab = Tab.floor
     @State private var focus: FloorFocus?
-    @State private var shopPath: [ShopPage] = []
+    @State private var shopPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
     @State private var interaction = FloorInteraction()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -41,7 +41,17 @@ struct PhoneShopView: View {
                                  onFocus: { item in focus = item; tab = .floor })
                     .toolbar { ToolbarItem(placement: .topBarTrailing) { clock } }
                     .navigationDestination(for: ShopPage.self) { page in
-                        ComingLaterView(title: page == .layout ? "席の配置" : "コース")
+                        if page == .layout {
+                            EditorDestination(route: .layout, state: state)
+                                .navigationBarTitleDisplayMode(.inline)
+                        } else {
+                            SettingsPageList(page: .course, state: state, onOpen: { shopPath.append($0) }, clearing: .constant(false))
+                                .navigationBarTitleDisplayMode(.inline)
+                        }
+                    }
+                    .navigationDestination(for: EditorRoute.self) { route in
+                        EditorDestination(route: route, state: state)
+                            .navigationBarTitleDisplayMode(.inline)
                     }
             }
             // お店タブの店のタイマーを済にしたとき
@@ -66,8 +76,9 @@ struct PhoneShopView: View {
                         }
                         ToolbarItem(placement: .topBarTrailing) { clock }
                     }
-                    .navigationDestination(for: ShopPage.self) { page in
-                        ComingLaterView(title: page == .layout ? "席の配置" : "コース")
+                    .navigationDestination(for: EditorRoute.self) { route in
+                        EditorDestination(route: route, state: state)
+                            .navigationBarTitleDisplayMode(.inline)
                     }
             }
             .overlay(alignment: .bottom) { undoBar }

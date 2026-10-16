@@ -18,9 +18,7 @@ final class NoticeUITests: XCTestCase {
 
         let table = app.buttons["table-1"]
         openLoginScreen(app)
-        enter(app.textFields["メールアドレス"], email)
-        typeSlowly(app.secureTextFields["パスワード"], "password123")
-        app.buttons["ログイン"].tap()
+        logIn(app, email: email)
         XCTAssertTrue(table.waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
         dismissSavePassword(app)
