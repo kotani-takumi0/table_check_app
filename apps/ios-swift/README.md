@@ -32,6 +32,17 @@
 | `tapGuard.ts` の `tooSoon` | `Clock.swift` | React の `useTapGuard` は画面の側で作る |
 | `firestoreMapping.ts` | `SessionDocument.swift`・`DocumentValues.swift` | |
 | `auth.ts` のことば・`shopPath.ts` | `Auth.swift`・`Shop.swift` | Firebase を使う部分は `Minopal/Data/AuthService.swift` |
+| `shopSettings.ts` | `ShopSettings.swift` | `DEFAULT_SHOP_SETTINGS` は `ShopSettings.standard`。時間のルールは `settings.rules` にまとめた。`stepMinutes` は変えた項目の Partial ではなく新しい値を返す。`COURSE_LIMITS` は `CourseLimits` |
+| `shopTimers.ts`・`shopTimerIcons.ts` | `ShopTimers.swift` | アイコンの線は SVG の文字列のまま持つ（描き方は画面で決める） |
+| `store.ts` の `worstSyncState` | `Shop.swift` | |
+| `layout.ts`・`shopLayout.ts`・`layoutDrag.ts` | `Layout.swift` | 場所と大きさは `GridBox` にまとめた。`sameBox` は `GridBox` の `==`。`GRID` は `Grid`、`SEATS` は `defaultSeats` |
+| `floorScale.ts`・`dial.ts`・`cactusClock.ts` | `Dial.swift` | `arcPath`（SVG の円弧の文字列）は Web の描き方なので移していない。SwiftUI では `Path.addArc` で描く |
+| `notices.ts`・`editing.ts` | `Notices.swift` | |
+| `courseEditor.ts`・`shopTemplates.ts` | `CourseEditor.swift` | |
+| `undo.ts` | `Undo.swift` | 数秒で消す部分（React の `useUndo`）は画面の側で作る |
+| `sessionRecord.ts` | `SessionRecord.swift` | TS の Partial は、項目ごとの Optional（区分・コースの名前は「null を書く」と「書かない」を分けるため二重の Optional）。`toDocument()` で書く形にする |
+
+保存先（`Memory〜Store`・`NoEditingStore`）と Firestore の読み書き（`firestore〜.ts`）は、No.148 の4つ目で移す。
 
 テストは TS のテストと同じ名前・同じ中身（`MinopalCore/Tests`）。日付を使うテストは日本時間に決めて計算するので、どの時間帯の CI でも同じ結果になる。
 
