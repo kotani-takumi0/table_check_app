@@ -197,7 +197,7 @@ LAN より読み込みが遅くなります。トンネルの URL は誰でも�
 
 リリースの手順：
 
-1. リリース用のブランチで、リポジトリ直下で `npm version <新しい版> --no-git-tag-version` を実行し、`packages/core/src/releaseNotes.ts` のいちばん上にその版のお知らせ（店の人から見て変わったところ）を足して、PR を出してマージする（お知らせが無いと `npm test` が落ちます）
+1. リリース用のブランチで、リポジトリ直下で `npm version <新しい版> --no-git-tag-version` を実行し、`packages/core/src/releaseNotes.ts` のいちばん上にその版のお知らせ（店の人から見て変わったところ）を足して、PR を出してマージする（お知らせが無いと `npm test` が落ちます）。お知らせ・今後の予定（`roadmap.ts`）を変えたら `npm run ios-swift:content` で Swift 版にも書き出す（忘れると `npm test` が落ちます）
 2. main のマージコミットに `v<版>` のタグを付けて push する（`git tag v1.1.0 <コミット>` → `git push origin v1.1.0`）
 3. 手元（`npm run dev`・`npm run ios`）で確かめてから、`npm run deploy` で出す。店（`table-check-dev`）にも出すときは、営業時間外に `npm run deploy:store`（「店のデータを守る」を参照）
 4. 各端末で開き直し、ヘッダーの表示が新しい版になっていることを確認する

@@ -42,6 +42,10 @@
 | `undo.ts` | `Undo.swift` | 数秒で消す部分（React の `useUndo`）は画面の側で作る |
 | `sessionRecord.ts` | `SessionRecord.swift` | TS の Partial は、項目ごとの Optional（区分・コースの名前は「null を書く」と「書かない」を分けるため二重の Optional）。`toDocument()` で書く形にする |
 
+| `releaseNotes.ts`・`roadmap.ts` | `ReleaseNotes.swift` | **文章は TS だけで持つ。** `npm run ios-swift:content`（`scripts/export-ios-content.mjs`）が `MinopalCore/Sources/MinopalCore/Resources/content.json` に書き出し、Swift はそれを読む。書き出し忘れは `npm test` と CI で落ちる |
+| `feedback.ts` | `Feedback.swift` | 送る部分（`FeedbackStore`）は Firestore の読み書きと一緒に移す |
+| `appUpdate.ts` | なし | Web の version.json を読み直す仕組みなので移さない（iOS は App Store で更新する） |
+
 保存先（`Memory〜Store`・`NoEditingStore`）と Firestore の読み書き（`firestore〜.ts`）は、No.148 の4つ目で移す。
 
 テストは TS のテストと同じ名前・同じ中身（`MinopalCore/Tests`）。日付を使うテストは日本時間に決めて計算するので、どの時間帯の CI でも同じ結果になる。
