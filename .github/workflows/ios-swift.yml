@@ -1,0 +1,54 @@
+# Swift 版 iOS アプリ（apps/ios-swift）のビルドとテスト。macOS の実行時間は無料枠の減りが早いので、PR を出したときだけ回す。
+# 署名はしない（Apple の証明書や App Store Connect の鍵は CI に置かない。申請用の署名は手元の Mac で行う）
+name: iOS (Swift)
+
+on:
+  pull_request:
+    paths:
+      - apps/ios-swift/**
+      - .github/workflows/ios-swift.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-swift-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      XCODEGEN_VERSION: 2.46.0
+      XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Xcode を選ぶ
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+
+      - name: 卓のルールのテスト（MinopalCore）
+        working-directory: apps/ios-swift/MinopalCore
+        run: swift test
+
+      - name: XcodeGen を入れる（版を固定し、中身を確かめる）
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+
+      - name: Xcode プロジェクトを作る
+        working-directory: apps/ios-swift
+        run: '"$RUNNER_TEMP/xcodegen/bin/xcodegen" generate'
+
+      - name: シミュレータ向けにビルド
+        working-directory: apps/ios-swift
+        run: |
+          xcodebuild build \
+            -project Minopal.xcodeproj -scheme Minopal \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO
