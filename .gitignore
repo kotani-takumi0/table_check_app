@@ -6,3 +6,9 @@ firestore-debug.log
 firebase-debug.log
 ui-debug.log
 .expo/
+# Swift 版 iOS（apps/ios-swift）。Xcode プロジェクトは project.yml から XcodeGen で作る
+apps/ios-swift/Minopal.xcodeproj/
+apps/ios-swift/**/.build/
+apps/ios-swift/**/.swiftpm/
+apps/ios-swift/**/xcuserdata/
+apps/ios-swift/**/GoogleService-Info.plist
