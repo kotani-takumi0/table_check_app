@@ -80,6 +80,7 @@ struct FloorContentTests {
     }
 
     @Test("店名の下の日付は営業日（4時より前は前の日）")
+    @MainActor
     func businessDay() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!

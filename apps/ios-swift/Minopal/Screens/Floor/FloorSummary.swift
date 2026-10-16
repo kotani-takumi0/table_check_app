@@ -61,14 +61,23 @@ enum FloorFocus: Hashable, CaseIterable {
     }
 }
 
-// 店名の下の日付（営業日。4時より前は前の日）：「10月16日（金）」
+// 店名の下の日付（営業日。4時より前は前の日）：「10月16日（金）」。
+// 画面は1秒ごとに作り直すので、書式は時間帯ごとに1つ作って使い回す
+@MainActor
 func businessDayLabel(_ time: Int, calendar: Calendar = .current) -> String {
     let parts = businessDayOf(time, calendar: calendar).split(separator: "-").compactMap { Int($0) }
     guard parts.count == 3, let day = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else { return "" }
+    return dayFormatter(calendar).string(from: day)
+}
+
+@MainActor private var dayFormatters: [TimeZone: DateFormatter] = [:]
+@MainActor private func dayFormatter(_ calendar: Calendar) -> DateFormatter {
+    if let formatter = dayFormatters[calendar.timeZone] { return formatter }
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "ja_JP")
     formatter.calendar = calendar
     formatter.timeZone = calendar.timeZone
     formatter.dateFormat = "M月d日（E）"
-    return formatter.string(from: day)
+    dayFormatters[calendar.timeZone] = formatter
+    return formatter
 }
