@@ -18,6 +18,23 @@
 `packages/core`（TypeScript、Web と Expo 版が使う）と `MinopalCore`（Swift）は同じルールを別々に持っている。
 **卓のルールや Firestore に書く形を変えるときは、両方を直し、両方のテストを足す。** Swift のテストは TS のテストと同じ名前にしてある。
 
+### TS と Swift の対応
+
+移したものは、TS と同じ名前を Swift の書き方（小文字で始める・定数は camelCase）にしてある。TS の `null` は Swift の `nil`、時刻はどちらもミリ秒の整数。
+
+| TS（`packages/core/src`） | Swift（`MinopalCore/Sources/MinopalCore`） | 違うところ |
+|---|---|---|
+| `domain.ts` | `Session.swift`・`Domain.swift` | `STATUS_LABEL`・`STATUS_CARD`・`STATUS_SHORT` は `Display` の `label`・`cardLabel`・`shortLabel`。`REASON_LABEL` は `AlertReason.label`。`RULES` は `Rules.standard`。`lastOrderDue` の卓ごとのルールは `rulesOf:` で渡す。`formatClock`・`clockTimeNear` は `calendar:` で時間帯を渡せる（ふだんは端末の時間帯で、TS と同じ） |
+| `courseMenus.ts` | `CourseMenus.swift` | |
+| `history.ts` の営業日 | `BusinessDay.swift` | CSV の書き出しは Web だけなので移していない |
+| `closing.ts` | `BusinessDay.swift` | |
+| `clock.ts`・`serverClock.ts` の `estimateOffset` | `Clock.swift` | 時差を Firestore で測る部分は、Firestore の読み書きと一緒に移す |
+| `tapGuard.ts` の `tooSoon` | `Clock.swift` | React の `useTapGuard` は画面の側で作る |
+| `firestoreMapping.ts` | `SessionDocument.swift`・`DocumentValues.swift` | |
+| `auth.ts` のことば・`shopPath.ts` | `Auth.swift`・`Shop.swift` | Firebase を使う部分は `Minopal/Data/AuthService.swift` |
+
+テストは TS のテストと同じ名前・同じ中身（`MinopalCore/Tests`）。日付を使うテストは日本時間に決めて計算するので、どの時間帯の CI でも同じ結果になる。
+
 ## はじめて動かすとき
 
 1. Xcode を入れる（App Store から）。初回の起動で iOS のシミュレータも入れる
