@@ -7,6 +7,7 @@ struct RootView: View {
     @State private var auth = AuthService()
     @State private var clock = ServerClock()
     @AppStorage(loginModeKey) private var storedMode: String?
+    @AppStorage(DeviceSettings.appearanceKey) private var appearance = Appearance.system
 
     var body: some View {
         Group {
@@ -27,6 +28,8 @@ struct RootView: View {
         }
         // 店が変わったら（ログイン・ログアウト）画面の重なりを作り直す。作り直さないと、ログインの画面が卓の画面の上に残る
         .id(shopBase.map { $0.path("") } ?? "first-page")
+        // 設定の「この端末」で選んだ外観（端末に合わせる・ライト・ダーク）
+        .preferredColorScheme(appearance.colorScheme)
         // ログインしている間は、サーバーとの時差を測る（利用者が変わったら測り直す）
         .task(id: auth.user?.uid) {
             clock.stop()
