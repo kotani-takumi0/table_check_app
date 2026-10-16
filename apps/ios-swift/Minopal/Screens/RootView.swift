@@ -2,7 +2,7 @@ import MinopalCore
 import SwiftUI
 
 // 最初の画面で選んだ使い方（端末で覚える）とログインの状態から、どの画面を出すか決める。
-// 本番の画面は「Swift版の画面を作る」（No.150）で作る。今はログインと読み書きを確かめる仮の画面
+// 卓の画面は今は読み書きを確かめる仮の画面（本番の画面は No.157 から作る）
 struct RootView: View {
     let connection: FirebaseConnection
     @State private var auth = AuthService()
@@ -19,7 +19,7 @@ struct RootView: View {
                     storedMode = nil
                 }
             } else {
-                FirstPageView(connection: connection, auth: auth) { mode in storedMode = mode.rawValue }
+                LoginScreen(connection: connection, auth: auth) { mode in storedMode = mode.rawValue }
             }
         }
         // 店が変わったら（ログイン・ログアウト）画面の重なりを作り直す。作り直さないと、ログインの画面が卓の画面の上に残る

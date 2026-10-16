@@ -15,7 +15,7 @@ final class TrialFloorUITests: XCTestCase {
         // 前に流したときの「ログインせずに使う」が残っていれば、最初の画面を飛ばして卓が出る
         let guest = app.buttons["ログインせずに使う"]
         let table = app.buttons["table-1"]
-        if guest.waitForExistence(timeout: 15) && !table.exists {
+        if firstToAppear(guest, table) == guest {
             guest.tap()
         }
         XCTAssertTrue(table.waitForExistence(timeout: 15), "卓が出ない")
@@ -40,15 +40,9 @@ final class TrialFloorUITests: XCTestCase {
 
         // 前に流したときのログインが残っていれば、ログアウトして最初の画面に戻る
         let table = app.buttons["table-1"]
-        let login = app.buttons["ログインする"]
-        if table.waitForExistence(timeout: 15) {
-            app.buttons["アカウント"].firstMatch.tap()
-            app.buttons["ログアウト"].tap()
-        }
-        XCTAssertTrue(login.waitForExistence(timeout: 15), "最初の画面が出ない")
-        login.tap()
-        type(app.textFields["メールアドレス"], email)
-        type(app.secureTextFields["パスワード"], "password123")
+        openLoginScreen(app)
+        enter(app.textFields["メールアドレス"], email)
+        typeSlowly(app.secureTextFields["パスワード"], "password123")
         app.buttons["ログイン"].tap()
 
         XCTAssertTrue(table.waitForExistence(timeout: 15), "ログインした店の卓が出ない")
@@ -61,13 +55,6 @@ final class TrialFloorUITests: XCTestCase {
         XCTAssertTrue(waitForValue(table, "空席"), "1卓のお客さんを消せない")
     }
 
-    // まとめて打つと、パスワードの欄に1文字しか入らないことがある（シミュレータのテストだけで起き、人が打つときは起きない）ので1文字ずつ打つ
-    private func type(_ field: XCUIElement, _ text: String) {
-        field.tap()
-        for ch in text {
-            field.typeText(String(ch))
-        }
-    }
 
     // Auth エミュレータの REST でアカウントを作る（鍵は確かめられないので何でもよい）
     private func createEmulatorAccount(email: String, password: String) throws {
