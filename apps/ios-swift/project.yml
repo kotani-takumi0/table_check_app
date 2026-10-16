@@ -1,0 +1,58 @@
+# Swift 版 iOS アプリの Xcode プロジェクトの設計図。XcodeGen で Minopal.xcodeproj を作る（npm run ios-swift:open）。
+# Minopal.xcodeproj は作り直せるのでリポジトリに入れない。設定を変えるときは Xcode ではなくこのファイルを直す
+name: Minopal
+options:
+  bundleIdPrefix: jp.minopal
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  MinopalCore:
+    path: MinopalCore
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    exactVersion: 12.19.2
+targets:
+  Minopal:
+    type: application
+    platform: iOS
+    sources:
+      - path: Minopal
+    dependencies:
+      - package: MinopalCore
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Minopal/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Minopal
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+    scheme:
+      testTargets:
+        - package: MinopalCore/MinopalCoreTests
+        - MinopalUITests
+  # 画面を押して確かめるテスト。Firebase エミュレータ（npm run ios-swift:emulators）を起動してから、手元の Mac で流す（CI では流さない）
+  MinopalUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: MinopalUITests
+    dependencies:
+      - target: Minopal
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app.uitests
