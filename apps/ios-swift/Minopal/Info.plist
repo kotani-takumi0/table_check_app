@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists/1.0.dtd">
+<!-- ほかの項目は Xcode が作る（project.yml の INFOPLIST_KEY_〜）。ここには Xcode の設定で書けないものだけを置く。
+     マイク（NSMicrophoneUsageDescription）と UIBackgroundModes の audio は ver.3.0.0 では入れない -->
+<plist version="1.0">
+<dict>
+	<!-- 手元の Firebase エミュレータ（http://127.0.0.1）につなぐため -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

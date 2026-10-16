@@ -11,6 +11,7 @@ npm workspaces で、Web アプリと、iOS アプリとも共有するロジッ
 | `apps/web` | Web アプリ（`@table-check/web`）。画面・CSS・Firebase の初期化と、Firebase を使わないときの localStorage の保存先 |
 | `apps/ios` | iOS アプリ（`@table-check/ios`、Expo）。Web と同じフロア図と操作を、iOS の部品（シート・時刻ピッカー・触覚フィードバック）で作る |
 | `packages/core` | 共有するロジック（`@table-check/core`）。卓の状態の進み方・配置・Firestore との同期・時計合わせ・匿名ログイン。ブラウザの API（`window`・`localStorage`）は使いません |
+| `apps/ios-swift` | iOS アプリの Swift（SwiftUI）版（ver.3.0.0 で作っている途中）。npm のパッケージではなく、Xcode と Swift Package で作る。卓のルールは `packages/core` と別に Swift（`MinopalCore`）でも持つので、**ルールや Firestore に書く形を変えるときは両方を直す**。使い方は `apps/ios-swift/README.md` |
 
 Web からは `import { now } from '@table-check/core/clock'` のようにファイル単位で読み込みます。アプリの版はリポジトリ直下の `package.json` の `version` だけで管理します。アイコンはヘッダーの「Minopal」の横の印（緑の四角2つと淡い緑の丸、右下だけ赤の四角）と同じ絵で、Web は `apps/web/public`（ファビコンと、iPad・iPhone でホーム画面に追加したときのアイコン）、iOS は `apps/ios/assets/icon.png` に置いています。iOS 26 の Liquid Glass 用のアイコンは `apps/ios/assets/app.icon`（Apple の Icon Composer で開ける形式。中の `Assets` の SVG が印の絵）で、まだ `app.json` では使っていません（使うには Xcode 26 以降でのビルドが要ります）。
 
