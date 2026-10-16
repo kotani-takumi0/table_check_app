@@ -11,6 +11,7 @@
 | `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き） |
 | `Minopal/Screens/` | 画面（今は仮の画面） |
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
+| `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
 
 ## 卓のルールは TS と Swift の両方にある
@@ -46,7 +47,17 @@
 | `feedback.ts` | `Feedback.swift` | 送る部分（`FeedbackStore`）は Firestore の読み書きと一緒に移す |
 | `appUpdate.ts` | なし | Web の version.json を読み直す仕組みなので移さない（iOS は App Store で更新する） |
 
-保存先（`Memory〜Store`・`NoEditingStore`）と Firestore の読み書き（`firestore〜.ts`）は、No.148 の4つ目で移す。
+Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
+
+| TS | Swift（`Minopal/Data`） | 違うところ |
+|---|---|---|
+| `firestoreStore.ts` | `SessionRepository.swift` | 書き出し用の `fetchSeatedBetween` は Web だけなので移していない |
+| `firestoreShopSettings.ts`・`firestoreShopTimers.ts`・`firestoreShopLayout.ts`・`firestoreEditing.ts` | `ShopRepositories.swift` | 設定は「変えた項目」を `ShopSettingsField` で渡す。書く形は MinopalCore の `ShopDocuments.swift` |
+| `firestoreFeedback.ts` | `FeedbackSender.swift` | 届いたかの確認は `onConfirmed` で受け取る |
+| `serverClock.ts` | `ServerClock.swift` | |
+| `firestoreServices.ts` | `ShopServices.swift` | |
+
+`Memory〜Store`・`NoEditingStore`・`NoFeedbackStore`（Firebase につながずに試す保存先）は移さない。Swift 版はふだんから Firebase エミュレータにつないで試すため。
 
 テストは TS のテストと同じ名前・同じ中身（`MinopalCore/Tests`）。日付を使うテストは日本時間に決めて計算するので、どの時間帯の CI でも同じ結果になる。
 
@@ -73,7 +84,7 @@
 ## テスト
 
 - 卓のルール：`cd apps/ios-swift/MinopalCore && swift test`
-- 画面：エミュレータを起動してから、Xcode で ⌘U（またはテストの一覧から `MinopalUITests`）
+- Firestore の読み書きと画面：エミュレータを起動してから、Xcode で ⌘U（`MinopalTests` と `MinopalUITests`）
 - PR を出すと、GitHub Actions で卓のルールのテストとシミュレータ向けのビルドが回る（`.github/workflows/ios-swift.yml`）。CI ではアプリを起動しての確かめ（UI テスト）はしない
 
 ## 入れないもの（ver.3.0.0）
