@@ -17,11 +17,12 @@ struct RootView: View {
                     try? auth.signOut()
                     storedMode = nil
                 }
-                .id(base.path(""))
             } else {
                 FirstPageView(connection: connection, auth: auth) { mode in storedMode = mode.rawValue }
             }
         }
+        // 店が変わったら（ログイン・ログアウト）画面の重なりを作り直す。作り直さないと、ログインの画面が卓の画面の上に残る
+        .id(shopBase.map { $0.path("") } ?? "first-page")
     }
 
     // 選んだ使い方とログインが合っているときだけ店を開く（エミュレータを止めてログインが消えたときなどは最初の画面に戻す）
