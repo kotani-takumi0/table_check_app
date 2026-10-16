@@ -85,6 +85,8 @@ struct ShopState {
     func rules(_ session: Session) -> Rules { sessionRules(settings.rules, session, menus: settings.courseMenus) }
     // 卓に出ているお客さん（無ければ空席）
     func occupant(_ tableId: String) -> Session? { occupantOf(sessions, tableId: tableId, now: now, rules: settings.rules) }
+    // お客さんがいる卓（席の配置で、卓番を変えたり消したりできない卓）
+    var occupiedSeats: Set<String> { Set(sessions.filter { isVisible($0, now: now, rules: settings.rules) }.flatMap(\.tableIds)) }
     // 今も卓に出ているお客さん（退店して時間がたった・全卓消去したお客さんは nil）
     func visibleSession(_ id: String) -> Session? { sessions.first { $0.id == id && isVisible($0, now: now, rules: settings.rules) } }
 
@@ -227,7 +229,7 @@ struct SyncStatusView: View {
     }
 }
 
-// これから作る画面（席の配置・コース・お知らせ）の仮の中身
+// これから作る画面（お知らせ）の仮の中身
 struct ComingLaterView: View {
     let title: String
 

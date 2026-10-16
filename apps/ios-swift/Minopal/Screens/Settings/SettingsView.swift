@@ -5,7 +5,7 @@ import SwiftUI
 // iPhone：「設定」タブのグループのリスト。上から「今日の営業」、「お店の設定」（各まとまりへ › で進む）、「アカウント」
 struct PhoneSettingsView: View {
     let state: ShopState
-    let onOpen: (ShopPage) -> Void
+    let onOpen: (EditorRoute) -> Void
     let onLeave: () -> Void
     @State private var clearing = false
 
@@ -49,7 +49,7 @@ struct PhoneSettingsView: View {
 // iPad：サイドバーで「設定」を選んだまま、右を 2 列にする。真ん中は目次（選んだ行は緑の塗り）とアカウント、右は中身
 struct PadSettingsView: View {
     let state: ShopState
-    let onOpen: (ShopPage) -> Void
+    let onOpen: (EditorRoute) -> Void
     let onLeave: () -> Void
     @State private var page = SettingsPage.today
     @State private var clearing = false

@@ -48,7 +48,7 @@ enum SettingsPage: String, CaseIterable, Hashable, Identifiable {
 struct SettingsPageList: View {
     let page: SettingsPage
     let state: ShopState
-    let onOpen: (ShopPage) -> Void       // 席の配置・コースの画面へ
+    let onOpen: (EditorRoute) -> Void    // 席の配置・コースを直す画面へ
     @Binding var clearing: Bool          // 全卓消去の確認を出す
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -127,7 +127,7 @@ struct TodaySections: View {
 // お店：店名・席の配置・閉店時刻（Web と同じ並び）
 private struct ShopSections: View {
     let state: ShopState
-    let onOpen: (ShopPage) -> Void
+    let onOpen: (EditorRoute) -> Void
 
     var body: some View {
         Section(footer: SettingsFootnote(text: "ログインしたときに、どの店か分かるように出します。変えると、すべての端末にすぐ反映されます。")) {
@@ -140,6 +140,7 @@ private struct ShopSections: View {
         }
         Section(footer: SettingsFootnote(text: "卓の場所・大きさ・卓番と、入口・キッチンなどの目印を、マス目にブロックを置いて作り直します。すべての端末に反映されます。")) {
             SettingsNavRow(title: "席の配置", symbol: "square.grid.3x3", value: "\(state.summary.total)卓") { onOpen(.layout) }
+                .accessibilityIdentifier("open-layout")
         }
         Section(footer: SettingsFootnote(text: "この時刻を過ぎても退店していない卓を、閉店時刻で退店にします。記録には「閉店で退店」と残ります。閉店時刻より後に案内した卓は、朝4時に退店にします。")) {
             Picker(selection: Binding(get: { state.settings.closingMin }, set: { min in state.updateSettings([.closingMin]) { $0.closingMin = min } })) {
@@ -153,10 +154,10 @@ private struct ShopSections: View {
     }
 }
 
-// コース：飲み放題の区分（名前を直す・足す・消す。No.90）と料理のコース（直すのは「コース」の画面。No.161）
+// コース：飲み放題の区分（名前を直す・足す・消す。No.90）と料理のコース（押すとコースを直す画面へ。足すのも同じ画面。No.161）
 private struct CourseSections: View {
     let state: ShopState
-    let onOpen: (ShopPage) -> Void
+    let onOpen: (EditorRoute) -> Void
 
     var body: some View {
         let plans = state.settings.drinkPlans
@@ -182,7 +183,7 @@ private struct CourseSections: View {
         Section(header: SettingsHeading(text: "料理のコース"),
                 footer: SettingsFootnote(text: "ご案内のときに「料理」で選びます。料理を出す順に並べておくと、詳細で1品ずつ進められます。")) {
             ForEach(state.settings.courseMenus, id: \.id) { menu in
-                Button { onOpen(.course) } label: {
+                Button { onOpen(.course(menu.id)) } label: {
                     HStack(spacing: 12) {
                         SettingsLabel(title: "\(priceLabel(menu)) \(menu.short)",
                                       help: "\(menu.name)・\(menu.dishes.count)品\(menu.lastOrderMin != nil || menu.seatLimitMin != nil ? "・このコースだけの時間あり" : "")")
@@ -192,6 +193,11 @@ private struct CourseSections: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityHint("押すと直す")
+                .accessibilityIdentifier("course-\(menu.id)")
+            }
+            if state.settings.courseMenus.count < CourseLimits.menus {
+                SettingsAddRow(title: "コースを足す") { onOpen(.course(nil)) }
             }
         }
     }

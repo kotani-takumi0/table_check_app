@@ -8,6 +8,8 @@ struct PadShopView: View {
     let onLeave: () -> Void
     @State private var visibility = NavigationSplitViewVisibility.all
     @State private var page = ShopPage.floor
+    // 設定から奥へ進んだ、直す画面（席の配置・コース）
+    @State private var routes: [EditorRoute] = []
     @State private var focus: FloorFocus?
     @State private var interaction = FloorInteraction()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -22,17 +24,34 @@ struct PadShopView: View {
                 .navigationSplitViewColumnWidth(300)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
-            NavigationStack {
-                switch page {
-                case .floor: floor
-                case .settings:
-                    PadSettingsView(state: state, onOpen: { page = $0 }, onLeave: onLeave)
+            NavigationStack(path: $routes) {
+                Group {
+                    switch page {
+                    case .floor: floor
+                    case .settings:
+                        PadSettingsView(state: state, onOpen: { routes.append($0) }, onLeave: onLeave)
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { pageToolbar("設定") }
+                    // サイドバーの「席の配置」：保存したら配置図に戻る
+                    case .layout:
+                        LayoutEditorView(layout: state.layout, occupied: state.occupiedSeats,
+                                         onSave: { try await state.services.layout.save($0, rules: state.settings.rules) },
+                                         onClose: { page = .floor })
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { pageToolbar("席の配置") }
+                    // サイドバーの「コース」：設定のコースと同じ中身。押すとコースを直す画面へ進む
+                    case .course:
+                        SettingsPageList(page: .course, state: state, onOpen: { routes.append($0) }, clearing: .constant(false))
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { pageToolbar("コース") }
+                    }
+                }
+                .navigationDestination(for: EditorRoute.self) { route in
+                    EditorDestination(route: route, state: state)
                         .navigationBarTitleDisplayMode(.inline)
-                        .toolbar { pageToolbar("設定") }
-                case .layout: ComingLaterView(title: "席の配置")
-                case .course: ComingLaterView(title: "コース")
                 }
             }
+            .onChange(of: page) { routes = [] }
             // 元に戻す（どの画面でも、サイドバーの店のタイマーを済にしたときなどに出す）
             .overlay(alignment: .bottom) {
                 UndoBar(board: state.undo) { state.undo.apply(state.services) }
