@@ -25,7 +25,10 @@ struct PadShopView: View {
             NavigationStack {
                 switch page {
                 case .floor: floor
-                case .settings: AccountSettingsView(account: state.account, onLeave: onLeave)
+                case .settings:
+                    PadSettingsView(state: state, onOpen: { page = $0 }, onLeave: onLeave)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar { pageToolbar("設定") }
                 case .layout: ComingLaterView(title: "席の配置")
                 case .course: ComingLaterView(title: "コース")
                 }
@@ -73,14 +76,7 @@ struct PadShopView: View {
         .background(Palette.tile)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    withAnimation { visibility = sidebarOpen ? .detailOnly : .all }
-                } label: {
-                    Image(systemName: "sidebar.left")
-                }
-                .accessibilityLabel(sidebarOpen ? "サイドバーを閉じる" : "サイドバーを開く")
-            }
+            ToolbarItem(placement: .topBarLeading) { sidebarButton }
             if !sidebarOpen {
                 ToolbarItem(placement: .topBarLeading) { brand }
                 if !state.settings.shopTimers.isEmpty {
@@ -94,6 +90,38 @@ struct PadShopView: View {
             }
             ToolbarItem(placement: .topBarTrailing) { status }
         }
+    }
+
+    private var sidebarButton: some View {
+        Button {
+            withAnimation { visibility = sidebarOpen ? .detailOnly : .all }
+        } label: {
+            Image(systemName: "sidebar.left")
+        }
+        .accessibilityLabel(sidebarOpen ? "サイドバーを閉じる" : "サイドバーを開く")
+    }
+
+    // 配置図のほかの画面（設定）のヘッダー：サイドバーの開け閉めと画面の名前、右に通知・同期・時刻。
+    // 通知のバナーは配置図の上に出すので、ベルを押したら配置図に戻して開く
+    @ToolbarContentBuilder private func pageToolbar(_ title: String) -> some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) { sidebarButton }
+        ToolbarItem(placement: .topBarLeading) {
+            Text(title)
+                .minopalFont(17, .bold, relativeTo: .headline)
+                .foregroundStyle(Palette.ink)
+                .fixedSize()
+                .accessibilityAddTraits(.isHeader)
+        }
+        if !state.notices.isEmpty {
+            ToolbarItem(placement: .topBarTrailing) {
+                NoticeBell(count: state.notices.count) {
+                    page = .floor
+                    focus = nil
+                    state.openNotices()
+                }
+            }
+        }
+        ToolbarItem(placement: .topBarTrailing) { status }
     }
 
     // 卓の移動先・追加先を選んでいる間の帯（配置図の上）

@@ -97,6 +97,15 @@ final class SessionRepository {
         }
     }
 
+    // 書き出し（No.34・No.113）：期間に案内したお客さんを、記録に写した名前と一緒に読む。電波が無ければキャッシュにある分だけになる
+    func fetchSeatedBetween(start: Int, end: Int) async throws -> [RecordedSession] {
+        let snapshot = try await db.collection(base.path("sessions"))
+            .whereField("seatedAt", isGreaterThanOrEqualTo: start).whereField("seatedAt", isLessThan: end).getDocuments()
+        return snapshot.documents.compactMap { item in
+            sessionFromDocument(id: item.documentID, data: item.data()).map { RecordedSession($0, record: recordFromDocument(item.data())) }
+        }
+    }
+
     // 卓の参照は消さない（消えたお客さんを指す卓は resolveSessions で空席になる）
     func remove(id: String) {
         db.collection(base.path("sessions")).document(id).delete { [weak self] error in

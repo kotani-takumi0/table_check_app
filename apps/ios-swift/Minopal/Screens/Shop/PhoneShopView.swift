@@ -9,6 +9,7 @@ struct PhoneShopView: View {
     @State private var tab = Tab.floor
     @State private var focus: FloorFocus?
     @State private var shopPath: [ShopPage] = []
+    @State private var settingsPath = NavigationPath()
     @State private var interaction = FloorInteraction()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -50,8 +51,27 @@ struct PhoneShopView: View {
             NavigationStack { ComingLaterView(title: "お知らせ") }
                 .tabItem { Label("お知らせ", systemImage: "bell") }
                 .tag(Tab.notices)
-            NavigationStack { AccountSettingsView(account: state.account, onLeave: onLeave) }
-                .tabItem { Label("設定", systemImage: "gearshape") }
+            NavigationStack(path: $settingsPath) {
+                PhoneSettingsView(state: state, onOpen: { settingsPath.append($0) }, onLeave: onLeave)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        // 通知のバナーはテーブル状況に出すので、ベルを押したらテーブル状況に戻して開く
+                        if !state.notices.isEmpty {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                NoticeBell(count: state.notices.count, showsLabel: false) {
+                                    tab = .floor
+                                    state.openNotices()
+                                }
+                            }
+                        }
+                        ToolbarItem(placement: .topBarTrailing) { clock }
+                    }
+                    .navigationDestination(for: ShopPage.self) { page in
+                        ComingLaterView(title: page == .layout ? "席の配置" : "コース")
+                    }
+            }
+            .overlay(alignment: .bottom) { undoBar }
+            .tabItem { Label("設定", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }
         // タブのアイコンは線（ふだんは monochrome。No.149 の SF Symbols の決まり）

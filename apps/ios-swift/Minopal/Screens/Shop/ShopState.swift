@@ -117,6 +117,29 @@ struct ShopState {
     func addTo(_ session: Session, _ tableId: String) { write(addTable(session, tableId: tableId, at: nowMs())) }
     func release(_ session: Session, _ tableId: String) { write(removeTable(session, tableId: tableId, at: nowMs())) }
 
+    // 全卓消去：今卓に出ているお客さんを全端末の画面から消す。記録は消さずに、消した時刻を付けて残す（No.113）
+    func clearAll() {
+        let at = nowMs()
+        for session in sessions where isVisible(session, now: at, rules: settings.rules) {
+            services.sessions.put(clearSession(session, at: at))
+        }
+    }
+    // 全卓消去の確認に出す、まだお店にいて会計していない卓の数
+    var unpaidTables: Int { unpaidTableCount(sessions, now: now, rules: settings.rules) }
+    // 閉店で退店にする（No.129）。そのとき開いている端末が書く（何台が同時に書いても、退店の時刻は閉店時刻で同じ）。退店にした組の数を返す
+    func closeOut() -> Int {
+        let closed = closeOuts(sessions, now: nowMs(), closingMin: settings.closingMin)
+        closed.forEach(services.sessions.put)
+        return closed.count
+    }
+
+    // 店の設定を変える（変えた項目だけを書く。すべての端末にすぐ反映される）
+    func updateSettings(_ fields: Set<ShopSettingsField>, _ change: (inout ShopSettings) -> Void) {
+        var next = settings
+        change(&next)
+        services.settings.update(next, fields: fields)
+    }
+
     @discardableResult
     private func write(_ session: Session?) -> Bool {
         guard let session else { return false }

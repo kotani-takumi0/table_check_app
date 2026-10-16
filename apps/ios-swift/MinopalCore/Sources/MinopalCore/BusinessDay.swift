@@ -2,7 +2,7 @@ import Foundation
 
 // 営業日（packages/core/src/history.ts の businessDayOf など）と閉店時刻（closing.ts、No.129）。
 // 「その日」は朝4時で区切る（深夜まで営業する店で、0時をまたいだお客さんを同じ日に入れる）。時刻はその端末の時間帯で数える。
-// CSV の書き出し（history.ts の sessionsCsv）は Web だけなので移していない
+// CSV の書き出し（history.ts の sessionsCsv）は History.swift
 public let dayStartHour = 4
 
 public struct TimeRange: Equatable, Sendable {

@@ -23,6 +23,8 @@ final class NoticeBoard {
         seen = Set(keys)
         if let fresh {
             show(fresh.key)
+            // 音とハプティクスを 1 回（この端末で切れる）
+            NoticeSound.play()
             Haptics.warning()
             AccessibilityNotification.Announcement(fresh.message).post()
         } else if keys.isEmpty {
@@ -72,6 +74,14 @@ final class UndoBoard {
         note = nil
         restart()
         AccessibilityNotification.Announcement(undo.message).post()
+    }
+
+    // 戻すものは無いが、同じ場所で知らせる（閉店時刻で退店にした、など）
+    func tell(_ message: String) {
+        undo = nil
+        note = message
+        restart()
+        AccessibilityNotification.Announcement(message).post()
     }
 
     // 今の中身を見て、戻してよければ前の中身を書き戻す
