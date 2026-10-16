@@ -10,12 +10,26 @@ struct PhoneShopView: View {
     @State private var focus: FloorFocus?
     @State private var shopPath: [ShopPage] = []
     @State private var interaction = FloorInteraction()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Tab: Hashable { case floor, shop, notices, settings }
 
     var body: some View {
         TabView(selection: $tab) {
             NavigationStack { floor }
+                // 通知のバナー：上（Dynamic Island の下）に左右 12pt で 1 枚。ヘッダーと卓に重なってよい。上へスワイプでもベルにしまう
+                .overlay(alignment: .top) {
+                    if state.noticeBoard.open && interaction.pick == nil {
+                        NoticeBanners(state: state, limit: 1, compact: true) { state.noticeBoard.reveal($0) }
+                            .padding(.horizontal, 12)
+                            .gesture(DragGesture(minimumDistance: 20).onEnded { drag in
+                                if drag.translation.height < -30 { state.noticeBoard.tuck() }
+                            })
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .animation(.snappy, value: state.noticeBoard.open)
+                .overlay(alignment: .bottom) { undoBar }
                 .tabItem { Label("テーブル状況", systemImage: "square.grid.2x2") }
                 .tag(Tab.floor)
             NavigationStack(path: $shopPath) {
@@ -29,6 +43,8 @@ struct PhoneShopView: View {
                         ComingLaterView(title: page == .layout ? "席の配置" : "コース")
                     }
             }
+            // お店タブの店のタイマーを済にしたとき
+            .overlay(alignment: .bottom) { undoBar }
             .tabItem { Label("お店", systemImage: "house") }
             .tag(Tab.shop)
             NavigationStack { ComingLaterView(title: "お知らせ") }
@@ -53,9 +69,17 @@ struct PhoneShopView: View {
             } else {
                 chips
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                FloorView(state: state, interaction: interaction, focus: focus.map(state.summary.seats), metrics: .phone)
-                    .padding(FloorMetrics.phone.padding)
+            ScrollViewReader { scroller in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    FloorView(state: state, interaction: interaction, focus: focus.map(state.summary.seats), metrics: .phone,
+                              ringed: state.ringedSeats(limit: 1))
+                        .padding(FloorMetrics.phone.padding)
+                }
+                // 「卓を見る」・ベル：右にはみ出している卓なら、その卓まで横にスクロールする
+                .onChange(of: state.noticeBoard.flashRun) {
+                    guard let seatId = state.noticeBoard.flashSeat else { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut) { scroller.scrollTo(FloorView.anchor(seatId), anchor: .center) }
+                }
             }
             // 右に続きがあることが分かるよう、右端に影を出す
             .overlay(alignment: .trailing) {
@@ -79,8 +103,18 @@ struct PhoneShopView: View {
             if state.services.syncState != .synced {
                 ToolbarItem(placement: .topBarTrailing) { SyncStatusView(state: state.services.syncState).padding(.horizontal, 6).fixedSize() }
             }
+            if !state.notices.isEmpty && !state.noticeBoard.open {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NoticeBell(count: state.notices.count, showsLabel: false) { state.openNotices() }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) { clock }
         }
+    }
+
+    private var undoBar: some View {
+        UndoBar(board: state.undo) { state.undo.apply(state.services) }
+            .padding(.bottom, 8)
     }
 
     // 帯：いま対応・L.O.・空席（押すとその卓を目立たせる）と店のタイマー（時間が来たものを先に）。横にスクロール

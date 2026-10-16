@@ -349,3 +349,37 @@ struct SessionRecordTests {
         #expect(recordFromDocument(["businessDay": 1, "platform": "android", "timeRules": ["lastOrderMin": 90]]) == SessionRecord())
     }
 }
+
+@Suite("通知のバナーに出す分（No.159）")
+struct NoticeWindowTests {
+    // 3つとも時間が来た店のタイマー（一度も済にしていない）
+    let notices = noticesOf([], shopTimers: [:], now: 0, timers: ["a", "b", "c"].map { ShopTimer(id: $0, label: $0, icon: "patrol", intervalMin: 30) })
+
+    func keys(_ window: NoticeWindow) -> [String] { window.shown.map(\.key) }
+
+    @Test("iPad は 2 枚、入らない分は「ほか N件」で、押すと次から出す")
+    func pad() {
+        let window = noticeWindow(notices, shownKey: nil, limit: 2)
+        #expect(keys(window) == ["a:0", "b:0"])
+        #expect(window.rest == 1)
+        #expect(window.nextKey == "c:0")
+        // 最後まで行ったら先頭に戻る
+        let next = noticeWindow(notices, shownKey: "c:0", limit: 2)
+        #expect(keys(next) == ["c:0", "a:0"])
+        #expect(next.nextKey == "b:0")
+    }
+
+    @Test("iPhone は 1 枚。出していた通知が消えたら先頭から")
+    func phone() {
+        #expect(keys(noticeWindow(notices, shownKey: "b:0", limit: 1)) == ["b:0"])
+        #expect(keys(noticeWindow(notices, shownKey: "gone", limit: 1)) == ["a:0"])
+        #expect(noticeWindow(notices, shownKey: nil, limit: 1).rest == 2)
+    }
+
+    @Test("全部入れば「ほか」は出さない。通知が無ければ何も出さない")
+    func fits() {
+        let window = noticeWindow(Array(notices.prefix(2)), shownKey: nil, limit: 2)
+        #expect(window.rest == 0 && window.nextKey == nil)
+        #expect(noticeWindow([], shownKey: nil, limit: 2) == NoticeWindow(shown: [], rest: 0, nextKey: nil))
+    }
+}

@@ -8,6 +8,8 @@ struct ShopScreen: View {
     let demoSeed: Bool
     let onLeave: () -> Void
     @State private var services: ShopServices
+    @State private var noticeBoard = NoticeBoard()
+    @State private var undo = UndoBoard()
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(base: ShopBase, account: String?, demoSeed: Bool = false, onLeave: @escaping () -> Void) {
@@ -19,12 +21,16 @@ struct ShopScreen: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
-            let state = ShopState(services: services, now: nowMs(), account: account)
-            if sizeClass == .regular {
-                PadShopView(state: state, onLeave: onLeave)
-            } else {
-                PhoneShopView(state: state, onLeave: onLeave)
+            let state = ShopState(services: services, now: nowMs(), account: account, noticeBoard: noticeBoard, undo: undo)
+            Group {
+                if sizeClass == .regular {
+                    PadShopView(state: state, onLeave: onLeave)
+                } else {
+                    PhoneShopView(state: state, onLeave: onLeave)
+                }
             }
+            // 新しい通知が来たらバナーを開く（No.159）
+            .onChange(of: state.notices.map(\.key), initial: true) { noticeBoard.sync(state.notices) }
         }
         .onAppear { services.start() }
         .onDisappear { services.stop() }

@@ -56,6 +56,22 @@ public func bellSeatId(_ notices: [Notice], shownKey: String?) -> String? {
     return notices.lazy.compactMap(tableOf).first
 }
 
+// 通知のバナーに出す分（No.159。iPad は 2 枚、iPhone は 1 枚）。shownKey の通知から順に limit 件（見つからなければ先頭から）。
+// 入らない分は「ほか N件」にし、押すと出している分の次の通知から出し直す（最後まで行ったら先頭に戻る。Web の Toasts と同じ）
+public struct NoticeWindow: Equatable, Sendable {
+    public var shown: [Notice]
+    public var rest: Int
+    public var nextKey: String?
+}
+public func noticeWindow(_ notices: [Notice], shownKey: String?, limit: Int) -> NoticeWindow {
+    guard !notices.isEmpty, limit > 0 else { return NoticeWindow(shown: [], rest: notices.count, nextKey: notices.first?.key) }
+    let start = notices.firstIndex { $0.key == shownKey } ?? 0
+    let count = min(limit, notices.count)
+    let rest = notices.count - count
+    return NoticeWindow(shown: (0..<count).map { notices[(start + $0) % notices.count] }, rest: rest,
+                        nextKey: rest > 0 ? notices[(start + count) % notices.count].key : nil)
+}
+
 // 「編集中」の印（No.72）：複数人で使うとき、誰かが詳細を開いている卓を、ほかの端末に知らせる。
 // 詳細を開いている端末は、開いているお客さんを editingHeartbeatMs ごとに書き直し、閉じたら消す。端末が落ちて消せなかった印は、editingFreshMs を過ぎたら出さない
 public let editingHeartbeatMs = 20_000
