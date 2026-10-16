@@ -46,6 +46,19 @@ extension XCTestCase {
         return false
     }
 
+    // ログインのあとに iOS が出す「パスワードを保存しますか？」を閉じる（出ると画面を覆い、最初のタップはこれを閉じるだけになる）。
+    // 出なければ何もしない
+    func dismissSavePassword(_ app: XCUIApplication) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        guard let notNow = firstToAppear(app.buttons["今はしない"], springboard.buttons["今はしない"], timeout: 5) else { return }
+        // 出てくる途中に押すと届かないので、消えるまで押し直す。消えきるまでは、下の画面を押せない
+        for _ in 0..<3 where notNow.exists {
+            notNow.tap()
+            _ = XCTWaiter().wait(for: [expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: notNow)], timeout: 2)
+        }
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+    }
+
     // パスワードの欄にまとめて打つと、1文字しか入らないことがある（シミュレータのテストだけで起き、人が打つときは起きない）ので1文字ずつ打つ
     func typeSlowly(_ field: XCUIElement, _ text: String) {
         field.tap()
