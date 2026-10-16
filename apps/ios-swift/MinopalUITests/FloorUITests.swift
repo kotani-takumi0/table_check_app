@@ -22,6 +22,7 @@ final class FloorUITests: XCTestCase {
         }
         XCTAssertTrue(table.waitForExistence(timeout: 15), "卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
+        tuckNotices(app)
         clear(app, table)
         clear(app, other)
 
@@ -95,33 +96,5 @@ final class FloorUITests: XCTestCase {
             _ = waitForValue(table, value, not: true)
         }
         XCTAssertEqual(table.value as? String, "空席", "\(table.identifier) を空けられない")
-    }
-
-    @MainActor
-    private func tap(_ element: XCUIElement) {
-        XCTAssertTrue(element.waitForExistence(timeout: 5), "\(element) が出ない")
-        element.tap()
-    }
-
-    // Auth エミュレータの REST でアカウントを作る（鍵は確かめられないので何でもよい）
-    private func createEmulatorAccount(email: String, password: String) throws {
-        var request = URLRequest(url: URL(string: "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "password": password, "returnSecureToken": true])
-        let done = expectation(description: "アカウントを作る")
-        var status = 0
-        URLSession.shared.dataTask(with: request) { _, response, _ in
-            status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            done.fulfill()
-        }.resume()
-        wait(for: [done], timeout: 10)
-        XCTAssertEqual(status, 200, "エミュレータにアカウントを作れない（npm run ios-swift:emulators を起動しているか）")
-    }
-
-    @MainActor
-    private func waitForValue(_ element: XCUIElement, _ value: String, not: Bool = false) -> Bool {
-        let predicate = NSPredicate(format: not ? "value != %@" : "value == %@", value)
-        return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: 15) == .completed
     }
 }
