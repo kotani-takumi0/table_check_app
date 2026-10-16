@@ -41,11 +41,11 @@ struct ShopScreen: View {
         // 営業中に画面が暗くならないようにする（今の iOS 版の useKeepAwake と同じ。店の画面を出している間だけ）
         .onAppear {
             services.start()
-            UIApplication.shared.isIdleTimerDisabled = true
+            KeepAwake.hold()
         }
         .onDisappear {
             services.stop()
-            UIApplication.shared.isIdleTimerDisabled = false
+            KeepAwake.release()
         }
         #if DEBUG
         // 画面の確かめ用のテストデータ（エミュレータで、起動の引数に -MinopalDemoSeed があるときだけ）。配置を読み終えてから入れる
@@ -55,6 +55,20 @@ struct ShopScreen: View {
             DemoSeed.seed(services)
         }
         #endif
+    }
+}
+
+// 画面を暗くしないのは、店の画面が1つでも出ている間。店を切り替えると新しい画面の onAppear が古い画面の onDisappear より先に来ることがあるので、数えて決める
+@MainActor
+private enum KeepAwake {
+    private static var count = 0
+    static func hold() {
+        count += 1
+        UIApplication.shared.isIdleTimerDisabled = true
+    }
+    static func release() {
+        count = max(0, count - 1)
+        UIApplication.shared.isIdleTimerDisabled = count > 0
     }
 }
 
