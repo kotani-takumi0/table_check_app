@@ -46,10 +46,13 @@ final class LoginScreenUITests: XCTestCase {
         app.buttons["ログイン"].firstMatch.tap()
         XCTAssertFalse(app.secureTextFields["パスワード（確認のため、もう一度）"].exists, "ログインに戻しても確認の欄が残る")
 
-        typeSlowly(app.secureTextFields["パスワード"], "abc123")
+        // キーボードが出ると画面がスクロールして押す場所がずれる（iPhone）ので、先に見せてから打つ
         app.buttons["パスワードを見せる"].tap()
-        XCTAssertEqual(app.textFields["パスワード"].value as? String, "abc123", "パスワードを見せられない")
+        let shown = app.textFields["パスワード"]
+        XCTAssertTrue(shown.waitForExistence(timeout: 3), "パスワードを見せられない")
+        enter(shown, "abc123")
+        XCTAssertEqual(shown.value as? String, "abc123")
         app.buttons["パスワードを隠す"].tap()
-        XCTAssertTrue(app.secureTextFields["パスワード"].exists)
+        XCTAssertTrue(app.secureTextFields["パスワード"].waitForExistence(timeout: 3), "パスワードを隠せない")
     }
 }

@@ -1,8 +1,8 @@
 import XCTest
 
-// 仮の画面で、ログインと Firestore の読み書きを確かめる。
+// 配置図で、ログインと Firestore の読み書きを確かめる（卓を押したときの動きは仮。No.158 でご案内・詳細に置き換える）。
 // Firebase エミュレータ（npm run ios-swift:emulators）を起動してから流す。本物の Firebase にはつながない
-final class TrialFloorUITests: XCTestCase {
+final class FloorUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
     }
@@ -75,9 +75,5 @@ final class TrialFloorUITests: XCTestCase {
     private func waitForValue(_ element: XCUIElement, _ value: String) -> Bool {
         let predicate = NSPredicate(format: "value == %@", value)
         return XCTWaiter().wait(for: [expectation(for: predicate, evaluatedWith: element)], timeout: 15) == .completed
-    }
-
-    private func waitUntilSynced(_ app: XCUIApplication) -> Bool {
-        app.staticTexts["同期済み"].waitForExistence(timeout: 15)
     }
 }
