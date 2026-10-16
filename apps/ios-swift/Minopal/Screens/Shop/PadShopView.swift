@@ -9,6 +9,7 @@ struct PadShopView: View {
     @State private var visibility = NavigationSplitViewVisibility.all
     @State private var page = ShopPage.floor
     @State private var focus: FloorFocus?
+    @State private var interaction = FloorInteraction()
 
     private var sidebarOpen: Bool { visibility != .detailOnly }
 
@@ -37,13 +38,14 @@ struct PadShopView: View {
         GeometryReader { proxy in
             let metrics = FloorMetrics.pad(sidebarOpen: sidebarOpen, available: proxy.size)
             ScrollView([.horizontal, .vertical]) {
-                FloorView(layout: state.layout, sessions: state.sessions, settings: state.settings, now: state.now, editingIds: state.editingIds,
-                          focus: focus.map(state.summary.seats), metrics: metrics, onTap: state.tap)
+                FloorView(state: state, interaction: interaction, focus: focus.map(state.summary.seats), metrics: metrics,
+                          promptMaxHeight: proxy.size.height)
                     .padding(metrics.padding)
                     .frame(minWidth: proxy.size.width, minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize, axes: [.horizontal, .vertical])
         }
+        .safeAreaInset(edge: .top, spacing: 0) { pickBar }
         .background(Palette.tile)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -62,6 +64,15 @@ struct PadShopView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) { status }
+        }
+    }
+
+    // 卓の移動先・追加先を選んでいる間の帯（配置図の上）
+    @ViewBuilder private var pickBar: some View {
+        if let pick = interaction.pick, let picked = state.visibleSession(pick.sessionId) {
+            PickBar(label: pickGuideLabel(pick.mode, from: pick.from, tableIds: picked.tableIds)) { interaction.pick = nil }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
         }
     }
 
