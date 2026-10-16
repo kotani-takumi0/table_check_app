@@ -7,14 +7,15 @@ struct TrialFloorView: View {
     let connection: FirebaseConnection
     let account: String?
     let onLeave: () -> Void
-    @State private var repository: SessionRepository
+    @State private var services: ShopServices
 
     init(connection: FirebaseConnection, base: ShopBase, account: String?, onLeave: @escaping () -> Void) {
         self.connection = connection
         self.account = account
         self.onLeave = onLeave
-        _repository = State(initialValue: SessionRepository(base: base))
+        _services = State(initialValue: ShopServices(base: base))
     }
+    private var repository: SessionRepository { services.sessions }
 
     var body: some View {
         ScrollView {
@@ -50,12 +51,12 @@ struct TrialFloorView: View {
                 }
             }
         }
-        .onAppear { repository.start() }
-        .onDisappear { repository.stop() }
+        .onAppear { services.start() }
+        .onDisappear { services.stop() }
     }
 
     private var syncLabel: String {
-        switch repository.syncState {
+        switch services.syncState {
         case .synced: "同期済み"
         case .pending: "送信待ち"
         case .offline: "オフライン"

@@ -44,6 +44,7 @@ targets:
       testTargets:
         - package: MinopalCore/MinopalCoreTests
         - MinopalUITests
+        - MinopalTests
   # 画面を押して確かめるテスト。Firebase エミュレータ（npm run ios-swift:emulators）を起動してから、手元の Mac で流す（CI では流さない）
   MinopalUITests:
     type: bundle.ui-testing
@@ -56,3 +57,15 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app.uitests
+  # Firestore の読み書き（Minopal/Data）を、Firebase エミュレータに対して確かめるテスト。手元の Mac で流す（CI では流さない）
+  MinopalTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: MinopalTests
+    dependencies:
+      - target: Minopal
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app.tests
