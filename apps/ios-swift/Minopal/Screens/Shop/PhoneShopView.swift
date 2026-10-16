@@ -16,7 +16,7 @@ struct PhoneShopView: View {
     private enum Tab: Hashable { case floor, shop, notices, settings }
 
     var body: some View {
-        TabView(selection: $tab) {
+        TabView(selection: tabSelection) {
             NavigationStack { floor }
                 // 通知のバナー：上（Dynamic Island の下）に左右 12pt で 1 枚。ヘッダーと卓に重なってよい。上へスワイプでもベルにしまう
                 .overlay(alignment: .top) {
@@ -30,7 +30,7 @@ struct PhoneShopView: View {
                     }
                 }
                 .animation(.snappy, value: state.noticeBoard.open)
-                .overlay(alignment: .bottom) { undoBar }
+                .overlay(alignment: .bottom) { floorBar }
                 .tabItem { Label("テーブル状況", systemImage: "square.grid.2x2") }
                 .tag(Tab.floor)
             NavigationStack(path: $shopPath) {
@@ -58,24 +58,20 @@ struct PhoneShopView: View {
             .overlay(alignment: .bottom) { undoBar }
             .tabItem { Label("お店", systemImage: "house") }
             .tag(Tab.shop)
-            NavigationStack { ComingLaterView(title: "お知らせ") }
-                .tabItem { Label("お知らせ", systemImage: "bell") }
-                .tag(Tab.notices)
+            NavigationStack {
+                NoticesView(state: state, news: state.news)
+                    .navigationTitle("お知らせ")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { trailingItems }
+            }
+            .tabItem { Label("お知らせ", systemImage: "bell") }
+            // 新しい予定があるときの印（Web のメニューの点と同じ）
+            .badge(state.news.roadmapNew ? Text("新") : nil)
+            .tag(Tab.notices)
             NavigationStack(path: $settingsPath) {
                 PhoneSettingsView(state: state, onOpen: { settingsPath.append($0) }, onLeave: onLeave)
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        // 通知のバナーはテーブル状況に出すので、ベルを押したらテーブル状況に戻して開く
-                        if !state.notices.isEmpty {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                NoticeBell(count: state.notices.count, showsLabel: false) {
-                                    tab = .floor
-                                    state.openNotices()
-                                }
-                            }
-                        }
-                        ToolbarItem(placement: .topBarTrailing) { clock }
-                    }
+                    .toolbar { trailingItems }
                     .navigationDestination(for: EditorRoute.self) { route in
                         EditorDestination(route: route, state: state)
                             .navigationBarTitleDisplayMode(.inline)
@@ -88,6 +84,14 @@ struct PhoneShopView: View {
         // タブのアイコンは線（ふだんは monochrome。No.149 の SF Symbols の決まり）
         .environment(\.symbolVariants, .none)
         .tint(Palette.keyText)
+    }
+
+    // お知らせはタブから開くと今後の予定から（今の iOS 版と同じ）。帯の「内容を見る」は最近の更新を開く
+    private var tabSelection: Binding<Tab> {
+        Binding(get: { tab }, set: { next in
+            if next == .notices && tab != .notices { state.news.tab = .roadmap }
+            tab = next
+        })
     }
 
     private var floor: some View {
@@ -143,6 +147,33 @@ struct PhoneShopView: View {
         }
     }
 
+    // 設定・お知らせのヘッダーの右：通知のベルと時刻。
+    // 通知のバナーはテーブル状況に出すので、ベルを押したらテーブル状況に戻して開く
+    @ToolbarContentBuilder private var trailingItems: some ToolbarContent {
+        if !state.notices.isEmpty {
+            ToolbarItem(placement: .topBarTrailing) {
+                NoticeBell(count: state.notices.count, showsLabel: false) {
+                    tab = .floor
+                    state.openNotices()
+                }
+            }
+        }
+        ToolbarItem(placement: .topBarTrailing) { clock }
+    }
+
+    // テーブル状況の下の帯：元に戻すが無いときだけ、新しい版になったことを出す（Web と同じ場所）
+    @ViewBuilder private var floorBar: some View {
+        if state.undo.message == nil && state.news.announce && interaction.pick == nil {
+            ReleaseBar(onOpen: {
+                state.news.openUpdates()
+                tab = .notices
+            }, onClose: { state.news.markReleaseSeen() })
+            .padding(.bottom, 8)
+        } else {
+            undoBar
+        }
+    }
+
     private var undoBar: some View {
         UndoBar(board: state.undo) { state.undo.apply(state.services) }
             .padding(.bottom, 8)
@@ -152,6 +183,9 @@ struct PhoneShopView: View {
     private var chips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                if state.settings.rules.timeLimitOff {
+                    TimeLimitOffChip { tab = .settings }
+                }
                 ForEach(FloorFocus.allCases, id: \.self) { item in
                     focusChip(item)
                 }

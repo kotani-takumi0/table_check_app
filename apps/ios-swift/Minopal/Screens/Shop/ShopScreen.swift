@@ -10,6 +10,7 @@ struct ShopScreen: View {
     @State private var services: ShopServices
     @State private var noticeBoard = NoticeBoard()
     @State private var undo = UndoBoard()
+    @State private var news = NewsBoard()
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(base: ShopBase, account: String?, demoSeed: Bool = false, onLeave: @escaping () -> Void) {
@@ -21,7 +22,7 @@ struct ShopScreen: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
-            let state = ShopState(services: services, now: nowMs(), account: account, noticeBoard: noticeBoard, undo: undo)
+            let state = ShopState(services: services, now: nowMs(), account: account, noticeBoard: noticeBoard, undo: undo, news: news)
             Group {
                 if sizeClass == .regular {
                     PadShopView(state: state, onLeave: onLeave)
@@ -37,8 +38,15 @@ struct ShopScreen: View {
                 if count > 0 { undo.tell("閉店時刻を過ぎたので、\(count)組を退店にしました") }
             }
         }
-        .onAppear { services.start() }
-        .onDisappear { services.stop() }
+        // 営業中に画面が暗くならないようにする（今の iOS 版の useKeepAwake と同じ。店の画面を出している間だけ）
+        .onAppear {
+            services.start()
+            KeepAwake.hold()
+        }
+        .onDisappear {
+            services.stop()
+            KeepAwake.release()
+        }
         #if DEBUG
         // 画面の確かめ用のテストデータ（エミュレータで、起動の引数に -MinopalDemoSeed があるときだけ）。配置を読み終えてから入れる
         .task {
@@ -47,6 +55,20 @@ struct ShopScreen: View {
             DemoSeed.seed(services)
         }
         #endif
+    }
+}
+
+// 画面を暗くしないのは、店の画面が1つでも出ている間。店を切り替えると新しい画面の onAppear が古い画面の onDisappear より先に来ることがあるので、数えて決める
+@MainActor
+private enum KeepAwake {
+    private static var count = 0
+    static func hold() {
+        count += 1
+        UIApplication.shared.isIdleTimerDisabled = true
+    }
+    static func release() {
+        count = max(0, count - 1)
+        UIApplication.shared.isIdleTimerDisabled = count > 0
     }
 }
 

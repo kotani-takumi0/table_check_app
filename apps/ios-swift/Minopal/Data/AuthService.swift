@@ -1,4 +1,5 @@
 @preconcurrency import FirebaseAuth
+@preconcurrency import FirebaseFirestore
 import MinopalCore
 import Observation
 
@@ -46,6 +47,21 @@ final class AuthService {
 
     func signOut() throws {
         try Auth.auth().signOut()
+    }
+
+    // 店を切り替える前に、送信待ちの書き込みを送り終える（packages/core/src/auth.ts の flushPendingWrites。No.88）。
+    // 送信待ちはログイン中の利用者ごとに持たれるので、送り終わる前にログイン・ログアウトすると記録が届かなくなる。
+    // 少し待っても終わらなければ false（切り替えない）
+    func flushPendingWrites(waitSeconds: Double = 3) async -> Bool {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            let once = Once()
+            Firestore.firestore().waitForPendingWrites { error in
+                MainActor.assumeIsolated { if once.claim() { continuation.resume(returning: error == nil) } }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + waitSeconds) {
+                MainActor.assumeIsolated { if once.claim() { continuation.resume(returning: false) } }
+            }
+        }
     }
 
     // iOS の Firebase のエラーを、Web と同じ "auth/〜" の形にする（言葉は MinopalCore の loginErrorMessage で決める）

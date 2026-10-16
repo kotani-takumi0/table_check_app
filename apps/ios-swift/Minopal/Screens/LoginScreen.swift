@@ -151,6 +151,11 @@ struct LoginScreen: View {
         Task {
             busy = true
             defer { busy = false }
+            // 今の店で書いた送信待ちも、ログインで利用者が変わる前に送り終える
+            guard await auth.flushPendingWrites() else {
+                error = pendingWritesMessage
+                return
+            }
             do {
                 if signingUp { try await auth.signUp(email: email, password: password) }
                 else { try await auth.signIn(email: email, password: password) }

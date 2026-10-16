@@ -11,15 +11,17 @@ struct ShopState {
     let editingIds: Set<String>
     let noticeBoard: NoticeBoard
     let undo: UndoBoard
+    let news: NewsBoard
     // 通知（L.O.と店のタイマー。No.109）。「L.O.確認済みにする」「済にする」を押すまで残る
     let notices: [Notice]
 
-    init(services: ShopServices, now: Int, account: String?, noticeBoard: NoticeBoard, undo: UndoBoard) {
+    init(services: ShopServices, now: Int, account: String?, noticeBoard: NoticeBoard, undo: UndoBoard, news: NewsBoard) {
         self.services = services
         self.now = now
         self.account = account
         self.noticeBoard = noticeBoard
         self.undo = undo
+        self.news = news
         let settings = services.settings.settings
         summary = FloorSummary(layout: services.layout.layout, sessions: services.sessions.sessions, settings: settings, now: now)
         editingIds = editingSessionIds(services.editing.marks, now: now)
@@ -150,9 +152,9 @@ struct ShopState {
     }
 }
 
-// 画面の切り替え（iPad はサイドバー、iPhone はお店タブから）
+// 画面の切り替え（iPad はサイドバー、iPhone はお店タブから。お知らせは iPad だけ。iPhone はタブ）
 enum ShopPage: Hashable {
-    case floor, layout, course, settings
+    case floor, layout, course, notices, settings
 }
 
 // 店のタイマーの印：残り時間のぶんだけ淡い緑が残る丸。時間が来たら赤い角丸の四角（Web の .shop-timer-mark と同じ）
@@ -185,6 +187,30 @@ private struct Pie: Shape {
         path.addArc(center: center, radius: rect.width / 2, startAngle: .degrees(-90), endAngle: .degrees(-90 + 360 * fraction), clockwise: false)
         path.closeSubpath()
         return path
+    }
+}
+
+// 時間制限なしの目印（Web・今の iOS 版のヘッダーと同じ）。切ったまま忘れないよう、その間は出しておく。押すと設定を開く
+struct TimeLimitOffChip: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("時間制限なし")
+                .minopalFont(14, .bold, relativeTo: .subheadline)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 36)
+                .background(Palette.page, in: Capsule())
+                .overlay(Capsule().strokeBorder(Palette.edge, lineWidth: 1))
+                .frame(minHeight: Metrics.minTap)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .accessibilityLabel("時間制限なし（押すと設定）")
+        .accessibilityIdentifier("limit-off")
     }
 }
 
@@ -226,16 +252,5 @@ struct SyncStatusView: View {
         case .pending: Palette.soonInk
         case .offline: Palette.nowInk
         }
-    }
-}
-
-// これから作る画面（お知らせ）の仮の中身
-struct ComingLaterView: View {
-    let title: String
-
-    var body: some View {
-        ContentUnavailableView(title, systemImage: "hammer", description: Text("この画面はこのあと作ります"))
-            .background(Palette.tile)
-            .navigationTitle(title)
     }
 }

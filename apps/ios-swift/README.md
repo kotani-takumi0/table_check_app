@@ -1,7 +1,7 @@
 # Minopal iOS（Swift 版）
 
 今の iOS 版（`apps/ios`、Expo）を Swift（SwiftUI）で作り直したもの。ver.3.0.0 で、録音なしで App Store に申請するまでを目指す。
-画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・最初のページ・配置図・ご案内・卓の詳細・通知と元に戻す・設定・席の配置とコースの編集まで。お知らせとご意見は No.162 で作る）。
+画面は No.150 で No.149 の画面案どおりに作った（ログイン・最初のページ・配置図・ご案内・卓の詳細・通知と元に戻す・設定・席の配置とコースの編集・お知らせとご意見）。今の iOS 版でできることとの対応表は Notion の No.162 にある。
 
 ## 中身
 
@@ -10,7 +10,7 @@
 | `MinopalCore/` | 卓のルール（`packages/core` の Swift 版）。画面にも Firebase にも依存しない Swift Package。テストは `swift test` |
 | `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き） |
 | `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」。設定の「この端末」（音・ハプティクス・外観）は端末だけで覚える（`DeviceSettings.swift`） |
-| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）・通知のバナーとベル・元に戻すの帯・設定（iPad は目次と中身の 2 列、iPhone は設定タブ）・席の配置とコースを直す画面（`Screens/Editors`。設定から奥へ進む）・最初のページ（ログインした店で配置をまだ保存していないとき）） |
+| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）・通知のバナーとベル・元に戻すの帯・設定（iPad は目次と中身の 2 列、iPhone は設定タブ）・席の配置とコースを直す画面（`Screens/Editors`。設定から奥へ進む）・最初のページ（ログインした店で配置をまだ保存していないとき）・お知らせ（今後の予定・最近の更新・ご意見を送る。`Screens/Notices`。iPad はサイドバー、iPhone はタブ）） |
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
@@ -33,7 +33,7 @@
 | `clock.ts`・`serverClock.ts` の `estimateOffset` | `Clock.swift` | 時差を Firestore で測る部分は、Firestore の読み書きと一緒に移す |
 | `tapGuard.ts` の `tooSoon` | `Clock.swift` | React の `useTapGuard` は画面の側で作る |
 | `firestoreMapping.ts` | `SessionDocument.swift`・`DocumentValues.swift` | |
-| `auth.ts` のことば・`shopPath.ts` | `Auth.swift`・`Shop.swift` | Firebase を使う部分は `Minopal/Data/AuthService.swift` |
+| `auth.ts` のことば・`shopPath.ts` | `Auth.swift`・`Shop.swift` | Firebase を使う部分（`flushPendingWrites` も）は `Minopal/Data/AuthService.swift` |
 | `shopSettings.ts` | `ShopSettings.swift` | `DEFAULT_SHOP_SETTINGS` は `ShopSettings.standard`。時間のルールは `settings.rules` にまとめた。`stepMinutes` は変えた項目の Partial ではなく新しい値を返す。`COURSE_LIMITS` は `CourseLimits` |
 | `shopTimers.ts`・`shopTimerIcons.ts` | `ShopTimers.swift` | アイコンの線は SVG の文字列のまま持つ（描き方は画面で決める） |
 | `store.ts` の `worstSyncState` | `Shop.swift` | |
@@ -46,7 +46,7 @@
 | `sessionRecord.ts` | `SessionRecord.swift` | TS の Partial は、項目ごとの Optional（区分・コースの名前は「null を書く」と「書かない」を分けるため二重の Optional）。`toDocument()` で書く形にする |
 
 | `releaseNotes.ts`・`roadmap.ts` | `ReleaseNotes.swift` | **文章は TS だけで持つ。** `npm run ios-swift:content`（`scripts/export-ios-content.mjs`）が `MinopalCore/Sources/MinopalCore/Resources/content.json` に書き出し、Swift はそれを読む。書き出し忘れは `npm test` と CI で落ちる |
-| `feedback.ts` | `Feedback.swift` | 送る部分（`FeedbackStore`）は Firestore の読み書きと一緒に移す |
+| `feedback.ts` | `Feedback.swift` | 送る部分は `Minopal/Data/FeedbackSender.swift`。下書き・待ち・見た印（Web の `FeedbackForm`・`useReleaseAnnounce`）は画面の側（`Minopal/Screens/Notices/NewsBoard.swift`） |
 | `appUpdate.ts` | なし | Web の version.json を読み直す仕組みなので移さない（iOS は App Store で更新する） |
 
 Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。

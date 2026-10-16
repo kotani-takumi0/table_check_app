@@ -19,7 +19,12 @@ struct PadShopView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
             ShopOverviewList(state: state, page: page, focus: focus, sidebar: true,
-                             onPage: { page = $0; focus = nil },
+                             onPage: { next in
+                                 // お知らせはメニューから開くと今後の予定から（今の iOS 版と同じ）
+                                 if next == .notices && page != .notices { state.news.tab = .roadmap }
+                                 page = next
+                                 focus = nil
+                             },
                              onFocus: { item in page = .floor; focus = focus == item ? nil : item })
                 .navigationSplitViewColumnWidth(300)
                 .toolbar(removing: .sidebarToggle)
@@ -44,6 +49,10 @@ struct PadShopView: View {
                         SettingsPageList(page: .course, state: state, onOpen: { routes.append($0) }, clearing: .constant(false))
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar { pageToolbar("コース") }
+                    case .notices:
+                        NoticesView(state: state, news: state.news)
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { pageToolbar("お知らせ") }
                     }
                 }
                 .navigationDestination(for: EditorRoute.self) { route in
@@ -52,10 +61,20 @@ struct PadShopView: View {
                 }
             }
             .onChange(of: page) { routes = [] }
-            // 元に戻す（どの画面でも、サイドバーの店のタイマーを済にしたときなどに出す）
+            // 元に戻す（どの画面でも、サイドバーの店のタイマーを済にしたときなどに出す）。
+            // 配置図で元に戻すが無いときだけ、新しい版になったことを同じ場所に出す（Web と同じ）
             .overlay(alignment: .bottom) {
-                UndoBar(board: state.undo) { state.undo.apply(state.services) }
-                    .padding(.bottom, 16)
+                Group {
+                    if page == .floor && state.undo.message == nil && state.news.announce && interaction.pick == nil {
+                        ReleaseBar(onOpen: {
+                            state.news.openUpdates()
+                            page = .notices
+                        }, onClose: { state.news.markReleaseSeen() })
+                    } else {
+                        UndoBar(board: state.undo) { state.undo.apply(state.services) }
+                    }
+                }
+                .padding(.bottom, 16)
             }
         }
         .navigationSplitViewStyle(.balanced)
@@ -100,6 +119,11 @@ struct PadShopView: View {
                 ToolbarItem(placement: .topBarLeading) { brand }
                 if !state.settings.shopTimers.isEmpty {
                     ToolbarItem(placement: .topBarLeading) { timers }
+                }
+            }
+            if state.settings.rules.timeLimitOff {
+                ToolbarItem(placement: .topBarLeading) {
+                    TimeLimitOffChip { page = .settings }
                 }
             }
             if !state.notices.isEmpty && !state.noticeBoard.open {
