@@ -1,7 +1,7 @@
 # Minopal iOS（Swift 版）
 
 今の iOS 版（`apps/ios`、Expo）を Swift（SwiftUI）で作り直したもの。ver.3.0.0 で、録音なしで App Store に申請するまでを目指す。
-画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・配置図・ご案内・卓の詳細まで。通知と元に戻すは No.159、設定は No.160 で作る）。
+画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・配置図・ご案内・卓の詳細・通知と元に戻すまで。設定は No.160 で作る）。
 
 ## 中身
 
@@ -10,7 +10,7 @@
 | `MinopalCore/` | 卓のルール（`packages/core` の Swift 版）。画面にも Firebase にも依存しない Swift Package。テストは `swift test` |
 | `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き） |
 | `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」 |
-| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）） |
+| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）・通知のバナーとベル・元に戻すの帯） |
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
@@ -39,9 +39,9 @@
 | `store.ts` の `worstSyncState` | `Shop.swift` | |
 | `layout.ts`・`shopLayout.ts`・`layoutDrag.ts` | `Layout.swift` | 場所と大きさは `GridBox` にまとめた。`sameBox` は `GridBox` の `==`。`GRID` は `Grid`、`SEATS` は `defaultSeats` |
 | `floorScale.ts`・`dial.ts`・`cactusClock.ts` | `Dial.swift` | `arcPath`（SVG の円弧の文字列）は Web の描き方なので移していない。SwiftUI では `Path.addArc` で描く |
-| `notices.ts`・`editing.ts` | `Notices.swift` | |
+| `notices.ts`・`editing.ts` | `Notices.swift` | バナーに何枚出すか（iPad 2 枚・iPhone 1 枚と「ほか N件」）は `noticeWindow`。Web は 1 枚ずつなので TS には無い |
 | `courseEditor.ts`・`shopTemplates.ts` | `CourseEditor.swift` | |
-| `undo.ts` | `Undo.swift` | 数秒で消す部分（React の `useUndo`）は画面の側で作る |
+| `undo.ts` | `Undo.swift` | 数秒で消す部分（React の `useUndo`）は画面の側（`Minopal/Screens/Shop/ShopBoards.swift` の `UndoBoard`） |
 | `sessionRecord.ts` | `SessionRecord.swift` | TS の Partial は、項目ごとの Optional（区分・コースの名前は「null を書く」と「書かない」を分けるため二重の Optional）。`toDocument()` で書く形にする |
 
 | `releaseNotes.ts`・`roadmap.ts` | `ReleaseNotes.swift` | **文章は TS だけで持つ。** `npm run ios-swift:content`（`scripts/export-ios-content.mjs`）が `MinopalCore/Sources/MinopalCore/Resources/content.json` に書き出し、Swift はそれを読む。書き出し忘れは `npm test` と CI で落ちる |
