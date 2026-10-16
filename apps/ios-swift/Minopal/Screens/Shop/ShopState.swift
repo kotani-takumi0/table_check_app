@@ -44,14 +44,40 @@ struct ShopState {
         services.timers.markDone(timer.id, at: nowMs())
     }
 
-    // 仮：空席を押すと2名で案内し、お客さんのいる卓を押すとそのお客さんを消す。
-    // ご案内のシートと卓の詳細は No.158（Swift版：卓の詳細と着席）で作り、そこで置き換える
-    func tap(_ seat: Seat, _ session: Session?) {
-        if let session {
-            services.sessions.remove(id: session.id)
-        } else {
-            services.sessions.put(newSession(id: UUID().uuidString.lowercased(), tableId: seat.id, at: nowMs(), guests: 2))
-        }
+    // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
+    func rules(_ session: Session) -> Rules { sessionRules(settings.rules, session, menus: settings.courseMenus) }
+    // 卓に出ているお客さん（無ければ空席）
+    func occupant(_ tableId: String) -> Session? { occupantOf(sessions, tableId: tableId, now: now, rules: settings.rules) }
+    // 今も卓に出ているお客さん（退店して時間がたった・全卓消去したお客さんは nil）
+    func visibleSession(_ id: String) -> Session? { sessions.first { $0.id == id && isVisible($0, now: now, rules: settings.rules) } }
+
+    // お客さんの書き換え（packages/core/src/useSessions.ts と同じ）。順番が崩れるなどで書けないものは書かない。時刻は押したときのもの
+    func seat(_ tableId: String, guests: Int?, course: String?, menu: String?) {
+        services.sessions.put(newSession(id: UUID().uuidString.lowercased(), tableId: tableId, at: nowMs(), guests: guests, course: course, menu: menu))
+    }
+    func next(_ session: Session) { write(advance(session, at: nowMs())) }
+    // 1つ戻す。ご案内済みの卓は案内を取り消し、記録ごと消す（押し間違いなので）
+    func back(_ session: Session) {
+        if let previous = revert(session) { write(previous) } else { services.sessions.remove(id: session.id) }
+    }
+    func retime(_ session: Session, _ field: EditableTime, at: Int) -> Bool { write(editTime(session, field, at: at, now: nowMs())) }
+    func pay(_ session: Session) { write(togglePaid(session, at: nowMs())) }
+    func changeGuests(_ session: Session, _ guests: Int?) { write(setGuests(session, guests)) }
+    // 退店の時刻を決める（nil でふつうに戻す）。案内より前なら false
+    func changeLeaveAt(_ session: Session, _ at: Int?) -> Bool { write(setLeaveAt(session, at)) }
+    func changeCourse(_ session: Session, _ course: String?) { write(setCourse(session, course)) }
+    func changeMenu(_ session: Session, _ menu: String?) { write(setMenu(session, menu, menus: settings.courseMenus)) }
+    func serve(_ session: Session) { write(serveDish(session, at: nowMs(), menus: settings.courseMenus)) }
+    func unserve(_ session: Session) { write(unserveDish(session, menus: settings.courseMenus)) }
+    func moveTo(_ session: Session, from: String, to: String) { write(moveTable(session, from: from, to: to, at: nowMs())) }
+    func addTo(_ session: Session, _ tableId: String) { write(addTable(session, tableId: tableId, at: nowMs())) }
+    func release(_ session: Session, _ tableId: String) { write(removeTable(session, tableId: tableId, at: nowMs())) }
+
+    @discardableResult
+    private func write(_ session: Session?) -> Bool {
+        guard let session else { return false }
+        services.sessions.put(session)
+        return true
     }
 }
 
