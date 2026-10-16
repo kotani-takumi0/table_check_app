@@ -10,7 +10,7 @@ final class LoginScreenUITests: XCTestCase {
     // 「アカウントを作る」に切り替えると確認の欄が出て、確認と違うパスワードは送る前に断る。作ると最初のページ（お店の形を選ぶ）が開く
     @MainActor
     func testSignUpChecksPasswordThenOpensFirstPage() {
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
         openLoginScreen(app)
 
@@ -37,7 +37,7 @@ final class LoginScreenUITests: XCTestCase {
     // ログインに戻すと確認の欄が消える。パスワードは表示を切り替えられる
     @MainActor
     func testSwitchBackAndRevealPassword() {
-        let app = XCUIApplication()
+        let app = minopalApp()
         app.launch()
         openLoginScreen(app)
 

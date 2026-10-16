@@ -7,9 +7,14 @@ enum DeviceSettings {
     static let hapticsKey = "minopal.device.haptics"
     static let appearanceKey = "minopal.device.appearance"
 
-    // どちらも最初はオン
+    // 端末の通知（No.151）：アプリを閉じているとき・ロック中に知らせる。askedKey は許可の説明を一度出したか
+    static let notificationsKey = "minopal.device.notifications"
+    static let notificationsAskedKey = "minopal.notifications.asked"
+
+    // どれも最初はオン
     static var sound: Bool { UserDefaults.standard.object(forKey: soundKey) as? Bool ?? true }
     static var haptics: Bool { UserDefaults.standard.object(forKey: hapticsKey) as? Bool ?? true }
+    static var notifications: Bool { UserDefaults.standard.object(forKey: notificationsKey) as? Bool ?? true }
 }
 
 // 外観：iOS の設定に合わせる・いつもライト・いつもダーク

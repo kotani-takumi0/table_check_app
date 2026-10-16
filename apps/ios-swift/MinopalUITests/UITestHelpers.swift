@@ -13,6 +13,13 @@ extension XCTestCase {
         return nil
     }
 
+    // テストで動かすアプリ。通知の許可の説明（No.151）は、通知のテスト（NotificationUITests）のほかでは出さない（出ると画面の操作が止まるため）
+    func minopalApp() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-minopal.notifications.asked", "YES"]
+        return app
+    }
+
     // 最初の画面を出す。前に流したテストのログインが残っていて卓（始める前の店は最初のページ）が出たら、ログアウトして戻る
     func openLoginScreen(_ app: XCUIApplication) {
         let emailField = app.textFields["メールアドレス"]

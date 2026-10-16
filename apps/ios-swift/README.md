@@ -8,8 +8,8 @@
 | 場所 | 中身 |
 |---|---|
 | `MinopalCore/` | 卓のルール（`packages/core` の Swift 版）。画面にも Firebase にも依存しない Swift Package。テストは `swift test` |
-| `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き） |
-| `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」。設定の「この端末」（音・ハプティクス・外観）は端末だけで覚える（`DeviceSettings.swift`） |
+| `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き）と、端末の通知の予約（`LocalNotifier.swift`） |
+| `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」。設定の「この端末」（通知・音・ハプティクス・外観）は端末だけで覚える（`DeviceSettings.swift`） |
 | `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）・通知のバナーとベル・元に戻すの帯・設定（iPad は目次と中身の 2 列、iPhone は設定タブ）・席の配置とコースを直す画面（`Screens/Editors`。設定から奥へ進む）・最初のページ（ログインした店で配置をまだ保存していないとき）・お知らせ（今後の予定・最近の更新・ご意見を送る。`Screens/Notices`。iPad はサイドバー、iPhone はタブ）） |
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
@@ -39,7 +39,7 @@
 | `store.ts` の `worstSyncState` | `Shop.swift` | |
 | `layout.ts`・`shopLayout.ts`・`layoutDrag.ts` | `Layout.swift` | 場所と大きさは `GridBox` にまとめた。`sameBox` は `GridBox` の `==`。`GRID` は `Grid`、`SEATS` は `defaultSeats` |
 | `floorScale.ts`・`dial.ts`・`cactusClock.ts` | `Dial.swift` | `arcPath`（SVG の円弧の文字列）は Web の描き方なので移していない。SwiftUI では `Path.addArc` で描く |
-| `notices.ts`・`editing.ts` | `Notices.swift` | バナーに何枚出すか（iPad 2 枚・iPhone 1 枚と「ほか N件」）は `noticeWindow`。Web は 1 枚ずつなので TS には無い |
+| `notices.ts`・`editing.ts` | `Notices.swift` | バナーに何枚出すか（iPad 2 枚・iPhone 1 枚と「ほか N件」）は `noticeWindow`。Web は 1 枚ずつなので TS には無い。端末の通知に予約する分（`scheduledNotices`）も iOS だけ |
 | `courseEditor.ts`・`shopTemplates.ts` | `CourseEditor.swift` | |
 | `useLayoutEditor.ts` | `LayoutEditor.swift` | React の state を値の型（`LayoutEditor`）と mutating の関数にした。お客さんがいる卓は呼ぶたびに渡す。ドラッグと保存の待ち合わせは画面の側（`Minopal/Screens/Editors/LayoutEditorView.swift`） |
 | `undo.ts` | `Undo.swift` | 数秒で消す部分（React の `useUndo`）は画面の側（`Minopal/Screens/Shop/ShopBoards.swift` の `UndoBoard`） |
@@ -97,6 +97,16 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
     -destination 'platform=iOS Simulator,id=<端末>' -only-testing:MinopalUITests/ScreenshotUITests
   ```
   撮った画像は結果（.xcresult）の添付に入る。テストデータは開発中のビルドで、エミュレータにつないでいて、起動の引数に `-MinopalDemoSeed` があるときだけ入る（`Minopal/Data/DemoSeed.swift`）
+
+## 端末の通知（No.151）
+
+L.O.・店のタイマーの時間は前もって分かるので、端末の中だけで通知を予約する（ローカル通知。サーバーは使わない）。
+お客さん・済にした時刻・設定が変わるたびに予約を作り直す。ほかの端末で時刻を変えたときは、この端末でアプリを開くまで古いまま。
+アプリを開いているときは画面のバナーと通知の音で知らせ、端末の通知は重ねて出さない。通知の文は卓番と内容だけ（「21卓 ラストオーダーの時間です」）。
+
+- 初めて店の画面を開いたときに一度だけ説明を出してから iOS の許可を求める。断っても使える。設定の「この端末」で切れる
+- UI テストでは、通知のテスト（`NotificationUITests`）のほかは説明を出さない（`minopalApp()` が起動の引数で「もう聞いた」にする）。
+  通知のテストは開発中のビルドの起動の引数 `-MinopalNotifyWithin <秒>` で、予約した通知を数秒のうちに出して確かめる
 
 ## 入れないもの（ver.3.0.0）
 

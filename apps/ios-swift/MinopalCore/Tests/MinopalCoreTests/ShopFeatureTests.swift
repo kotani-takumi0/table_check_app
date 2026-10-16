@@ -383,3 +383,77 @@ struct NoticeWindowTests {
         #expect(noticeWindow([], shownKey: nil, limit: 2) == NoticeWindow(shown: [], rest: 0, nextKey: nil))
     }
 }
+
+@Suite("端末の通知（No.151）")
+struct ScheduledNoticeTests {
+    let rules = Rules.standard
+    // 0 分に案内、5 分にお通し
+    let otoshi = advance(newSession(id: "s", tableId: "21", at: 0), at: 5 * minute)
+    let timer = ShopTimer(id: "toilet_check", label: "トイレチェック", icon: "patrol", intervalMin: 30)
+
+    func schedule(_ sessions: [Session], done: ShopTimerDone = [:], now: Int, rules: Rules = .standard) -> [ScheduledNotice] {
+        scheduledNotices(sessions, shopTimers: done, now: now, rulesOf: { _ in rules }, timers: [timer], closingMin: nil, calendar: tokyo)
+    }
+
+    @Test("L.O. の時刻に、画面の通知と同じ key・文で予約する")
+    func lastOrder() {
+        let limits = limitsOf(otoshi, rules: rules)!
+        let scheduled = schedule([otoshi], done: ["toilet_check": 0], now: 10 * minute).filter { $0.key.hasPrefix("lo:") }
+        #expect(scheduled == [ScheduledNotice(key: "lo:s:\(5 * minute)", fireAt: limits.lastOrderAt, message: "21卓 ラストオーダーの時間です")])
+        // 時間が来たら、画面の通知と同じ key・文
+        let shown = noticesOf([otoshi], shopTimers: ["toilet_check": limits.lastOrderAt], now: limits.lastOrderAt, rules: rules, timers: [timer])
+        #expect(shown.map(\.key) == scheduled.map(\.key))
+        #expect(shown.map(\.message) == scheduled.map(\.message))
+    }
+
+    @Test("時間の来た通知・L.O.確認済み・お通し前・全卓消去・時間制限なしは予約しない")
+    func skips() {
+        let lastOrderAt = limitsOf(otoshi, rules: rules)!.lastOrderAt
+        let done: ShopTimerDone = ["toilet_check": lastOrderAt]
+        #expect(schedule([otoshi], done: done, now: lastOrderAt).map(\.key) == ["toilet_check:\(lastOrderAt + 30 * minute)"])
+        #expect(schedule([advance(otoshi, at: 10 * minute)], done: done, now: 20 * minute).count == 1)
+        #expect(schedule([newSession(id: "a", tableId: "1", at: 0)], done: done, now: minute).count == 1)
+        var cleared = otoshi
+        cleared.clearedAt = 10 * minute
+        #expect(schedule([cleared], done: done, now: 20 * minute).count == 1)
+        var off = rules
+        off.timeLimitOff = true
+        #expect(schedule([otoshi], done: done, now: 20 * minute, rules: off).count == 1)
+    }
+
+    @Test("店のタイマーは済にした時刻から間隔のあと。一度も済にしていなければ予約しない（もう画面に出ている）")
+    func shopTimer() {
+        #expect(schedule([], done: ["toilet_check": 10 * minute], now: 20 * minute)
+                == [ScheduledNotice(key: "toilet_check:\(40 * minute)", fireAt: 40 * minute, message: "トイレチェックの時間です")])
+        #expect(schedule([], now: 0) == [])
+    }
+
+    @Test("閉店時刻より後の分は予約しない。閉店時刻を決めていなければ営業日の終わり（朝4時）まで")
+    func closing() {
+        // 22:00 に済にした店のタイマー（30 分後の 22:30 に時間）
+        let doneAt = tokyoMs(2026, 9, 17, 22, 0)
+        func keys(closingMin: Int?, now: Int) -> [String] {
+            scheduledNotices([], shopTimers: ["toilet_check": doneAt], now: now, rulesOf: { _ in .standard }, timers: [timer],
+                             closingMin: closingMin, calendar: tokyo).map(\.key)
+        }
+        let key = "toilet_check:\(doneAt + 30 * minute)"
+        #expect(keys(closingMin: 23 * 60, now: doneAt) == [key])
+        #expect(keys(closingMin: 22 * 60 + 15, now: doneAt) == [])
+        // 深夜 1:00 閉店は次の日の 1:00
+        #expect(keys(closingMin: 60, now: doneAt) == [key])
+        // 閉店時刻を決めていない：朝4時より後は予約しない
+        let late = tokyoMs(2026, 9, 18, 3, 50)
+        #expect(scheduledNotices([], shopTimers: ["toilet_check": late], now: late, rulesOf: { _ in .standard }, timers: [timer],
+                                 closingMin: nil, calendar: tokyo) == [])
+        #expect(keys(closingMin: nil, now: doneAt) == [key])
+    }
+
+    @Test("早い順に並べ、iOS の上限より多ければ早いほうだけ")
+    func order() {
+        let sessions = (0..<70).map { advance(newSession(id: "s\($0)", tableId: "\($0)", at: $0 * minute), at: $0 * minute) }
+        let scheduled = schedule(sessions.reversed(), done: ["toilet_check": 0], now: 0)
+        #expect(scheduled.count == scheduledNoticeMax)
+        #expect(scheduled.map(\.fireAt) == scheduled.map(\.fireAt).sorted())
+        #expect(scheduled.first?.key == "toilet_check:\(30 * minute)")
+    }
+}

@@ -11,8 +11,8 @@ final class ScreenshotUITests: XCTestCase {
 
     @MainActor
     func testShopScreens() {
-        let app = XCUIApplication()
-        app.launchArguments = ["-MinopalDemoSeed"]
+        let app = minopalApp()
+        app.launchArguments += ["-MinopalDemoSeed"]
         let pad = UIDevice.current.userInterfaceIdiom == .pad
         XCUIDevice.shared.orientation = pad ? .landscapeLeft : .portrait
         app.launch()
