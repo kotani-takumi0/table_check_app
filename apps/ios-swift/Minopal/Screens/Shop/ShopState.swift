@@ -85,7 +85,8 @@ struct ShopState {
 
     // 端末の通知に予約する分（No.151）：画面の通知と同じ知らせの、これから時間が来る分
     var scheduledNotices: [ScheduledNotice] {
-        MinopalCore.scheduledNotices(sessions, shopTimers: services.timers.done, now: now, rulesOf: rules, timers: settings.shopTimers)
+        MinopalCore.scheduledNotices(sessions, shopTimers: services.timers.done, now: now, rulesOf: rules, timers: settings.shopTimers,
+                                    closingMin: settings.closingMin)
     }
 
     // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）

@@ -60,8 +60,11 @@ public struct ScheduledNotice: Equatable, Sendable {
 }
 // iOS が1つのアプリに予約させる通知は 64 件まで。早い順にここまで
 public let scheduledNoticeMax = 60
+// 今の営業日の閉店時刻（決めていなければ営業日の終わり＝朝4時）より後の分は予約しない。閉店後にアプリを閉じていても、夜中に鳴らないように
 public func scheduledNotices(_ sessions: [Session], shopTimers: ShopTimerDone, now: Int, rulesOf: (Session) -> Rules,
-                             timers: [ShopTimer] = defaultShopTimers) -> [ScheduledNotice] {
+                             timers: [ShopTimer] = defaultShopTimers, closingMin: Int?, calendar: Calendar = .current) -> [ScheduledNotice] {
+    let day = businessDayOf(now, calendar: calendar)
+    let cutoff = closingMin.flatMap { closingAtOf(day, $0, calendar: calendar) } ?? businessDayRange(day, calendar: calendar)?.end ?? Int.max
     // L.O.：lastOrderDue と同じ卓（お通し・ファーストドリンクのあと、L.O.確認の前。全卓消去していない。時間制限なしでない）
     let lastOrder = sessions.compactMap { session -> ScheduledNotice? in
         let rules = rulesOf(session)
@@ -74,7 +77,7 @@ public func scheduledNotices(_ sessions: [Session], shopTimers: ShopTimerDone, n
         let state = shopTimerState(intervalMin: timer.intervalMin, doneAt: shopTimers[timer.id], now: now)
         return state.due ? nil : ScheduledNotice(key: "\(timer.id):\(state.dueAt)", fireAt: state.dueAt, message: shopTimerMessage(timer))
     }
-    return Array((lastOrder + shop).enumerated()
+    return Array((lastOrder + shop).filter { $0.fireAt < cutoff }.enumerated()
         .sorted { $0.element.fireAt != $1.element.fireAt ? $0.element.fireAt < $1.element.fireAt : $0.offset < $1.offset }
         .map(\.element)
         .prefix(scheduledNoticeMax))

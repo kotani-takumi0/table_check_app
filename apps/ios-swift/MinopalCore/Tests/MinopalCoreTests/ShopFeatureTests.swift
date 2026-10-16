@@ -392,7 +392,7 @@ struct ScheduledNoticeTests {
     let timer = ShopTimer(id: "toilet_check", label: "トイレチェック", icon: "patrol", intervalMin: 30)
 
     func schedule(_ sessions: [Session], done: ShopTimerDone = [:], now: Int, rules: Rules = .standard) -> [ScheduledNotice] {
-        scheduledNotices(sessions, shopTimers: done, now: now, rulesOf: { _ in rules }, timers: [timer])
+        scheduledNotices(sessions, shopTimers: done, now: now, rulesOf: { _ in rules }, timers: [timer], closingMin: nil, calendar: tokyo)
     }
 
     @Test("L.O. の時刻に、画面の通知と同じ key・文で予約する")
@@ -426,6 +426,26 @@ struct ScheduledNoticeTests {
         #expect(schedule([], done: ["toilet_check": 10 * minute], now: 20 * minute)
                 == [ScheduledNotice(key: "toilet_check:\(40 * minute)", fireAt: 40 * minute, message: "トイレチェックの時間です")])
         #expect(schedule([], now: 0) == [])
+    }
+
+    @Test("閉店時刻より後の分は予約しない。閉店時刻を決めていなければ営業日の終わり（朝4時）まで")
+    func closing() {
+        // 22:00 に済にした店のタイマー（30 分後の 22:30 に時間）
+        let doneAt = tokyoMs(2026, 9, 17, 22, 0)
+        func keys(closingMin: Int?, now: Int) -> [String] {
+            scheduledNotices([], shopTimers: ["toilet_check": doneAt], now: now, rulesOf: { _ in .standard }, timers: [timer],
+                             closingMin: closingMin, calendar: tokyo).map(\.key)
+        }
+        let key = "toilet_check:\(doneAt + 30 * minute)"
+        #expect(keys(closingMin: 23 * 60, now: doneAt) == [key])
+        #expect(keys(closingMin: 22 * 60 + 15, now: doneAt) == [])
+        // 深夜 1:00 閉店は次の日の 1:00
+        #expect(keys(closingMin: 60, now: doneAt) == [key])
+        // 閉店時刻を決めていない：朝4時より後は予約しない
+        let late = tokyoMs(2026, 9, 18, 3, 50)
+        #expect(scheduledNotices([], shopTimers: ["toilet_check": late], now: late, rulesOf: { _ in .standard }, timers: [timer],
+                                 closingMin: nil, calendar: tokyo) == [])
+        #expect(keys(closingMin: nil, now: doneAt) == [key])
     }
 
     @Test("早い順に並べ、iOS の上限より多ければ早いほうだけ")
