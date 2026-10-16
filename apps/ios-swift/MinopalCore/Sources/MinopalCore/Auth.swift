@@ -9,6 +9,8 @@ public let loginModeKey = "minopal:loginMode"
 public func parseLoginMode(_ value: String?) -> LoginMode? {
     value.flatMap(LoginMode.init(rawValue:))
 }
+// 店を切り替える前に送信待ちを送り終えられなかったとき（PENDING_WRITES_MESSAGE。送り終える部分は Minopal/Data/AuthService.swift）
+public let pendingWritesMessage = "送信待ちの記録があります。インターネットにつながってから、もう一度押してください"
 
 // 新規登録（No.094）
 public let passwordMin = 6

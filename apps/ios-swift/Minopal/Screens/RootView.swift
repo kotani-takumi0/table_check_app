@@ -11,6 +11,8 @@ struct RootView: View {
     // 最初のページを出すかを確かめた店と、その答え
     @State private var checkedBase: ShopBase?
     @State private var needsFirstPage = false
+    // ログアウト（今の店は「ログインする」）で、送信待ちを送り終えられなかったとき
+    @State private var leaveError: String?
 
     var body: some View {
         Group {
@@ -42,6 +44,11 @@ struct RootView: View {
         }
         // 店が変わったら（ログイン・ログアウト）画面の重なりを作り直す。作り直さないと、ログインの画面が卓の画面の上に残る
         .id(shopBase.map { $0.path("") } ?? "first-page")
+        .alert("まだ切り替えられません", isPresented: Binding(get: { leaveError != nil }, set: { if !$0 { leaveError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(leaveError ?? "")
+        }
         // 設定の「この端末」で選んだ外観（端末に合わせる・ライト・ダーク）
         .preferredColorScheme(appearance.colorScheme)
         // ログインしている間は、サーバーとの時差を測る（利用者が変わったら測り直す）
@@ -51,9 +58,16 @@ struct RootView: View {
         }
     }
 
+    // ログアウト・ログインし直す：送信待ちを送り終えてから、覚えた使い方を消して最初の画面に戻る（今の iOS 版の leave と同じ）
     private func leave() {
-        try? auth.signOut()
-        storedMode = nil
+        Task {
+            guard await auth.flushPendingWrites() else {
+                leaveError = pendingWritesMessage
+                return
+            }
+            try? auth.signOut()
+            storedMode = nil
+        }
     }
 
     private var demoSeedRequested: Bool {
