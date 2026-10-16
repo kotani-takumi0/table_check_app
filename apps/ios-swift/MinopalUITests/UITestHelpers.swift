@@ -13,10 +13,14 @@ extension XCTestCase {
         return nil
     }
 
-    // 最初の画面を出す。前に流したテストのログインが残っていて卓が出たら、ログアウトして戻る
+    // 最初の画面を出す。前に流したテストのログインが残っていて卓（始める前の店は最初のページ）が出たら、ログアウトして戻る
     func openLoginScreen(_ app: XCUIApplication) {
         let emailField = app.textFields["メールアドレス"]
-        if firstToAppear(emailField, app.buttons["table-1"]) != emailField {
+        let firstPage = app.buttons["first-blank"]
+        let found = firstToAppear(emailField, app.buttons["table-1"], firstPage)
+        if found == firstPage {
+            app.buttons["ログアウト"].tap()
+        } else if found != emailField {
             leaveShop(app)
         }
         XCTAssertTrue(emailField.waitForExistence(timeout: 15), "最初の画面が出ない")
@@ -33,6 +37,31 @@ extension XCTestCase {
         let confirm = firstToAppear(app.alerts.buttons["ログアウト"], app.alerts.buttons["戻る"], timeout: 5)
         XCTAssertNotNil(confirm, "ログアウトの確認が出ない")
         confirm?.tap()
+    }
+
+    // 最初の画面でログインする。作ったばかりのアカウントは最初のページ（No.087）が出るので、テンプレート（居酒屋・21卓）で始める
+    func logIn(_ app: XCUIApplication, email: String, password: String = "password123", startWithTemplate: Bool = true) {
+        enter(app.textFields["メールアドレス"], email)
+        typeSlowly(app.secureTextFields["パスワード"], password)
+        app.buttons["ログイン"].tap()
+        guard startWithTemplate else { return }
+        let template = app.buttons["first-template-izakaya_21"]
+        if firstToAppear(template, app.buttons["table-1"]) == template {
+            dismissSavePassword(app)
+            template.tap()
+        }
+    }
+
+    // 設定を開く（iPad はサイドバー、iPhone はタブ）
+    @MainActor
+    func openSettings(_ app: XCUIApplication, pad: Bool) {
+        if pad {
+            let open = app.buttons["サイドバーを開く"]
+            if open.exists { open.tap() }
+            tap(app.buttons["設定"].firstMatch)
+        } else {
+            app.tabBars.buttons["設定"].tap()
+        }
     }
 
     // エミュレータと同期するまで待つ。iPad はヘッダーに同期の状態が出る。iPhone は同期済みのときは出さない（送信待ち・オフラインだけ出す）

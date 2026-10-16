@@ -17,9 +17,7 @@ final class SettingsUITests: XCTestCase {
 
         let table = app.buttons["table-1"]
         openLoginScreen(app)
-        enter(app.textFields["メールアドレス"], email)
-        typeSlowly(app.secureTextFields["パスワード"], "password123")
-        app.buttons["ログイン"].tap()
+        logIn(app, email: email)
         XCTAssertTrue(table.waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
         dismissSavePassword(app)
@@ -64,16 +62,5 @@ final class SettingsUITests: XCTestCase {
             app.tabBars.buttons["テーブル状況"].tap()
         }
         XCTAssertTrue(waitForValue(table, "空席"), "全卓消去で 1卓が空かない")
-    }
-
-    @MainActor
-    private func openSettings(_ app: XCUIApplication, pad: Bool) {
-        if pad {
-            let open = app.buttons["サイドバーを開く"]
-            if open.exists { open.tap() }
-            tap(app.buttons["設定"].firstMatch)
-        } else {
-            app.tabBars.buttons["設定"].tap()
-        }
     }
 }
