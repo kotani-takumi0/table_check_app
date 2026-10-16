@@ -153,12 +153,14 @@ private struct StepButton: View {
 }
 
 // 文字の設定：入力を終えたら（ほかを押す・完了）保存する。打っている途中では保存しない（Web の SavedInput と同じ）。
-// 前後の空白は落とす。文字数の上限は Web と同じ数え方（UTF-16）
+// 前後の空白は落とす。文字数の上限は Web と同じ数え方（UTF-16）。
+// allowsEmpty が false の欄（区分・タイマーの名前）は、空にして確定したら保存せずに今の名前へ戻す
 struct SettingsTextField: View {
     let label: String
     let value: String
     let maxLength: Int
     let placeholder: String
+    var allowsEmpty = true
     let onSave: (String) -> Void
     @State private var draft = ""
     @FocusState private var focused: Bool
@@ -185,6 +187,10 @@ struct SettingsTextField: View {
 
     private func save() {
         let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard allowsEmpty || !trimmed.isEmpty else {
+            draft = value
+            return
+        }
         if trimmed != value { onSave(trimmed) }
         draft = trimmed
     }

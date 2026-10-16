@@ -164,8 +164,7 @@ private struct CourseSections: View {
                 footer: SettingsFootnote(text: "ご案内のときに選ぶと、その卓はコースになります（L.O.・お席の時間はファーストドリンクから数えます）。区分が無ければコースは選べません。消しても、その区分で案内中の卓はそのままです。")) {
             ForEach(Array(plans.enumerated()), id: \.element.id) { i, plan in
                 HStack(spacing: 12) {
-                    SettingsTextField(label: "区分\(i + 1)の名前", value: plan.name, maxLength: drinkPlanNameMax, placeholder: "区分の名前") { name in
-                        guard !name.isEmpty else { return }
+                    SettingsTextField(label: "区分\(i + 1)の名前", value: plan.name, maxLength: drinkPlanNameMax, placeholder: "区分の名前", allowsEmpty: false) { name in
                         put(plans.map { $0.id == plan.id ? DrinkPlan(id: $0.id, name: name) : $0 })
                     }
                     Button("消す") { put(plans.filter { $0.id != plan.id }) }
@@ -215,8 +214,7 @@ private struct TimerSections: View {
             Section(header: SettingsHeading(text: "タイマー\(i + 1)")) {
                 HStack(spacing: 12) {
                     iconMenu(timer, index: i)
-                    SettingsTextField(label: "タイマー\(i + 1)の名前", value: timer.label, maxLength: ShopTimerLimits.label, placeholder: "作業の名前") { label in
-                        guard !label.isEmpty else { return }
+                    SettingsTextField(label: "タイマー\(i + 1)の名前", value: timer.label, maxLength: ShopTimerLimits.label, placeholder: "作業の名前", allowsEmpty: false) { label in
                         put(timer.with { $0.label = label })
                     }
                 }
