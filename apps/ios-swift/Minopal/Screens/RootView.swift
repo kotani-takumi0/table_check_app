@@ -13,6 +13,8 @@ struct RootView: View {
     @State private var needsFirstPage = false
     // ログアウト（今の店は「ログインする」）で、送信待ちを送り終えられなかったとき
     @State private var leaveError: String?
+    // 送信待ちを待っている間（最大3秒）に続けて押されても、2回は動かさない
+    @State private var leaving = false
 
     var body: some View {
         Group {
@@ -60,7 +62,10 @@ struct RootView: View {
 
     // ログアウト・ログインし直す：送信待ちを送り終えてから、覚えた使い方を消して最初の画面に戻る（今の iOS 版の leave と同じ）
     private func leave() {
+        guard !leaving else { return }
+        leaving = true
         Task {
+            defer { leaving = false }
             guard await auth.flushPendingWrites() else {
                 leaveError = pendingWritesMessage
                 return
