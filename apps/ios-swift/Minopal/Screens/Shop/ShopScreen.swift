@@ -13,6 +13,7 @@ struct ShopScreen: View {
     @State private var news = NewsBoard()
     @State private var notifier = LocalNotifier.shared
     @AppStorage(DeviceSettings.notificationsKey) private var notificationsOn = true
+    @AppStorage(DeviceSettings.soundKey) private var soundOn = true
     @AppStorage(DeviceSettings.notificationsAskedKey) private var notificationsAsked = false
     @State private var askingNotifications = false
     @Environment(\.scenePhase) private var scenePhase
@@ -43,8 +44,9 @@ struct ShopScreen: View {
                 if count > 0 { undo.tell("閉店時刻を過ぎたので、\(count)組を退店にしました") }
             }
             // 端末の通知（No.151）：お客さん・済にした時刻・設定・許可が変わったら、予約を作り直す
-            .onChange(of: NotificationPlan(scheduled: state.scheduledNotices, on: notificationsOn, allowed: notifier.allowed), initial: true) { _, plan in
-                notifier.reschedule(plan.scheduled)
+            .onChange(of: NotificationPlan(scheduled: state.scheduledNotices, active: Set(state.notices.map(\.key)), on: notificationsOn, sound: soundOn,
+                                           allowed: notifier.allowed), initial: true) { _, plan in
+                notifier.reschedule(plan.scheduled, active: plan.active)
             }
         }
         // 営業中に画面が暗くならないようにする（今の iOS 版の useKeepAwake と同じ。店の画面を出している間だけ）
@@ -103,7 +105,9 @@ let notificationMessage = "L.O.・店のタイマーの時間を、アプリを�
 
 private struct NotificationPlan: Equatable {
     let scheduled: [ScheduledNotice]
+    let active: Set<String>
     let on: Bool
+    let sound: Bool
     let allowed: Bool
 }
 

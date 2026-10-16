@@ -31,11 +31,16 @@ final class LocalNotifier: NSObject, UNUserNotificationCenterDelegate {
         await refresh()
     }
 
-    // 予約を作り直す。この端末で切っている・許可が無いときは、予約を全部消す
-    func reschedule(_ scheduled: [ScheduledNotice]) {
+    // 予約を作り直す。この端末で切っている・許可が無いときは、予約を全部消す。
+    // active は今画面に出ている通知の key。届いた通知のうち、もう済んだ（L.O.確認済み・済にした）ものは通知センターから消す
+    func reschedule(_ scheduled: [ScheduledNotice], active: Set<String>) {
         center.removeAllPendingNotificationRequests()
+        Task {
+            let done = await center.deliveredNotifications().map(\.request.identifier).filter { !active.contains($0) }
+            if !done.isEmpty { center.removeDeliveredNotifications(withIdentifiers: done) }
+        }
         guard DeviceSettings.notifications && allowed else { return }
-        for request in Self.requests(scheduled, now: nowMs()) {
+        for request in Self.requests(scheduled, now: nowMs(), sound: DeviceSettings.sound) {
             center.add(request)
         }
     }
@@ -44,12 +49,13 @@ final class LocalNotifier: NSObject, UNUserNotificationCenterDelegate {
         center.removeAllPendingNotificationRequests()
     }
 
-    // 文は卓番と内容だけ（ロック画面はお客さんからも見える）。id は画面の通知と同じ key
-    static func requests(_ scheduled: [ScheduledNotice], now: Int) -> [UNNotificationRequest] {
+    // 文は卓番と内容だけ（ロック画面はお客さんからも見える）。id は画面の通知と同じ key。
+    // 「この端末」で通知の音を切っていれば、音なしで出す
+    static func requests(_ scheduled: [ScheduledNotice], now: Int, sound: Bool) -> [UNNotificationRequest] {
         scheduled.map { notice in
             let content = UNMutableNotificationContent()
             content.body = notice.message
-            content.sound = .default
+            content.sound = sound ? .default : nil
             content.threadIdentifier = "minopal-notices"
             let seconds = Double(min(notice.fireAt, now + debugLeadMs(now: now, fireAt: notice.fireAt)) - now) / 1000
             return UNNotificationRequest(identifier: notice.key, content: content,

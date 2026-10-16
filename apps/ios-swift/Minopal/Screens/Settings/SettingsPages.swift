@@ -366,7 +366,7 @@ private struct DeviceSections: View {
         }
         .task { await notifier.refresh() }
         Section(header: SettingsHeading(text: "音とハプティクス"), footer: SettingsFootnote(text: "この端末だけの設定です。ほかの端末には反映されません。")) {
-            SettingsSwitchRow(title: "通知の音", help: "L.O.・店のタイマーの通知が来たときに鳴らします。消音モードのときは鳴りません。", isOn: $sound)
+            SettingsSwitchRow(title: "通知の音", help: "L.O.・店のタイマーの通知が来たときに鳴らします（アプリを閉じているときの通知も）。マナーモード（消音）のときは鳴りません。", isOn: $sound)
             SettingsSwitchRow(title: "ハプティクス", help: "押したとき・通知が来たときに軽く震えます。", isOn: $haptics)
         }
         Section(header: SettingsHeading(text: "外観")) {
