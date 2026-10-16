@@ -38,6 +38,25 @@ final class ScreenshotUITests: XCTestCase {
             snap("shop")
             app.tabBars.buttons["テーブル状況"].tap()
         }
+        // 空いている 11番のご案内と、卓の詳細（テストデータの 22番はコースで料理を2品出した卓）。
+        // iPhone は 22番が配置図の右にあるので、横にスクロールしてから押す
+        app.buttons["table-11"].tap()
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        snap("seating")
+        app.buttons["detail-close"].tap()
+        RunLoop.current.run(until: Date().addingTimeInterval(1))
+        if !pad {
+            app.buttons["table-12"].swipeLeft()
+            RunLoop.current.run(until: Date().addingTimeInterval(1))
+        }
+        app.buttons["table-22"].tap()
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        snap("detail")
+        // 変更する（人数・コース・時刻・卓）を開いた中身。下にあれば中をスクロールして押す
+        app.buttons["detail-change"].tap()
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        snap("detail-change")
+        app.buttons["detail-close"].tap()
     }
 
     @MainActor

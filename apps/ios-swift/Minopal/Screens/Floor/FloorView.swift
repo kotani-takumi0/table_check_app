@@ -25,16 +25,16 @@ struct FloorMetrics: Equatable {
     }
 }
 
-// 配置図：空きマスを薄い面で見せ、その上に目印（カウンターなど）と卓を置く
+// 配置図：空きマスを薄い面で見せ、その上に目印（カウンターなど）と卓を置く。
+// 卓を押すとご案内・詳細を、iPad は押した卓のそばのポップオーバー、iPhone（幅が狭いとき）は下からのシートで出す
 struct FloorView: View {
-    let layout: ShopLayout
-    let sessions: [Session]
-    let settings: ShopSettings
-    let now: Int
-    let editingIds: Set<String>
+    let state: ShopState
+    let interaction: FloorInteraction
     let focus: Set<String>?      // 目立たせる卓（nil はすべてふつう）
     let metrics: FloorMetrics
-    let onTap: (Seat, Session?) -> Void
+    var promptMaxHeight: CGFloat = .infinity   // iPad のポップオーバーの高さの上限（配置図の見えている高さ）
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var pressed: String?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -44,7 +44,7 @@ struct FloorView: View {
                     .frame(width: metrics.cell, height: metrics.cell)
                     .offset(x: x(cell.col), y: y(cell.row))
             }
-            ForEach(Array(layout.labels.enumerated()), id: \.offset) { _, label in
+            ForEach(Array(state.layout.labels.enumerated()), id: \.offset) { _, label in
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Palette.area)
                     .overlay {
@@ -59,33 +59,86 @@ struct FloorView: View {
                     .offset(x: x(label.box.col), y: y(label.box.row))
                     .accessibilityHidden(true)
             }
-            ForEach(layout.seats, id: \.id) { seat in
+            ForEach(state.layout.seats, id: \.id) { seat in
                 seatButton(seat)
                     .frame(width: width(seat.box), height: height(seat.box))
                     .offset(x: x(seat.box.col), y: y(seat.box.row))
             }
         }
         .frame(width: metrics.width, height: metrics.height, alignment: .topLeading)
+        // ほかの端末で案内された・お客さんが消えたら、出していたものを閉じる。選んでいるお客さんが消えたら、選ぶのをやめる
+        .onChange(of: promptLive) { if !promptLive { interaction.prompt = nil } }
+        .onChange(of: pickLive) { if !pickLive { interaction.pick = nil } }
+        // 詳細を開いているお客さんを、ほかの端末に知らせる（No.72）
+        .onChange(of: interaction.openedSessionId(state: state), initial: true) { _, id in state.services.editing.setEditing(id) }
+        .onDisappear {
+            interaction.prompt = nil
+            interaction.pick = nil
+            state.services.editing.setEditing(nil)
+        }
     }
 
+    private var promptLive: Bool { interaction.prompt.map { interaction.isLive($0, state: state) } ?? true }
+    private var pickLive: Bool { interaction.pick.map { state.visibleSession($0.sessionId) != nil } ?? true }
+
+    // 卓：押すとご案内か詳細、長押しで詳細（退店済みの卓は、押すと次のお客さんのご案内）。
+    // 卓の移動先・追加先を選んでいる間は、空席と退店済みの卓だけ押せる
     private func seatButton(_ seat: Seat) -> some View {
-        let session = occupantOf(sessions, tableId: seat.id, now: now, rules: settings.rules)
-        let content = session.map { SeatCardContent(seat: seat, session: $0, settings: settings, now: now, editing: editingIds.contains($0.id)) }
-        let dimmed = focus.map { !$0.contains(seat.id) } ?? false
-        return Button { onTap(seat, session) } label: {
-            SeatCardView(seat: seat, content: content, editing: session.map { editingIds.contains($0.id) } ?? false, compact: metrics.compact, cell: metrics.cell)
-                .contentShape(RoundedRectangle(cornerRadius: 10))
+        let session = state.occupant(seat.id)
+        let content = session.map { SeatCardContent(seat: seat, session: $0, settings: state.settings, now: state.now, editing: state.editingIds.contains($0.id)) }
+        let disabled = interaction.pick != nil && !isPickable(session)
+        let dimmed = disabled || (focus.map { !$0.contains(seat.id) } ?? false)
+        let opened = interaction.prompt.map { $0.anchor == seat.id && interaction.isLive($0, state: state) } ?? false
+        return SeatCardView(seat: seat, content: content, editing: session.map { state.editingIds.contains($0.id) } ?? false, compact: metrics.compact, cell: metrics.cell)
+            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .scaleEffect(pressed == seat.id ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: pressed == seat.id)
+            // 開いている卓は緑の 3pt の枠で囲む（ポップオーバーの矢印の代わり。No.149）
+            .overlay {
+                if opened {
+                    RoundedRectangle(cornerRadius: 13).strokeBorder(Palette.keyText, lineWidth: 3).padding(-3).allowsHitTesting(false)
+                }
+            }
+            .onTapGesture { interaction.tap(seat, session, state: state) }
+            .onLongPressGesture(minimumDuration: 0.6) {
+                interaction.longPress(seat, session)
+            } onPressingChanged: { pressing in
+                pressed = pressing ? seat.id : nil
+            }
+            .allowsHitTesting(!disabled)
+            .opacity(dimmed ? 0.3 : 1)
+            .popover(isPresented: presented(seat.id)) {
+                if let prompt = interaction.prompt {
+                    FloorPromptView(state: state, interaction: interaction, prompt: prompt, sheet: sizeClass != .regular, maxHeight: promptMaxHeight)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("table-\(seat.id)")
+            .accessibilityLabel(content?.accessibilityLabel ?? "\(seat.id)番 ご案内")
+            .accessibilityValue(session.map { displayOf($0.status, course: $0.course).label } ?? "空席")
+            .accessibilityHint(session == nil ? "押すとご案内" : session?.status == .exited ? "押すとご案内、長押しで詳細" : "押すと詳細")
+            .accessibilityAction { interaction.tap(seat, session, state: state) }
+            .accessibilityActions {
+                if session?.status == .exited {
+                    Button("詳細を開く") { interaction.longPress(seat, session) }
+                }
+            }
+            .disabled(disabled)
+    }
+
+    // この卓のそばに出しているか。閉じたら（外を押す・下に引く）出していたものを消す
+    private func presented(_ seatId: String) -> Binding<Bool> {
+        Binding {
+            interaction.prompt.map { $0.anchor == seatId && interaction.isLive($0, state: state) } ?? false
+        } set: { shown in
+            if !shown, interaction.prompt?.anchor == seatId { interaction.prompt = nil }
         }
-        .buttonStyle(SeatButtonStyle())
-        .opacity(dimmed ? 0.3 : 1)
-        .accessibilityIdentifier("table-\(seat.id)")
-        .accessibilityLabel(content?.accessibilityLabel ?? "\(seat.id)番 ご案内")
-        .accessibilityValue(session.map { displayOf($0.status, course: $0.course).label } ?? "空席")
     }
 
     // 卓・目印に重なっていないマス
     private var emptyCells: [Cell] {
-        let boxes = layout.seats.map(\.box) + layout.labels.map(\.box)
+        let boxes = state.layout.seats.map(\.box) + state.layout.labels.map(\.box)
         return (1...Grid.rows).flatMap { row in
             (1...Grid.cols).compactMap { col in
                 boxes.contains { col >= $0.col && col < $0.col + $0.colSpan && row >= $0.row && row < $0.row + $0.rowSpan } ? nil : Cell(col: col, row: row)
@@ -103,11 +156,25 @@ private extension Cell {
     var key: String { "\(col)-\(row)" }
 }
 
-// 押している間は少し縮めて、押したことが分かるようにする
-private struct SeatButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+// ご案内か詳細。出しているお客さんが消えたら何も出さない（すぐに閉じる）
+private struct FloorPromptView: View {
+    let state: ShopState
+    let interaction: FloorInteraction
+    let prompt: FloorPrompt
+    let sheet: Bool
+    let maxHeight: CGFloat
+
+    var body: some View {
+        switch prompt {
+        case .seating(let tableId):
+            SeatingView(state: state, tableId: tableId, sheet: sheet, maxHeight: maxHeight) { interaction.prompt = nil }
+                .id(prompt)
+        case .detail(let sessionId, let from):
+            if let session = state.visibleSession(sessionId) {
+                SeatDetailView(state: state, session: session, from: session.tableIds.contains(from) ? from : session.tableIds[0],
+                               sheet: sheet, maxHeight: maxHeight, interaction: interaction) { interaction.prompt = nil }
+                    .id(prompt)
+            }
+        }
     }
 }

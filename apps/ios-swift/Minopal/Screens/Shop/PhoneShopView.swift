@@ -9,6 +9,7 @@ struct PhoneShopView: View {
     @State private var tab = Tab.floor
     @State private var focus: FloorFocus?
     @State private var shopPath: [ShopPage] = []
+    @State private var interaction = FloorInteraction()
 
     private enum Tab: Hashable { case floor, shop, notices, settings }
 
@@ -44,10 +45,16 @@ struct PhoneShopView: View {
 
     private var floor: some View {
         VStack(spacing: 0) {
-            chips
+            // 卓の移動先・追加先を選んでいる間は、帯の代わりにどこを押すかを出す
+            if let pick = interaction.pick, let picked = state.visibleSession(pick.sessionId) {
+                PickBar(label: pickGuideLabel(pick.mode, from: pick.from, tableIds: picked.tableIds)) { interaction.pick = nil }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 52)
+            } else {
+                chips
+            }
             ScrollView(.horizontal, showsIndicators: false) {
-                FloorView(layout: state.layout, sessions: state.sessions, settings: state.settings, now: state.now, editingIds: state.editingIds,
-                          focus: focus.map(state.summary.seats), metrics: .phone, onTap: state.tap)
+                FloorView(state: state, interaction: interaction, focus: focus.map(state.summary.seats), metrics: .phone)
                     .padding(FloorMetrics.phone.padding)
             }
             // 右に続きがあることが分かるよう、右端に影を出す

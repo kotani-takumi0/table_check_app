@@ -1,7 +1,7 @@
 # Minopal iOS（Swift 版）
 
 今の iOS 版（`apps/ios`、Expo）を Swift（SwiftUI）で作り直したもの。ver.3.0.0 で、録音なしで App Store に申請するまでを目指す。
-画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・配置図まで。卓を押したときの動きは仮で、ご案内・卓の詳細は No.158 で作る）。
+画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・配置図・ご案内・卓の詳細まで。通知と元に戻すは No.159、設定は No.160 で作る）。
 
 ## 中身
 
@@ -10,7 +10,7 @@
 | `MinopalCore/` | 卓のルール（`packages/core` の Swift 版）。画面にも Firebase にも依存しない Swift Package。テストは `swift test` |
 | `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き） |
 | `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」 |
-| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図） |
+| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）） |
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
@@ -85,7 +85,9 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 ## テスト
 
 - 卓のルール：`cd apps/ios-swift/MinopalCore && swift test`
-- Firestore の読み書きと画面：エミュレータを起動してから、Xcode で ⌘U（`MinopalTests` と `MinopalUITests`）
+- Firestore の読み書きと画面：エミュレータを起動してから、Xcode で ⌘U（`MinopalTests` と `MinopalUITests`）。
+  コマンドで流すときは `-collect-test-diagnostics never` を付ける（付けないと、落ちたテストがあるたびに診断の情報を集めて10分ほど待たされる）。
+  iPad と iPhone は `-destination` を2つ並べると同時に流れる
 - PR を出すと、GitHub Actions で卓のルールのテストとシミュレータ向けのビルドが回る（`.github/workflows/ios-swift.yml`）。CI ではアプリを起動しての確かめ（UI テスト）はしない
 - PR に添えるスクショ：テストデータ（いろいろな状態の卓）を入れた「ログインせずに使う」の店で撮る。ふだんのテストでは飛ばす
   ```sh
