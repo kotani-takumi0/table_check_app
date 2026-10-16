@@ -38,8 +38,15 @@ struct ShopScreen: View {
                 if count > 0 { undo.tell("閉店時刻を過ぎたので、\(count)組を退店にしました") }
             }
         }
-        .onAppear { services.start() }
-        .onDisappear { services.stop() }
+        // 営業中に画面が暗くならないようにする（今の iOS 版の useKeepAwake と同じ。店の画面を出している間だけ）
+        .onAppear {
+            services.start()
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
+        .onDisappear {
+            services.stop()
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
         #if DEBUG
         // 画面の確かめ用のテストデータ（エミュレータで、起動の引数に -MinopalDemoSeed があるときだけ）。配置を読み終えてから入れる
         .task {
