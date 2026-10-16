@@ -1,7 +1,7 @@
 # Minopal iOS（Swift 版）
 
 今の iOS 版（`apps/ios`、Expo）を Swift（SwiftUI）で作り直したもの。ver.3.0.0 で、録音なしで App Store に申請するまでを目指す。
-画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・配置図・ご案内・卓の詳細・通知と元に戻すまで。設定は No.160 で作る）。
+画面は No.150 で No.149 の画面案どおりに作っている途中（ログイン・配置図・ご案内・卓の詳細・通知と元に戻す・設定まで。席の配置とコースの編集は No.161 で作る）。
 
 ## 中身
 
@@ -9,8 +9,8 @@
 |---|---|
 | `MinopalCore/` | 卓のルール（`packages/core` の Swift 版）。画面にも Firebase にも依存しない Swift Package。テストは `swift test` |
 | `Minopal/Data/` | Firebase とのやり取り（つなぐ先の選択・ログイン・お客さんの読み書き） |
-| `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」 |
-| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）・通知のバナーとベル・元に戻すの帯） |
+| `Minopal/Design/` | 色（ライト／ダーク）・文字（Dynamic Type）・ボタンなどの部品。値は No.149「実装用の値一覧（確定版）」。設定の「この端末」（音・ハプティクス・外観）は端末だけで覚える（`DeviceSettings.swift`） |
+| `Minopal/Screens/` | 画面（ログイン・店の画面（iPad はサイドバー、iPhone はタブ）・配置図・ご案内と卓の詳細（iPad はポップオーバー、iPhone はシート）・通知のバナーとベル・元に戻すの帯・設定（iPad は目次と中身の 2 列、iPhone は設定タブ）） |
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
@@ -28,7 +28,7 @@
 |---|---|---|
 | `domain.ts` | `Session.swift`・`Domain.swift` | `STATUS_LABEL`・`STATUS_CARD`・`STATUS_SHORT` は `Display` の `label`・`cardLabel`・`shortLabel`。`REASON_LABEL` は `AlertReason.label`。`RULES` は `Rules.standard`。`lastOrderDue` の卓ごとのルールは `rulesOf:` で渡す。`formatClock`・`clockTimeNear` は `calendar:` で時間帯を渡せる（ふだんは端末の時間帯で、TS と同じ） |
 | `courseMenus.ts` | `CourseMenus.swift` | |
-| `history.ts` の営業日 | `BusinessDay.swift` | CSV の書き出しは Web だけなので移していない |
+| `history.ts` | `BusinessDay.swift`（営業日）・`History.swift`（CSV） | `sessionsCsv` は記録と一緒に読んだ `RecordedSession` を受け取り、区分・コースだけを渡す。iOS はファイルを共有のシートで渡す |
 | `closing.ts` | `BusinessDay.swift` | |
 | `clock.ts`・`serverClock.ts` の `estimateOffset` | `Clock.swift` | 時差を Firestore で測る部分は、Firestore の読み書きと一緒に移す |
 | `tapGuard.ts` の `tooSoon` | `Clock.swift` | React の `useTapGuard` は画面の側で作る |
@@ -52,7 +52,7 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 
 | TS | Swift（`Minopal/Data`） | 違うところ |
 |---|---|---|
-| `firestoreStore.ts` | `SessionRepository.swift` | 書き出し用の `fetchSeatedBetween` は Web だけなので移していない |
+| `firestoreStore.ts` | `SessionRepository.swift` | |
 | `firestoreShopSettings.ts`・`firestoreShopTimers.ts`・`firestoreShopLayout.ts`・`firestoreEditing.ts` | `ShopRepositories.swift` | 設定は「変えた項目」を `ShopSettingsField` で渡す。書く形は MinopalCore の `ShopDocuments.swift` |
 | `firestoreFeedback.ts` | `FeedbackSender.swift` | 届いたかの確認は `onConfirmed` で受け取る |
 | `serverClock.ts` | `ServerClock.swift` | |

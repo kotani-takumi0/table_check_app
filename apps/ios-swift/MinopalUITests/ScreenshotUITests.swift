@@ -57,6 +57,24 @@ final class ScreenshotUITests: XCTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(1.5))
         snap("detail-change")
         app.buttons["detail-close"].tap()
+        // 設定（No.160）：一覧・全卓消去の確認・時間のルール・店のタイマー・この端末
+        if pad {
+            app.buttons["設定"].firstMatch.tap()
+        } else {
+            app.tabBars.buttons["設定"].tap()
+        }
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        snap("settings")
+        app.buttons["clear-all"].tap()
+        RunLoop.current.run(until: Date().addingTimeInterval(1))
+        snap("settings-alert")
+        app.alerts.buttons["やめる"].tap()
+        for page in ["time", "timers", "device", "course", "shop", "record"] {
+            app.buttons["settings-\(page)"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+            snap("settings-\(page)")
+            if !pad { app.navigationBars.buttons.firstMatch.tap() }
+        }
     }
 
     @MainActor
