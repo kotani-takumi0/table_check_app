@@ -9,13 +9,22 @@ struct ShopState {
     let account: String?        // ログインした店はメールアドレス。今の店（ログインせずに使う）は nil
     let summary: FloorSummary
     let editingIds: Set<String>
+    let noticeBoard: NoticeBoard
+    let undo: UndoBoard
+    // 通知（L.O.と店のタイマー。No.109）。「L.O.確認済みにする」「済にする」を押すまで残る
+    let notices: [Notice]
 
-    init(services: ShopServices, now: Int, account: String?) {
+    init(services: ShopServices, now: Int, account: String?, noticeBoard: NoticeBoard, undo: UndoBoard) {
         self.services = services
         self.now = now
         self.account = account
-        summary = FloorSummary(layout: services.layout.layout, sessions: services.sessions.sessions, settings: services.settings.settings, now: now)
+        self.noticeBoard = noticeBoard
+        self.undo = undo
+        let settings = services.settings.settings
+        summary = FloorSummary(layout: services.layout.layout, sessions: services.sessions.sessions, settings: settings, now: now)
         editingIds = editingSessionIds(services.editing.marks, now: now)
+        notices = noticesOf(services.sessions.sessions, shopTimers: services.timers.done, now: now,
+                            rulesOf: { sessionRules(settings.rules, $0, menus: settings.courseMenus) }, timers: settings.shopTimers)
     }
 
     var settings: ShopSettings { services.settings.settings }
@@ -40,8 +49,36 @@ struct ShopState {
         let state = timerState(timer)
         return state.due ? 0 : min(1, Double(state.remainingMs) / Double(timer.intervalMin * 60_000))
     }
+    // 済にする（数秒は元に戻せる）
     func markTimerDone(_ timer: ShopTimer) {
-        services.timers.markDone(timer.id, at: nowMs())
+        let at = nowMs()
+        let before = services.timers.done[timer.id]
+        services.timers.markDone(timer.id, at: at)
+        undo.offer(shopTimerUndo(id: timer.id, label: timer.label, before: before, after: at))
+    }
+
+    // バナーに出す通知（iPad は 2 枚、iPhone は 1 枚）と、配置図で赤い輪で光らせる卓（出している L.O. の通知の卓と「卓を見る」の卓）
+    func noticeWindow(limit: Int) -> NoticeWindow {
+        MinopalCore.noticeWindow(notices, shownKey: noticeBoard.shownKey, limit: limit)
+    }
+    func ringedSeats(limit: Int) -> Set<String> {
+        var seats = Set(noticeBoard.open ? noticeWindow(limit: limit).shown.flatMap { $0.session?.tableIds ?? [] } : [])
+        if let flash = noticeBoard.flashSeat { seats.insert(flash) }
+        return seats
+    }
+    // 通知のボタン：L.O.は確認済みに進め、店のタイマーは済にする（どちらも数秒は元に戻せる）
+    func act(_ notice: Notice) {
+        Haptics.success()
+        switch notice.kind {
+        case .lastOrder: if let session = notice.session { next(session) }
+        case .shopTimer: if let timer = settings.shopTimers.first(where: { $0.id == notice.timerId }) { markTimerDone(timer) }
+        }
+        noticeBoard.restart()
+    }
+    // ベル：バナーを開き直し、通知の卓まで配置図を動かして光らせる（No.146）
+    func openNotices() {
+        noticeBoard.show(noticeBoard.shownKey)
+        if let seatId = bellSeatId(notices, shownKey: noticeBoard.shownKey) { noticeBoard.reveal(seatId) }
     }
 
     // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）
@@ -55,10 +92,17 @@ struct ShopState {
     func seat(_ tableId: String, guests: Int?, course: String?, menu: String?) {
         services.sessions.put(newSession(id: UUID().uuidString.lowercased(), tableId: tableId, at: nowMs(), guests: guests, course: course, menu: menu))
     }
-    func next(_ session: Session) { write(advance(session, at: nowMs())) }
-    // 1つ戻す。ご案内済みの卓は案内を取り消し、記録ごと消す（押し間違いなので）
+    // 次の段階へ（詳細の大きいボタン・通知の「L.O.確認済みにする」。数秒は元に戻せる。No.122）
+    func next(_ session: Session) {
+        let after = advance(session, at: nowMs())
+        services.sessions.put(after)
+        undo.offer(nextUndo(before: session, after: after, rules: settings.rules))
+    }
+    // 1つ戻す。ご案内済みの卓は案内を取り消し、記録ごと消す（押し間違いなので。数秒は元に戻せる）
     func back(_ session: Session) {
-        if let previous = revert(session) { write(previous) } else { services.sessions.remove(id: session.id) }
+        let previous = revert(session)
+        if let previous { write(previous) } else { services.sessions.remove(id: session.id) }
+        undo.offer(backUndo(before: session, after: previous, rules: settings.rules))
     }
     func retime(_ session: Session, _ field: EditableTime, at: Int) -> Bool { write(editTime(session, field, at: at, now: nowMs())) }
     func pay(_ session: Session) { write(togglePaid(session, at: nowMs())) }

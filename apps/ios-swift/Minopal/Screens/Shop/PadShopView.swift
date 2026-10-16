@@ -10,6 +10,7 @@ struct PadShopView: View {
     @State private var page = ShopPage.floor
     @State private var focus: FloorFocus?
     @State private var interaction = FloorInteraction()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var sidebarOpen: Bool { visibility != .detailOnly }
 
@@ -29,6 +30,11 @@ struct PadShopView: View {
                 case .course: ComingLaterView(title: "コース")
                 }
             }
+            // 元に戻す（どの画面でも、サイドバーの店のタイマーを済にしたときなどに出す）
+            .overlay(alignment: .bottom) {
+                UndoBar(board: state.undo) { state.undo.apply(state.services) }
+                    .padding(.bottom, 16)
+            }
         }
         .navigationSplitViewStyle(.balanced)
         .tint(Palette.keyText)
@@ -37,15 +43,33 @@ struct PadShopView: View {
     private var floor: some View {
         GeometryReader { proxy in
             let metrics = FloorMetrics.pad(sidebarOpen: sidebarOpen, available: proxy.size)
-            ScrollView([.horizontal, .vertical]) {
-                FloorView(state: state, interaction: interaction, focus: focus.map(state.summary.seats), metrics: metrics,
-                          promptMaxHeight: proxy.size.height)
-                    .padding(metrics.padding)
-                    .frame(minWidth: proxy.size.width, minHeight: proxy.size.height)
+            ScrollViewReader { scroller in
+                ScrollView([.horizontal, .vertical]) {
+                    FloorView(state: state, interaction: interaction, focus: focus.map(state.summary.seats), metrics: metrics,
+                              promptMaxHeight: proxy.size.height, ringed: state.ringedSeats(limit: 2))
+                        .padding(metrics.padding)
+                        .frame(minWidth: proxy.size.width, minHeight: proxy.size.height)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: [.horizontal, .vertical])
+                // 「卓を見る」・ベル：画面の外の卓なら、その卓まで動かす
+                .onChange(of: state.noticeBoard.flashRun) {
+                    guard let seatId = state.noticeBoard.flashSeat else { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut) { scroller.scrollTo(FloorView.anchor(seatId), anchor: .center) }
+                }
             }
-            .scrollBounceBehavior(.basedOnSize, axes: [.horizontal, .vertical])
         }
         .safeAreaInset(edge: .top, spacing: 0) { pickBar }
+        // 通知のバナー：右上（ヘッダーの下 8pt・右から 24pt）、幅 480pt で 2 枚まで。卓に重なってよい
+        .overlay(alignment: .topTrailing) {
+            if state.noticeBoard.open && interaction.pick == nil {
+                NoticeBanners(state: state, limit: 2, compact: false) { state.noticeBoard.reveal($0) }
+                    .frame(width: 480)
+                    .padding(.top, 8)
+                    .padding(.trailing, 24)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: state.noticeBoard.open)
         .background(Palette.tile)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -61,6 +85,11 @@ struct PadShopView: View {
                 ToolbarItem(placement: .topBarLeading) { brand }
                 if !state.settings.shopTimers.isEmpty {
                     ToolbarItem(placement: .topBarLeading) { timers }
+                }
+            }
+            if !state.notices.isEmpty && !state.noticeBoard.open {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NoticeBell(count: state.notices.count) { state.openNotices() }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) { status }

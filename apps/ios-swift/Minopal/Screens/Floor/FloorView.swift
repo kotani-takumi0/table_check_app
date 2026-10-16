@@ -33,6 +33,7 @@ struct FloorView: View {
     let focus: Set<String>?      // 目立たせる卓（nil はすべてふつう）
     let metrics: FloorMetrics
     var promptMaxHeight: CGFloat = .infinity   // iPad のポップオーバーの高さの上限（配置図の見えている高さ）
+    var ringed: Set<String> = []               // 通知で知らせた卓（赤い 3pt の輪で光らせる。No.159）
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var pressed: String?
 
@@ -59,6 +60,16 @@ struct FloorView: View {
                     .offset(x: x(label.box.col), y: y(label.box.row))
                     .accessibilityHidden(true)
             }
+            // 「卓を見る」でスクロールする先（卓と同じ場所・大きさの見えない枠）
+            ForEach(state.layout.seats, id: \.id) { seat in
+                Color.clear
+                    .frame(width: width(seat.box), height: height(seat.box))
+                    .id(Self.anchor(seat.id))
+                    .padding(.leading, x(seat.box.col))
+                    .padding(.top, y(seat.box.row))
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
             ForEach(state.layout.seats, id: \.id) { seat in
                 seatButton(seat)
                     .frame(width: width(seat.box), height: height(seat.box))
@@ -77,6 +88,8 @@ struct FloorView: View {
             state.services.editing.setEditing(nil)
         }
     }
+
+    static func anchor(_ seatId: String) -> String { "seat-anchor-\(seatId)" }
 
     private var promptLive: Bool { interaction.prompt.map { interaction.isLive($0, state: state) } ?? true }
     private var pickLive: Bool { interaction.pick.map { state.visibleSession($0.sessionId) != nil } ?? true }
@@ -97,8 +110,14 @@ struct FloorView: View {
             .overlay {
                 if opened {
                     RoundedRectangle(cornerRadius: 13).strokeBorder(Palette.keyText, lineWidth: 3).padding(-3).allowsHitTesting(false)
+                } else if ringed.contains(seat.id) {
+                    // 通知で知らせた卓：赤い 3pt の輪と外側のにじみ（Web の seat-flash と同じ色）
+                    RoundedRectangle(cornerRadius: 13).strokeBorder(Palette.now, lineWidth: 3).padding(-3)
+                        .shadow(color: Palette.now.opacity(0.45), radius: 8)
+                        .allowsHitTesting(false)
                 }
             }
+            .animation(.easeOut(duration: 0.2), value: ringed.contains(seat.id))
             .onTapGesture { interaction.tap(seat, session, state: state) }
             .onLongPressGesture(minimumDuration: 0.6) {
                 interaction.longPress(seat, session)
