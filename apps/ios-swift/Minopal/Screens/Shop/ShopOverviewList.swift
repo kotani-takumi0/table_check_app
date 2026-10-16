@@ -45,6 +45,7 @@ struct ShopOverviewList: View {
                 row("席の配置", symbol: "square.grid.3x3", selected: page == .layout, chevron: true) { onPage(.layout) }
                 row("コース", symbol: "list.bullet.clipboard", value: "\(state.settings.courseMenus.count)件", selected: page == .course, chevron: true) { onPage(.course) }
                 if sidebar {
+                    row("お知らせ", symbol: "bell", selected: page == .notices, chevron: true, dot: state.news.roadmapNew) { onPage(.notices) }
                     row("設定", symbol: "gearshape", selected: page == .settings, chevron: true) { onPage(.settings) }
                 }
             }
@@ -63,7 +64,7 @@ struct ShopOverviewList: View {
     }
 
     private func row(_ title: String, symbol: String, value: String? = nil, valueColor: Color = Palette.ink2, valueWeight: Font.Weight = .regular,
-                     selected: Bool, chevron: Bool = false, action: @escaping () -> Void) -> some View {
+                     selected: Bool, chevron: Bool = false, dot: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: symbol)
@@ -73,6 +74,10 @@ struct ShopOverviewList: View {
                 Text(title)
                     .minopalFont(sidebar ? 16 : 17, relativeTo: sidebar ? .callout : .body)
                     .foregroundStyle(selected ? .white : Palette.ink)
+                // 新しい予定があるときの印（Web のメニューの点と同じ）
+                if dot {
+                    Circle().fill(selected ? .white : Palette.keyText).frame(width: 8, height: 8)
+                }
                 Spacer(minLength: 8)
                 if let value {
                     Text(value)
@@ -92,6 +97,7 @@ struct ShopOverviewList: View {
         .listRowInsets(EdgeInsets(top: 0, leading: sidebar ? 20 : 16, bottom: 0, trailing: sidebar ? 20 : 16))
         .listRowBackground(selected ? RoundedRectangle(cornerRadius: 12).fill(Palette.key).padding(.horizontal, sidebar ? 8 : 0) : nil)
         .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityValue(dot ? "新しい予定があります" : "")
     }
 
     // 店のタイマー：印・名前・残り時間・「済」（時間が来たら赤い文字）

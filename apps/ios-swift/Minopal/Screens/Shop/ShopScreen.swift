@@ -10,6 +10,7 @@ struct ShopScreen: View {
     @State private var services: ShopServices
     @State private var noticeBoard = NoticeBoard()
     @State private var undo = UndoBoard()
+    @State private var news = NewsBoard()
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(base: ShopBase, account: String?, demoSeed: Bool = false, onLeave: @escaping () -> Void) {
@@ -21,7 +22,7 @@ struct ShopScreen: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
-            let state = ShopState(services: services, now: nowMs(), account: account, noticeBoard: noticeBoard, undo: undo)
+            let state = ShopState(services: services, now: nowMs(), account: account, noticeBoard: noticeBoard, undo: undo, news: news)
             Group {
                 if sizeClass == .regular {
                     PadShopView(state: state, onLeave: onLeave)
