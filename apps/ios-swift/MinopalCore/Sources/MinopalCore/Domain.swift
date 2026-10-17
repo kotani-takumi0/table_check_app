@@ -253,18 +253,6 @@ public func toggleDish(_ session: Session, index: Int, at: Int, menus: [CourseMe
     slots[index] = slots[index].served ? DishSlot(served: false, at: nil) : DishSlot(served: true, at: at)
     return applyDishSlots(session, slots)
 }
-// まだ出していない最初の料理を付ける・最後に出した料理を外す（チェックを順に押したときと同じ）
-public func serveDish(_ session: Session, at: Int, menus: [CourseMenu] = defaultCourseMenus) -> Session? {
-    guard session.course != nil, let menu = menuOf(session.menu, menus: menus),
-          let index = dishSlots(session, total: menu.dishes.count).firstIndex(where: { !$0.served }) else { return nil }
-    return toggleDish(session, index: index, at: at, menus: menus)
-}
-public func unserveDish(_ session: Session, menus: [CourseMenu] = defaultCourseMenus) -> Session? {
-    guard session.course != nil, let menu = menuOf(session.menu, menus: menus),
-          let index = dishSlots(session, total: menu.dishes.count).lastIndex(where: \.served) else { return nil }
-    return toggleDish(session, index: index, at: 0, menus: menus)
-}
-
 // 上から count 品を出した（時刻が無ければ nil）。それよりうしろは出していない
 private func prefixSlots(_ times: [Int?], count: Int, total: Int) -> [DishSlot] {
     (0..<total).map { i in
