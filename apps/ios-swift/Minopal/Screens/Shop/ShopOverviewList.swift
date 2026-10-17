@@ -102,17 +102,18 @@ struct ShopOverviewList: View {
 
     // 店のタイマー：印・名前・残り時間・「済」（時間が来たら赤い文字）。名前の下に前回済にした時刻（今の iOS 版のタイマーの詳細と同じ）
     private func timerRow(_ timer: ShopTimer) -> some View {
-        let due = state.timerState(timer).due
-        let doneAt = state.services.timers.done[timer.id]
+        let due = state.timerDue(timer)
         return HStack(spacing: 12) {
             ShopTimerMark(left: state.timerLeft(timer), due: due).frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
                 Text(timer.label)
                     .minopalFont(sidebar ? 16 : 17, due ? .bold : .regular, relativeTo: sidebar ? .callout : .body)
                     .foregroundStyle(due ? Palette.nowInk : Palette.ink)
-                Text(doneAt.map { "前回 \(formatClock($0)) に済" } ?? "まだ済にしていません")
-                    .minopalFont(13, relativeTo: .footnote, digits: true)
-                    .foregroundStyle(Palette.ink2)
+                if let note = state.timerNote(timer) {
+                    Text(note)
+                        .minopalFont(13, relativeTo: .footnote, digits: true)
+                        .foregroundStyle(Palette.ink2)
+                }
             }
             .lineLimit(1)
             .padding(.vertical, 6)
@@ -132,6 +133,7 @@ struct ShopOverviewList: View {
             }
             .buttonStyle(.borderless)
             .accessibilityLabel("\(timer.label)を済にする")
+            .disabled(!state.timersLoaded)
         }
         .listRowInsets(EdgeInsets(top: 0, leading: sidebar ? 20 : 16, bottom: 0, trailing: sidebar ? 12 : 8))
         .accessibilityElement(children: .contain)

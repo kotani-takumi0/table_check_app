@@ -189,7 +189,7 @@ struct PhoneShopView: View {
                 ForEach(FloorFocus.allCases, id: \.self) { item in
                     focusChip(item)
                 }
-                let timers = state.settings.shopTimers.sorted { state.timerState($0).due && !state.timerState($1).due }
+                let timers = state.settings.shopTimers.sorted { state.timerDue($0) && !state.timerDue($1) }
                 if !timers.isEmpty {
                     Rectangle().fill(Palette.line).frame(width: 1, height: 28)
                     ForEach(timers, id: \.id) { timer in timerChip(timer) }
@@ -226,7 +226,7 @@ struct PhoneShopView: View {
     }
 
     private func timerChip(_ timer: ShopTimer) -> some View {
-        let due = state.timerState(timer).due
+        let due = state.timerDue(timer)
         return HStack(spacing: 6) {
             ShopTimerMark(left: state.timerLeft(timer), due: due)
             Text(timer.label).minopalFont(13, relativeTo: .caption).foregroundStyle(due ? Palette.nowInk : Palette.ink2)
