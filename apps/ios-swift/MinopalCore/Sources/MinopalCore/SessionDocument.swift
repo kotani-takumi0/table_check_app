@@ -1,7 +1,7 @@
 import Foundation
 
 // Firestore の sessions の文書と Session の変換（packages/core/src/firestoreMapping.ts の Swift 版）。
-// TS と同じ形で書き、同じ形を読む。片方を変えたらもう片方も直す
+// TS と同じ形で書く。料理のチェック（No.167）は、飛ばした品の nil を残して読む（Web は上から dishesServed 品で切る）
 
 // 保存する形。店が足した区分（No.90）は course に 'drinks' を入れ、本当の区分は drinkPlan に入れる。
 // 店が作ったコース（No.89）も同じく、menu は前の版も知っているものだけにし、本当のコースは courseMenu に入れる。
@@ -73,10 +73,15 @@ public func sessionFromDocument(id: String, data: [String: Any]?) -> Session? {
     )
 }
 
-// 料理を出した時刻を読む（No.131）。出した品数より後の時刻（前の版で1品戻した）は落とし、壊れた値は時刻が分からないとして nil にする
+// 料理を出した時刻を読む（No.131・No.167）。壊れた値は時刻が分からないとして nil にする。
+// 時刻の個数が dishesServed より多いときは、前の版が品数だけ戻したので上からその品数だけ残す。
+// 順番を飛ばしたチェックは dishesServed が出した数なので、うしろの時刻は切らない（nil は出していない品）
 public func parseDishTimes(_ value: Any?, served: Int) -> [Int?] {
     guard let times = value as? [Any] else { return [] }
-    return times.prefix(max(served, 0)).map { timestampValue($0) }
+    let parsed = times.prefix(CourseLimits.dishes).map { timestampValue($0) }
+    let known = parsed.filter { $0 != nil }.count
+    if known > max(served, 0) { return Array(parsed.prefix(max(served, 0))) }
+    return Array(parsed)
 }
 
 // 卓の動きを読む。壊れた項目は落とす（記録の読み違いで、卓の画面を止めない）

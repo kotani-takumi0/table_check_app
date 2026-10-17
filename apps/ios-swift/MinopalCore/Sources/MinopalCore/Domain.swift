@@ -1,6 +1,7 @@
 import Foundation
 
-// 卓の状態の進み方・タイマー・警告・卓の移動（packages/core/src/domain.ts の Swift 版）。TS と同じ中身にする
+// 卓の状態の進み方・タイマー・警告・卓の移動（packages/core/src/domain.ts の Swift 版）。
+// 料理のチェック（No.167）だけは Swift 版だけの進め方で、Web は今までどおり上から N 品として読む
 
 // コースは通常の「ご案内済み」「お通し提供済み」の位置に「開始待ち」「ファーストドリンク提供済み」が入る。
 // 状態の値は同じものを使い、表示（名前・色）だけ変える。L.O.確認済み以降は通常と同じ
@@ -160,24 +161,32 @@ public func setCourse(_ session: Session, _ course: String?) -> Session? {
     return result
 }
 
-// どのコースかを選び直す。選び間違いを直すときのために、出した品数はそのまま（新しいメニューの品数までに収める）
+// どのコースかを選び直す。選び間違いを直すときのために、付けてあるチェックは品の位置のまま残し、新しいメニューの品数までに収める
 public func setMenu(_ session: Session, _ menu: String?, menus: [CourseMenu] = defaultCourseMenus) -> Session? {
-    var result = session
     guard let menu else {
-        result.menu = nil
-        result.dishesServed = 0
-        result.dishServedAt = []
-        return result
+        var cleared = session
+        cleared.menu = nil
+        cleared.dishesServed = 0
+        cleared.dishServedAt = []
+        return cleared
     }
     guard session.course != nil, let chosen = menuOf(menu, menus: menus) else { return nil }
-    let dishesServed = min(session.dishesServed, chosen.dishes.count)
+    var result = session
     result.menu = menu
-    result.dishesServed = dishesServed
-    result.dishServedAt = servedTimes(session, dishesServed)
-    return result
+    return applyDishSlots(result, dishSlots(session, total: chosen.dishes.count))
 }
 
-// コースの料理の進み。served 品目まで出していて、next が次に出す料理（全部出したら nil）
+// 1品のチェック。served が出したか、at はその時刻（時刻を残す前の版で出した品は nil）
+public struct DishSlot: Equatable, Sendable {
+    public var served: Bool
+    public var at: Int?
+    public init(served: Bool, at: Int?) {
+        self.served = served
+        self.at = at
+    }
+}
+
+// コースの料理の進み。served は出した数（順番は問わない）。next はまだ出していない最初の料理（全部出したら nil）
 public struct DishProgress: Equatable, Sendable {
     public var served: Int
     public var total: Int
@@ -186,26 +195,101 @@ public struct DishProgress: Equatable, Sendable {
 // menus：店が作ったコース（No.89）。設定で消したコースを選んでいる卓は nil（料理の進みを出さない）
 public func dishProgress(_ session: Session, menus: [CourseMenu] = defaultCourseMenus) -> DishProgress? {
     guard session.course != nil, let menu = menuOf(session.menu, menus: menus) else { return nil }
-    let served = min(session.dishesServed, menu.dishes.count)
-    return DishProgress(served: served, total: menu.dishes.count, next: served < menu.dishes.count ? menu.dishes[served] : nil)
+    let slots = dishSlots(session, total: menu.dishes.count)
+    let served = slots.filter(\.served).count
+    return DishProgress(served: served, total: menu.dishes.count, next: slots.firstIndex { !$0.served }.map { menu.dishes[$0] })
 }
-// 1品目から served 品目までの出した時刻。時刻が無い品（前の版で出した）は nil で埋め、それより後の時刻は落とす
-public func servedTimes(_ session: Session, _ served: Int) -> [Int?] {
-    (0..<max(served, 0)).map { $0 < session.dishServedAt.count ? session.dishServedAt[$0] : nil }
+
+// 品ごとのチェック（No.167）。i 番目が i+1 品目。
+// 今の版は、時刻がある品だけを出したことにする（飛ばした品は nil、dishesServed はその数）。
+// 時刻を残す前の版は dishesServed が「上から N 品」で、時刻の無い品も出した扱いにする。
+// 前の版が品数だけ戻して時刻が品数より多いときは、上から dishesServed 品だけ残す
+public func dishSlots(_ session: Session, total: Int) -> [DishSlot] {
+    let total = min(max(total, 0), CourseLimits.dishes)
+    let times = Array(session.dishServedAt.prefix(CourseLimits.dishes))
+    let known = times.filter { $0 != nil }.count
+    let servedCount = min(max(session.dishesServed, 0), CourseLimits.dishes)
+    if known > servedCount || known == 0 { return prefixSlots(times, count: servedCount, total: total) }
+    if servedCount == known {
+        return (0..<total).map { i in
+            let at = i < times.count ? times[i] : nil
+            return DishSlot(served: at != nil, at: at)
+        }
+    }
+    // 時刻の無い品（前の版）と、飛ばして付けた品が混ざる。時刻がある品は出した。
+    // 足りない数は、最後に出した品より前の nil を前から「時刻なし」にし、それでも足りなければそのうしろも上から埋める
+    let last = times.lastIndex { $0 != nil } ?? -1
+    var nilsLeft = servedCount - known
+    var slots = Array(repeating: DishSlot(served: false, at: nil), count: total)
+    if last >= 0 {
+        for i in 0...min(last, total - 1) {
+            if i < times.count, let at = times[i] {
+                slots[i] = DishSlot(served: true, at: at)
+            } else if nilsLeft > 0 {
+                slots[i] = DishSlot(served: true, at: nil)
+                nilsLeft -= 1
+            }
+        }
+    }
+    var i = last + 1
+    while nilsLeft > 0, i < total {
+        slots[i] = DishSlot(served: true, at: i < times.count ? times[i] : nil)
+        nilsLeft -= 1
+        i += 1
+    }
+    return slots
 }
-// 料理はメニューの順に1品ずつ進める・戻す。進めたときは押した時刻を残し（No.131）、戻したときはその品の時刻を外す
+
+// 振り返りに出す、出した料理（index は 0 始まり）。出していない料理は入れない。時刻の無い品は at が nil
+func recordedDishTimes(_ session: Session) -> [(index: Int, at: Int?)] {
+    let total = min(CourseLimits.dishes, max(session.dishServedAt.count, session.dishesServed))
+    return dishSlots(session, total: total).enumerated().compactMap { i, slot in slot.served ? (i, slot.at) : nil }
+}
+
+// 料理ごとにチェックを付け外しする（No.167）。どの順番でも付けられる。付けたときは押した時刻を残し、外したときはその品だけ nil に戻す
+public func toggleDish(_ session: Session, index: Int, at: Int, menus: [CourseMenu] = defaultCourseMenus) -> Session? {
+    guard session.course != nil, let menu = menuOf(session.menu, menus: menus), menu.dishes.indices.contains(index) else { return nil }
+    var slots = dishSlots(session, total: menu.dishes.count)
+    slots[index] = slots[index].served ? DishSlot(served: false, at: nil) : DishSlot(served: true, at: at)
+    return applyDishSlots(session, slots)
+}
+// まだ出していない最初の料理を付ける・最後に出した料理を外す（チェックを順に押したときと同じ）
 public func serveDish(_ session: Session, at: Int, menus: [CourseMenu] = defaultCourseMenus) -> Session? {
-    guard let progress = dishProgress(session, menus: menus), progress.next != nil else { return nil }
-    var result = session
-    result.dishesServed = progress.served + 1
-    result.dishServedAt = servedTimes(session, progress.served) + [at]
-    return result
+    guard session.course != nil, let menu = menuOf(session.menu, menus: menus),
+          let index = dishSlots(session, total: menu.dishes.count).firstIndex(where: { !$0.served }) else { return nil }
+    return toggleDish(session, index: index, at: at, menus: menus)
 }
 public func unserveDish(_ session: Session, menus: [CourseMenu] = defaultCourseMenus) -> Session? {
-    guard let progress = dishProgress(session, menus: menus), progress.served > 0 else { return nil }
+    guard session.course != nil, let menu = menuOf(session.menu, menus: menus),
+          let index = dishSlots(session, total: menu.dishes.count).lastIndex(where: \.served) else { return nil }
+    return toggleDish(session, index: index, at: 0, menus: menus)
+}
+
+// 上から count 品を出した（時刻が無ければ nil）。それよりうしろは出していない
+private func prefixSlots(_ times: [Int?], count: Int, total: Int) -> [DishSlot] {
+    (0..<total).map { i in
+        i < count ? DishSlot(served: true, at: i < times.count ? times[i] : nil) : DishSlot(served: false, at: nil)
+    }
+}
+
+// チェックを保存する形に戻す。上から続けて出しているときは、前の版と同じくその品数までの配列にする（時刻なしを残すため）。
+// 順番を飛ばしたときは、最後に出した品までを書き、出していない品は nil、dishesServed は出した数
+private func applyDishSlots(_ session: Session, _ slots: [DishSlot]) -> Session {
     var result = session
-    result.dishesServed = progress.served - 1
-    result.dishServedAt = servedTimes(session, progress.served - 1)
+    let servedCount = slots.filter(\.served).count
+    let isPrefix = slots.enumerated().allSatisfy { i, slot in slot.served == (i < servedCount) }
+    if isPrefix {
+        result.dishesServed = servedCount
+        result.dishServedAt = slots.prefix(servedCount).map(\.at)
+        return result
+    }
+    guard let last = slots.lastIndex(where: \.served) else {
+        result.dishesServed = 0
+        result.dishServedAt = []
+        return result
+    }
+    result.dishesServed = servedCount
+    result.dishServedAt = (0...last).map { slots[$0].served ? slots[$0].at : nil }
     return result
 }
 
