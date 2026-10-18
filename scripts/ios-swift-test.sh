@@ -3,7 +3,9 @@
 #   全部（PR を出す前に1回）：        npm run ios-swift:test
 #   直した画面のテストだけ（ふだん）： npm run ios-swift:test -- FloorUITests SettingsUITests
 # 名前は MinopalUITests・MinopalTests のファイル名（＝クラス名）、「クラス/テスト」、ターゲット名、または「ターゲット/クラス/テスト」。
-# 環境変数：MINOPAL_TEST_DEVICES=pad|phone で片方の端末だけ、MINOPAL_TEST_PARALLEL=0 で並べずに流す
+# 環境変数：MINOPAL_TEST_DEVICES=pad|phone で片方の端末だけ、MINOPAL_TEST_PARALLEL=0 で並べずに流す、
+#   MINOPAL_TEST_PAD・MINOPAL_TEST_PHONE でシミュレータの名前を変える（別の Mac や Xcode の版で名前が違うとき）
+# 結果（xcresult）とログは一時フォルダに残す（落ちたテストをあとで見るため。macOS が古いものを消す）
 #
 # 長く止まらないよう、流す前と流し方で次のことをする：
 # - エミュレータ（npm run ios-swift:emulators）が動いていなければ流さない
@@ -60,12 +62,14 @@ for name in "$@"; do
   fi
 done
 
+PAD="${MINOPAL_TEST_PAD:-iPad Pro 11-inch (M5)}"
+PHONE="${MINOPAL_TEST_PHONE:-iPhone 18 Pro}"
 destinations=()
 case "${MINOPAL_TEST_DEVICES:-both}" in
-  pad) destinations+=(-destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5),OS=latest') ;;
-  phone) destinations+=(-destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=latest') ;;
-  *) destinations+=(-destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5),OS=latest'
-                    -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=latest') ;;
+  pad) destinations+=(-destination "platform=iOS Simulator,name=$PAD,OS=latest") ;;
+  phone) destinations+=(-destination "platform=iOS Simulator,name=$PHONE,OS=latest") ;;
+  *) destinations+=(-destination "platform=iOS Simulator,name=$PAD,OS=latest"
+                    -destination "platform=iOS Simulator,name=$PHONE,OS=latest") ;;
 esac
 
 parallel=(-parallel-testing-enabled YES -parallel-testing-worker-count 2)
