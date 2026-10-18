@@ -7,6 +7,7 @@ import SwiftUI
 struct PadShopView: View {
     let state: ShopState
     let onLeave: () -> Void
+    let onDeleted: () -> Void
     @State private var visibility = NavigationSplitViewVisibility.detailOnly
     @State private var page = ShopPage.floor
     // 設定から奥へ進んだ、直す画面（席の配置・コース）
@@ -35,7 +36,7 @@ struct PadShopView: View {
                     switch page {
                     case .floor: floor
                     case .settings:
-                        PadSettingsView(state: state, onOpen: { routes.append($0) }, onLeave: onLeave)
+                        PadSettingsView(state: state, onOpen: { routes.append($0) }, onLeave: onLeave, onDeleted: onDeleted)
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar { pageToolbar("設定") }
                     // サイドバーの「席の配置」：保存したら配置図に戻る

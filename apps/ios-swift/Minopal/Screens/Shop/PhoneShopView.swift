@@ -6,6 +6,7 @@ import SwiftUI
 struct PhoneShopView: View {
     let state: ShopState
     let onLeave: () -> Void
+    let onDeleted: () -> Void
     @State private var tab = Tab.floor
     @State private var focus: FloorFocus?
     @State private var shopPath = NavigationPath()
@@ -69,7 +70,7 @@ struct PhoneShopView: View {
             .badge(state.news.roadmapNew ? Text("新") : nil)
             .tag(Tab.notices)
             NavigationStack(path: $settingsPath) {
-                PhoneSettingsView(state: state, onOpen: { settingsPath.append($0) }, onLeave: onLeave)
+                PhoneSettingsView(state: state, onOpen: { settingsPath.append($0) }, onLeave: onLeave, onDeleted: onDeleted)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar { trailingItems }
                     .navigationDestination(for: EditorRoute.self) { route in

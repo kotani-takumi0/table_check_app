@@ -35,6 +35,8 @@ targets:
         product: FirebaseAuth
       - package: Firebase
         product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app

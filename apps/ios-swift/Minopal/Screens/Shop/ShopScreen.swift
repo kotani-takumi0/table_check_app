@@ -7,6 +7,7 @@ struct ShopScreen: View {
     let account: String?
     let demoSeed: Bool
     let onLeave: () -> Void
+    let onDeleted: () -> Void
     @State private var services: ShopServices
     @State private var noticeBoard = NoticeBoard()
     @State private var undo = UndoBoard()
@@ -19,10 +20,11 @@ struct ShopScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var sizeClass
 
-    init(base: ShopBase, account: String?, demoSeed: Bool = false, onLeave: @escaping () -> Void) {
+    init(base: ShopBase, account: String?, demoSeed: Bool = false, onLeave: @escaping () -> Void, onDeleted: @escaping () -> Void) {
         self.account = account
         self.demoSeed = demoSeed
         self.onLeave = onLeave
+        self.onDeleted = onDeleted
         _services = State(initialValue: ShopServices(base: base))
     }
 
@@ -31,9 +33,9 @@ struct ShopScreen: View {
             let state = ShopState(services: services, now: nowMs(), account: account, noticeBoard: noticeBoard, undo: undo, news: news)
             Group {
                 if sizeClass == .regular {
-                    PadShopView(state: state, onLeave: onLeave)
+                    PadShopView(state: state, onLeave: onLeave, onDeleted: onDeleted)
                 } else {
-                    PhoneShopView(state: state, onLeave: onLeave)
+                    PhoneShopView(state: state, onLeave: onLeave, onDeleted: onDeleted)
                 }
             }
             // 新しい通知が来たらバナーを開く（No.159）

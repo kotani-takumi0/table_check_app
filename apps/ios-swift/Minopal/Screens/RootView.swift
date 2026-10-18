@@ -44,7 +44,7 @@ struct RootView: View {
                 } else if base != .guest && needsFirstPage {
                     FirstPageView(base: base, account: auth.user?.email, onStarted: { needsFirstPage = false }, onLeave: leave)
                 } else {
-                    ShopScreen(base: base, account: auth.user?.email, demoSeed: demoSeedRequested, onLeave: leave)
+                    ShopScreen(base: base, account: auth.user?.email, demoSeed: demoSeedRequested, onLeave: leave, onDeleted: { storedMode = nil })
                 }
             } else {
                 NavigationStack {
