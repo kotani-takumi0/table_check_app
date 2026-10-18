@@ -69,7 +69,7 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 1. Xcode を入れる（App Store から）。初回の起動で iOS のシミュレータも入れる
 2. XcodeGen と Java を入れる：`brew install xcodegen openjdk@21`
    （Java は Firebase エミュレータに要る。`java -version` で出なければ `export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"`）
-3. Firebase エミュレータを起動したままにする：`npm run ios-swift:emulators`
+3. Firebase エミュレータを起動したままにする：`npm run ios-swift:emulators`（Auth・Firestore・アカウント削除の Functions）
 4. 別のターミナルで `npm run ios-swift:open`（Xcode プロジェクトを作って Xcode で開く）
 5. Xcode の上で iPad か iPhone のシミュレータを選び、▶ で動かす
 
@@ -136,6 +136,14 @@ L.O.・店のタイマーの時間は前もって分かるので、端末の中�
 - 初めて店の画面を開いたときに一度だけ説明を出してから iOS の許可を求める。断っても使える。設定の「この端末」で切れる
 - UI テストでは、通知のテスト（`NotificationUITests`）のほかは説明を出さない（`minopalApp()` が起動の引数で「もう聞いた」にする）。
   通知のテストは開発中のビルドの起動の引数 `-MinopalNotifyWithin <秒>` で、予約した通知を数秒のうちに出して確かめる
+
+## アカウントの削除（App Store 審査 5.1.1(v)）
+
+場所は **設定 → アカウントを削除**。
+
+メールでログインしている店は、パスワードを入れ直してから、「この店のデータ（席・履歴・設定）がすべて消えます。元に戻せません」を確認して消す。パスワードが違うときは「パスワードが違います」と出て、先へ進まない。ログインせずに使うときは、パスワードの画面は出さず確認だけ。消えるとログインの画面に戻る。失敗したときは理由を出して、もう一度押せる。
+
+消えるもの：そのアカウントの `shops/{uid}` 以下（席・履歴・設定・配置の移り変わり）と、その店が送ったご意見（`feedback` のうちその店の文書と `feedbackPace/{uid}`）、Firebase Authentication のユーザー。Firestore のルールは変えていない。削除は Cloud Functions の `deleteAccount`（リージョン `asia-northeast1`）が行う。アプリを出す前に、この関数をデプロイする。
 
 ## 入れないもの（ver.3.0.0）
 
