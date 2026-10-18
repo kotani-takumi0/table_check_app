@@ -84,6 +84,8 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 
 `GoogleService-Info.plist` はリポジトリに入れない（`.gitignore` 済み）。
 
+App Check（App Attest）は申請版に入っている。リリースは端末の App Attest で、App Attest を使えない端末だけ DeviceCheck に戻す。開発中のビルド（`#if DEBUG`）だけデバッグプロバイダで、シミュレータと手元のエミュレータ向け。トークンが無くても、Firebase コンソールで強制をオフにしているあいだは読み書きを断らない。強制は、Web 版も含めて全部のアプリが対応してからにする。デバッグトークンはリポジトリに書かない。資格（`com.apple.developer.devicecheck.appattest-environment`）は production（TestFlight と App Store 用）。
+
 ## テスト
 
 - 卓のルール：`cd apps/ios-swift/MinopalCore && swift test`（数秒）

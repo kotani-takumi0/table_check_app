@@ -35,6 +35,12 @@ targets:
         product: FirebaseAuth
       - package: Firebase
         product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseAppCheck
+    # App Attest。値は production（TestFlight と App Store の配布用）。
+    # 開発ビルドは App Check のデバッグプロバイダなので、この資格で証明しない
+    entitlements:
+      path: Minopal/Minopal.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app
