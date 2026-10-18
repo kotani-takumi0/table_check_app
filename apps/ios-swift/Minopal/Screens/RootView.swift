@@ -15,10 +15,18 @@ struct RootView: View {
     @State private var leaveError: String?
     // 送信待ちを待っている間（最大3秒）に続けて押されても、2回は動かさない
     @State private var leaving = false
+    // UI テストで、画面を通さずにログインし終えるまで（TestLogin）。前のテストの店が一瞬出ないよう、起動したときから待つ
+    @State private var testLoginPending: Bool = {
+        #if DEBUG
+        TestLogin.email != nil
+        #else
+        false
+        #endif
+    }()
 
     var body: some View {
         Group {
-            if !auth.ready {
+            if !auth.ready || testLoginPending {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Palette.tile)
@@ -51,6 +59,7 @@ struct RootView: View {
         } message: {
             Text(leaveError ?? "")
         }
+        .task { await logInForTest() }
         // 設定の「この端末」で選んだ外観（端末に合わせる・ライト・ダーク）
         .preferredColorScheme(appearance.colorScheme)
         // ログインしている間は、サーバーとの時差を測る（利用者が変わったら測り直す）
@@ -73,6 +82,18 @@ struct RootView: View {
             try? auth.signOut()
             storedMode = nil
         }
+    }
+
+    // UI テスト用（TestLogin）：前のテストのログインを外し、引数のアカウントでログインして、その店を開く
+    private func logInForTest() async {
+        #if DEBUG
+        guard let email = TestLogin.email else { return }
+        guard connection.isEmulator else { testLoginPending = false; return }
+        try? auth.signOut()
+        try? await auth.signIn(email: email, password: TestLogin.password)
+        storedMode = LoginMode.account.rawValue
+        testLoginPending = false
+        #endif
     }
 
     private var demoSeedRequested: Bool {

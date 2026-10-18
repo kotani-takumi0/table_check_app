@@ -46,21 +46,15 @@ extension XCTestCase {
         confirm?.tap()
     }
 
-    // 最初の画面でログインする。作ったばかりのアカウントは最初のページ（No.087）が出るので、テンプレート（居酒屋・21卓）で始める
-    func logIn(_ app: XCUIApplication, email: String, password: String = "password123", startWithTemplate: Bool = true) {
-        // 欄は押さずにキーボードの「次へ」「実行」で進める。メールアドレスを打ったあとにパスワードの欄を押すと、キーボード（日本語かな）で
-        // 画面がずれて「アカウントを作る」の切り替えに当たり、パスワードの欄が無くなることがある
-        enter(app.textFields["メールアドレス"], email + "\n")
-        let passwordField = app.secureTextFields["パスワード"]
-        XCTAssertTrue(passwordField.waitForExistence(timeout: 5), "パスワードの欄が無い")
-        for ch in password {
-            passwordField.typeText(String(ch))
-        }
-        passwordField.typeText("\n")
+    // ログインした店でアプリを起動する。画面ではログインせず、起動の引数でアプリにログインさせる（Minopal/Data/TestLogin.swift）。
+    // 画面でログインすると iOS の「パスワードを保存しますか？」が出て、閉じるのに数秒〜2分かかるため。
+    // 作ったばかりのアカウントは最初のページ（No.087）が出るので、テンプレート（居酒屋・21卓）で始める
+    func launchLoggedIn(_ app: XCUIApplication, email: String, startWithTemplate: Bool = true) {
+        app.launchArguments += ["-MinopalTestLogin", email]
+        app.launch()
         guard startWithTemplate else { return }
         let template = app.buttons["first-template-izakaya_21"]
         if firstToAppear(template, app.buttons["table-1"]) == template {
-            dismissSavePassword(app)
             template.tap()
         }
     }
@@ -86,19 +80,6 @@ extension XCTestCase {
             RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         } while Date() < deadline
         return false
-    }
-
-    // ログインのあとに iOS が出す「パスワードを保存しますか？」を閉じる（出ると画面を覆い、最初のタップはこれを閉じるだけになる）。
-    // 出なければ何もしない
-    func dismissSavePassword(_ app: XCUIApplication) {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        guard let notNow = firstToAppear(app.buttons["今はしない"], springboard.buttons["今はしない"], timeout: 5) else { return }
-        // 出てくる途中に押すと届かないので、消えるまで押し直す。消えきるまでは、下の画面を押せない
-        for _ in 0..<3 where notNow.exists {
-            notNow.tap()
-            _ = XCTWaiter().wait(for: [expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: notNow)], timeout: 2)
-        }
-        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
     }
 
     // パスワードの欄にまとめて打つと、1文字しか入らないことがある（シミュレータのテストだけで起き、人が打つときは起きない）ので1文字ずつ打つ

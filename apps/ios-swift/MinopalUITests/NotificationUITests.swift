@@ -19,13 +19,10 @@ final class NotificationUITests: XCTestCase {
         // 許可の説明を出す（-minopal.notifications.asked を付けない）
         let app = XCUIApplication()
         app.launchArguments = ["-MinopalNotifyWithin", "5"]
-        app.launch()
 
-        openLoginScreen(app)
-        logIn(app, email: email)
+        launchLoggedIn(app, email: email)
         XCTAssertTrue(app.buttons["table-1"].waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
-        dismissSavePassword(app)
         // まだ iOS に聞いていない端末では、初めて店の画面を開くと説明が出る
         let ask = app.alerts["通知を出してもよいですか？"]
         if ask.waitForExistence(timeout: 3) {

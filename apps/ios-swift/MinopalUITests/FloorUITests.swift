@@ -56,22 +56,18 @@ final class FloorUITests: XCTestCase {
         XCTAssertTrue(waitForValue(other, "空席"), "2卓が空かない")
     }
 
-    // ログインした店（shops/{uid}/）でも、同じように案内して取り消せる。アカウントはエミュレータに直接作ってから、画面でログインする
+    // ログインした店（shops/{uid}/）でも、同じように案内して取り消せる。アカウントはエミュレータに直接作ってから、起動の引数でログインする
     @MainActor
     func testAccountSeatsAndClearsTable() throws {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
         let app = minopalApp()
-        app.launch()
 
-        // 前に流したときのログインが残っていれば、ログアウトして最初の画面に戻る
         let table = app.buttons["table-1"]
-        openLoginScreen(app)
-        logIn(app, email: email)
+        launchLoggedIn(app, email: email)
 
         XCTAssertTrue(table.waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
-        dismissSavePassword(app)
         // 作ったばかりの店なので、1卓は空いている
         XCTAssertEqual(table.value as? String, "空席")
         table.tap()

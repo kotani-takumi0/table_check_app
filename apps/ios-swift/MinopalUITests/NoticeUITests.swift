@@ -14,14 +14,11 @@ final class NoticeUITests: XCTestCase {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
         let app = minopalApp()
-        app.launch()
 
         let table = app.buttons["table-1"]
-        openLoginScreen(app)
-        logIn(app, email: email)
+        launchLoggedIn(app, email: email)
         XCTAssertTrue(table.waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
-        dismissSavePassword(app)
 
         // 閉じるとベルにしまう（10 秒たって自分でしまっていても同じ）。ベルを押すと開き直す
         let bell = app.buttons["notice-bell"]

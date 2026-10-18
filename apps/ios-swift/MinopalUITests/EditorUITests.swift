@@ -13,14 +13,11 @@ final class EditorUITests: XCTestCase {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
         let app = minopalApp()
-        app.launch()
         let pad = UIDevice.current.userInterfaceIdiom == .pad
 
-        openLoginScreen(app)
-        logIn(app, email: email, startWithTemplate: false)
+        launchLoggedIn(app, email: email, startWithTemplate: false)
         let blank = app.buttons["first-blank"]
         XCTAssertTrue(blank.waitForExistence(timeout: 15), "最初のページが出ない")
-        dismissSavePassword(app)
         XCTAssertTrue(app.buttons["first-template-izakaya_21"].exists, "テンプレートが無い")
         blank.tap()
 
@@ -60,13 +57,10 @@ final class EditorUITests: XCTestCase {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
         let app = minopalApp()
-        app.launch()
         let pad = UIDevice.current.userInterfaceIdiom == .pad
 
-        openLoginScreen(app)
-        logIn(app, email: email)
+        launchLoggedIn(app, email: email)
         XCTAssertTrue(app.buttons["table-1"].waitForExistence(timeout: 15), "ログインした店の卓が出ない")
-        dismissSavePassword(app)
         tuckNotices(app)
 
         // コースを足す：名前・ボタンの名前・値段・料理を入れるまで保存できない

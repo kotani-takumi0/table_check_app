@@ -12,15 +12,12 @@ final class SettingsUITests: XCTestCase {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
         let app = minopalApp()
-        app.launch()
         let pad = UIDevice.current.userInterfaceIdiom == .pad
 
         let table = app.buttons["table-1"]
-        openLoginScreen(app)
-        logIn(app, email: email)
+        launchLoggedIn(app, email: email)
         XCTAssertTrue(table.waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
-        dismissSavePassword(app)
         tuckNotices(app)
 
         // 1卓に案内してから設定へ

@@ -107,6 +107,9 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
   - スクリプト（`scripts/ios-swift-test.sh`）は、`GoogleService-Info.plist` を流す間だけどける・毎回 `xcodegen generate` する・
     テストごとに時間の上限（3分）を置く・落ちても診断を集めない・1件も流れなければ失敗にする。手で `xcodebuild test` を打つときも、
     plist をどけて `-collect-test-diagnostics never` を付ける（付けないと、落ちたテストがあるたびに10分ほど待たされる）
+  - ログインした店で始める UI テストは、画面ではログインせず、起動の引数 `-MinopalTestLogin <メール>` でアプリにログインさせる
+    （`Minopal/Data/TestLogin.swift`。開発中のビルドでエミュレータのときだけ）。画面でログインすると iOS の「パスワードを保存しますか？」が出て、
+    閉じるのに数秒〜2分かかるため。ログインの画面そのものは `LoginScreenUITests` で確かめる
 - PR を出すと、GitHub Actions で卓のルールのテストとシミュレータ向けのビルドが回る（`.github/workflows/ios-swift.yml`）。CI ではアプリを起動しての確かめ（UI テスト）はしない
 - PR に添えるスクショ：テストデータ（いろいろな状態の卓）を入れた「ログインせずに使う」の店で撮る。ふだんのテストでは飛ばす
   ```sh
