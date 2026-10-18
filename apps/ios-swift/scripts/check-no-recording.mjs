@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -87,7 +87,7 @@ function problemsInPlistObject(data, label) {
   return problems;
 }
 
-function parsePlistXml(xml) {
+export function parsePlistXml(xml) {
   const noComments = xml.replace(/<!--[\s\S]*?-->/g, '');
   const matched = noComments.match(/<plist\b[^>]*>([\s\S]*)<\/plist>/);
   if (!matched) throw new Error('plist の中身が読めない');
@@ -166,7 +166,7 @@ function parsePlistXml(xml) {
   return parse();
 }
 
-function readPlist(file) {
+export function readPlist(file) {
   const bytes = readFileSync(file);
   const header = bytes.subarray(0, 6).toString('ascii');
   const xml = header === 'bplist'
@@ -343,4 +343,5 @@ function main() {
   console.log('録音関連は入っていません（マイク許可・UIBackgroundModes の audio・録音 API）');
 }
 
-main();
+const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) main();

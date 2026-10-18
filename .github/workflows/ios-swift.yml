@@ -41,6 +41,9 @@ jobs:
       - name: 録音関連がソースに無いことを確かめる
         run: node apps/ios-swift/scripts/check-no-recording.mjs --self-test
 
+      - name: 資格の書き方を確かめる
+        run: node apps/ios-swift/scripts/check-release-bundle.mjs --self-test
+
       - name: Xcode を選ぶ
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
@@ -69,7 +72,7 @@ jobs:
             -skipPackagePluginValidation -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: 申請用の Release をビルドし、録音関連が無いことを確かめる
+      - name: 申請用の Release をビルドし、録音・資格・プライバシーマニフェストを確かめる
         working-directory: apps/ios-swift
         run: |
           xcodebuild build \
@@ -82,3 +85,4 @@ jobs:
           app="$(find "$RUNNER_TEMP/minopal-derived/Build/Products" -type d -name 'Minopal.app' -path '*Release-iphonesimulator*' -print -quit)"
           test -n "$app"
           node scripts/check-no-recording.mjs --app "$app"
+          node scripts/check-release-bundle.mjs --app "$app" --derived "$RUNNER_TEMP/minopal-derived"
