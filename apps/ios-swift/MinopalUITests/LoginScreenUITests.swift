@@ -52,7 +52,10 @@ final class LoginScreenUITests: XCTestCase {
         XCTAssertTrue(shown.waitForExistence(timeout: 3), "パスワードを見せられない")
         enter(shown, "abc123")
         XCTAssertEqual(shown.value as? String, "abc123")
-        app.buttons["パスワードを隠す"].tap()
+        // キーボードが出た直後は画面が動いていて、押しても当たらないことがある（iPhone）。隠れていなければもう一度押す
+        let hide = app.buttons["パスワードを隠す"]
+        hide.tap()
+        if !app.secureTextFields["パスワード"].waitForExistence(timeout: 2), hide.exists { hide.tap() }
         XCTAssertTrue(app.secureTextFields["パスワード"].waitForExistence(timeout: 3), "パスワードを隠せない")
     }
 }
