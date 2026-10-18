@@ -12,7 +12,6 @@ struct SeatDetailView: View {
     let interaction: FloorInteraction
     let onClose: () -> Void
     @State private var changing = false
-    @State private var showDishes = false
     // 次の状態へのボタンは、押した直後の 0.5秒はもう一度押しても進めない（No.122）
     @State private var lastNextAt: Int?
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -194,10 +193,11 @@ struct SeatDetailView: View {
         }
     }
 
-    // 料理（コースの卓だけ）：進みの帯と次に出す料理、「1品戻す」「N品目を出した」。どのコースかが未定なら、ここで選ぶ
+    // 料理（コースの卓だけ）：品ごとのチェック。出す順が前後しても、どの料理からでも付け外しできる（No.167）。どのコースかが未定なら、ここで選ぶ
     private var dishes: some View {
         let progress = dishProgress(session, menus: state.settings.courseMenus)
         let list = menuOf(session.menu, menus: state.settings.courseMenus)?.dishes ?? []
+        let slots = progress.map { dishSlots(session, total: $0.total) } ?? []
         return section {
             HStack(alignment: .firstTextBaseline) {
                 Text("料理").minopalFont(15, .bold, relativeTo: .subheadline).accessibilityAddTraits(.isHeader)
@@ -218,41 +218,18 @@ struct SeatDetailView: View {
                 .accessibilityElement()
                 .accessibilityLabel("料理の進み")
                 .accessibilityValue("\(progress.total)品中\(progress.served)品提供済み")
-                Group {
-                    if let next = progress.next {
-                        Text("次：") + Text(next).bold()
-                    } else {
-                        Text("全部出しました")
+                if progress.served == progress.total {
+                    Text("全部出しました")
+                        .minopalFont(15, relativeTo: .subheadline)
+                        .foregroundStyle(Palette.ink)
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(list.enumerated()), id: \.offset) { index, dish in
+                        dishCheck(index, dish, slot: index < slots.count ? slots[index] : DishSlot(served: false, at: nil))
                     }
                 }
-                .minopalFont(16, relativeTo: .callout)
-                .foregroundStyle(Palette.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 12) {
-                    Button("1品戻す") {
-                        Haptics.light()
-                        state.unserve(session)
-                    }
-                    .buttonStyle(DetailButtonStyle(kind: .secondary, height: Metrics.field, radius: 16))
-                    .disabled(progress.served == 0)
-                    Button(progress.next == nil ? "全部出しました" : "\(progress.served + 1)品目を出した") {
-                        Haptics.success()
-                        state.serve(session)
-                    }
-                    .buttonStyle(DetailButtonStyle(kind: .primary, height: Metrics.field, radius: 16))
-                    .disabled(progress.next == nil)
-                    .accessibilityIdentifier("detail-serve")
-                }
-                UnderlineButton(title: showDishes ? "料理の一覧を閉じる" : "料理の一覧を見る") { showDishes.toggle() }
-                if showDishes {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(list.enumerated()), id: \.offset) { index, dish in
-                            dishRow(index, dish, served: index < progress.served, next: index == progress.served)
-                        }
-                    }
-                    .accessibilityElement(children: .contain)
-                    .accessibilityLabel("料理 \(progress.total)品中\(progress.served)品提供済み")
-                }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("料理 \(progress.total)品中\(progress.served)品提供済み")
             } else {
                 pickerRow("料理", selection: session.menu, options: menuOptions(state.settings.courseMenus, current: session.menu)) {
                     state.changeMenu(session, $0)
@@ -261,24 +238,37 @@ struct SeatDetailView: View {
         }
     }
 
-    private func dishRow(_ index: Int, _ dish: String, served: Bool, next: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Group {
-                if served { Image(systemName: "checkmark") } else { Text("\(index + 1)") }
+    // 出した料理にチェック。もう一度押すと外す。時刻が残っている品は右にその時刻を出す
+    private func dishCheck(_ index: Int, _ dish: String, slot: DishSlot) -> some View {
+        Button {
+            if slot.served { Haptics.light() } else { Haptics.success() }
+            state.toggleDish(session, index)
+        } label: {
+            HStack(alignment: .center, spacing: 8) {
+                Image(systemName: slot.served ? "checkmark.circle.fill" : "circle")
+                    .font(.body)
+                    .foregroundStyle(slot.served ? Palette.keyText : Palette.ink2)
+                    .frame(width: 22)
+                Text(dish)
+                    .minopalFont(15, slot.served ? .regular : .medium, relativeTo: .subheadline)
+                    .foregroundStyle(slot.served ? Palette.muted : Palette.ink)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let at = slot.at {
+                    Text(formatClock(at))
+                        .minopalFont(13, relativeTo: .footnote, digits: true)
+                        .foregroundStyle(Palette.ink2)
+                }
             }
-            .minopalFont(14, relativeTo: .footnote, digits: true)
-            .frame(minWidth: 20)
-            Text(dish)
-                .minopalFont(14, next ? .bold : .regular, relativeTo: .footnote)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+            .frame(minHeight: Metrics.minTap)
+            .contentShape(Rectangle())
         }
-        .foregroundStyle(served ? Palette.muted : Palette.ink)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(next ? Palette.keyText : .clear, lineWidth: 2))
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(served ? "提供済み" : next ? "次に出す" : "")
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(index + 1)品目 \(dish)")
+        .accessibilityValue(slot.served ? "出した" : "まだ")
+        .accessibilityIdentifier("detail-dish-\(index)")
     }
 
     // 変更する：人数・コース・時刻の修正・卓の移動と団体から外す。ふだんは閉じておく

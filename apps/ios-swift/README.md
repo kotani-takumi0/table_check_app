@@ -19,6 +19,7 @@
 
 `packages/core`（TypeScript、Web と Expo 版が使う）と `MinopalCore`（Swift）は同じルールを別々に持っている。
 **卓のルールや Firestore に書く形を変えるときは、両方を直し、両方のテストを足す。** Swift のテストは TS のテストと同じ名前にしてある。
+料理のチェックの付け外し（No.167）は Swift 版の卓の詳細だけが品ごとで、Web は「まだ出していない最初の品を出す」「最後に出した品を戻す」のまま。読み書きは両方とも、順番を飛ばした時刻を位置のまま残す。
 
 ### TS と Swift の対応
 
@@ -97,6 +98,13 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
     -destination 'platform=iOS Simulator,id=<端末>' -only-testing:MinopalUITests/ScreenshotUITests
   ```
   撮った画像は結果（.xcresult）の添付に入る。テストデータは開発中のビルドで、エミュレータにつないでいて、起動の引数に `-MinopalDemoSeed` があるときだけ入る（`Minopal/Data/DemoSeed.swift`）
+
+## コースの料理（No.167）
+
+卓の詳細では、コースの料理を1品ずつチェックで付け外しする。出す順が前後しても、どの料理からでも付けられる。もう一度押すと外れる。進みは「2/8品」のように出した数で出す。
+保存は Web と同じ項目で、`dishServedAt` の i 番目がその料理を出した時刻（出していない料理は null）、`dishesServed` は出した数。Firestore のルールは変えていない（`dishServedAt` は 30 個までのリストで、中の null も今のルールで書ける）。
+Web と Expo 版も同じ位置で読み書きする。順番を飛ばして付けた卓を、お会計などで書き直しても別の料理には移さない。Swift の設定の「記録」（CSV）は、付けた料理だけを品目の番号で出す。時刻を残す前の記録は、今までどおり上から N 品を「時刻なし」として出す。Web の振り返りも同じ。
+通知（L.O.・店のタイマー）は料理の進みを見ていない。
 
 ## 端末の通知（No.151）
 

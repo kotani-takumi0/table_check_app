@@ -47,7 +47,7 @@ struct DetailButtonStyle: ButtonStyle {
     }
 }
 
-// 下線の付いた文字のボタン（1つ戻す・料理の一覧を見る）。押せる高さは 44pt
+// 下線の付いた文字のボタン（1つ戻す・ふつうに戻す）。押せる高さは 44pt
 struct UnderlineButton: View {
     let title: String
     let action: () -> Void

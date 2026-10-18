@@ -181,7 +181,7 @@ private struct CourseSections: View {
             }
         }
         Section(header: SettingsHeading(text: "料理のコース"),
-                footer: SettingsFootnote(text: "ご案内のときに「料理」で選びます。料理を出す順に並べておくと、詳細で1品ずつ進められます。")) {
+                footer: SettingsFootnote(text: "ご案内のときに「料理」で選びます。卓の詳細で、出した料理にチェックを付けます。出す順が前後しても、どの料理からでも付けられます。")) {
             ForEach(state.settings.courseMenus, id: \.id) { menu in
                 Button { onOpen(.course(menu.id)) } label: {
                     HStack(spacing: 12) {

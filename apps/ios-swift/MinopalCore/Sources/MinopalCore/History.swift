@@ -31,13 +31,15 @@ private func tableLogText(_ log: [TableMove], calendar: Calendar) -> String {
         return "\(formatClock(move.at, calendar: calendar)) \(what)"
     }.joined(separator: " / ")
 }
-// 料理を出した時刻（No.131）を1つの欄にする。例「1品目 18:20 / 2品目 18:35（+15分）」。時刻を残す前の版で出した品は「時刻なし」
-private func dishTimesText(_ times: [Int?], calendar: Calendar) -> String {
-    times.enumerated().map { i, at in
-        guard let at else { return "\(i + 1)品目 時刻なし" }
-        let before = i > 0 ? times[i - 1] : nil
+// 料理を出した時刻（No.131・No.167）を1つの欄にする。例「1品目 18:20 / 3品目 18:35（+15分）」。
+// 付けた料理だけを、その品目の番号で出す（飛ばした品は入れない）。時刻を残す前の版で出した品は「時刻なし」。
+// 前の品からの分は、時刻がある直前の出した品から数える
+private func dishTimesText(_ records: [(index: Int, at: Int?)], calendar: Calendar) -> String {
+    records.enumerated().map { offset, record in
+        guard let at = record.at else { return "\(record.index + 1)品目 時刻なし" }
+        let before = records[..<offset].compactMap(\.at).last
         let gap = before.map { "（+\(Int((Double(at - $0) / 60_000).rounded()))分）" } ?? ""
-        return "\(i + 1)品目 \(formatClock(at, calendar: calendar))\(gap)"
+        return "\(record.index + 1)品目 \(formatClock(at, calendar: calendar))\(gap)"
     }.joined(separator: " / ")
 }
 
@@ -73,8 +75,8 @@ public func sessionsCsv(_ sessions: [RecordedSession], drinkPlans: [DrinkPlan], 
             session.exitedByClosing ? "はい" : "",
             clock(session.clearedAt),
             tableLogText(session.tableLog, calendar: calendar),
-            // 時刻を残す前の版で出した品も「時刻なし」で数える
-            dishTimesText(servedTimes(session, session.dishesServed), calendar: calendar),
+            // 付けた料理だけ。時刻を残す前の版で出した品も「時刻なし」で数える
+            dishTimesText(recordedDishTimes(session), calendar: calendar),
         ]
     }
     return "\u{FEFF}" + ([csvHeader] + rows).map { $0.map(csvField).joined(separator: ",") }.joined(separator: "\r\n") + "\r\n"

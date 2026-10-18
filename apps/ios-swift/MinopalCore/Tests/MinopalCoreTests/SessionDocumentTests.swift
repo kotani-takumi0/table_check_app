@@ -184,6 +184,11 @@ struct FirestoreDocumentMappingTests {
         #expect(sessionFromDocument(id: "session", data: course.merging(["dishServedAt": [30_000, 40_000, 50_000]]) { $1 })?.dishServedAt == [30_000, 40_000])
         #expect(sessionFromDocument(id: "session", data: course.merging(["dishServedAt": ["x", 40_000] as [Any]]) { $1 })?.dishServedAt == [nil, 40_000])
         #expect(sessionFromDocument(id: "session", data: with(["dishServedAt": [30_000]]))?.dishServedAt == [])
+        // 順番を飛ばしたチェックは、出した数よりうしろの時刻も残す（No.167）
+        let hole = course.merging(["dishesServed": 1, "dishServedAt": [NSNull(), NSNull(), 50_000] as [Any]]) { $1 }
+        let read = sessionFromDocument(id: "session", data: hole)
+        #expect(read?.dishesServed == 1 && read?.dishServedAt == [nil, nil, 50_000])
+        #expect(dishSlots(read!, total: 4).map(\.served) == [false, false, true, false])
     }
 
     @Test("複数卓を許可する")

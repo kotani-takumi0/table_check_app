@@ -1,5 +1,6 @@
 import { DEFAULT_COURSE_MENUS, isMenuId } from './courseMenus';
 import { DEFAULT_DRINK_PLANS, isCourse, isGuestCount, TABLE_LOG_MAX, type Course, type Session, type Status, type TableMove } from './domain';
+import { COURSE_LIMITS } from './shopSettings';
 
 export interface SessionDoc {
   tableIds: string[];
@@ -72,10 +73,15 @@ export function withDefaults(s: Record<string, unknown>): Session {
   return { ...s, paidAt: s.paidAt ?? null, guests: s.guests ?? null, course, menu, dishesServed, dishServedAt: parseDishTimes(s.dishServedAt, dishesServed), leaveAt: s.leaveAt ?? null,
     clearedAt: s.clearedAt ?? null, tableLog: parseTableLog(s.tableLog), exitedByClosing: s.status === 'exited' && s.exitedByClosing === true } as unknown as Session;
 }
-// 料理を出した時刻を読む（No.131）。出した品数より後の時刻（前の版で1品戻した）は落とし、壊れた値は時刻が分からないとして null にする
+// 料理を出した時刻を読む（No.131・No.167）。壊れた値は時刻が分からないとして null にする。
+// 時刻の個数が dishesServed より多いときは、前の版が品数だけ戻したので上からその品数だけ残す。
+// 順番を飛ばしたチェックは dishesServed が出した数なので、うしろの時刻は切らない（null は出していない品）。Swift の parseDishTimes と同じ
 export function parseDishTimes(value: unknown, served: number): (number | null)[] {
   if (!Array.isArray(value)) return [];
-  return value.slice(0, served).map(at => typeof at === 'number' && Number.isFinite(at) ? at : null);
+  const parsed = value.slice(0, COURSE_LIMITS.dishes).map(at => typeof at === 'number' && Number.isFinite(at) ? at : null);
+  const known = parsed.filter(at => at !== null).length;
+  const count = Math.max(served, 0);
+  return known > count ? parsed.slice(0, count) : parsed;
 }
 // 卓の動きを読む。壊れた項目は落とす（記録の読み違いで、卓の画面を止めない）
 export function parseTableLog(value: unknown): TableMove[] {

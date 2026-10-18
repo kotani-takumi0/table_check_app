@@ -137,8 +137,10 @@ struct ShopState {
     func changeLeaveAt(_ session: Session, _ at: Int?) -> Bool { write(setLeaveAt(session, at)) }
     func changeCourse(_ session: Session, _ course: String?) { write(setCourse(session, course)) }
     func changeMenu(_ session: Session, _ menu: String?) { write(setMenu(session, menu, menus: settings.courseMenus)) }
-    func serve(_ session: Session) { write(serveDish(session, at: nowMs(), menus: settings.courseMenus)) }
-    func unserve(_ session: Session) { write(unserveDish(session, menus: settings.courseMenus)) }
+    // コースの料理を1品チェックする・外す（No.167）。どの順番でも付けられる
+    func toggleDish(_ session: Session, _ index: Int) {
+        write(MinopalCore.toggleDish(session, index: index, at: nowMs(), menus: settings.courseMenus))
+    }
     func moveTo(_ session: Session, from: String, to: String) { write(moveTable(session, from: from, to: to, at: nowMs())) }
     func addTo(_ session: Session, _ tableId: String) { write(addTable(session, tableId: tableId, at: nowMs())) }
     func release(_ session: Session, _ tableId: String) { write(removeTable(session, tableId: tableId, at: nowMs())) }

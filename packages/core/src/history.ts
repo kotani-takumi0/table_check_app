@@ -1,5 +1,5 @@
 import { menuOf, priceLabel } from './courseMenus';
-import { formatClock, servedTimes, STATUS_LABEL, type Session, type TableMove } from './domain';
+import { formatClock, recordedDishTimes, STATUS_LABEL, type Session, type TableMove } from './domain';
 import type { SessionRecord } from './sessionRecord';
 import type { ShopSettings } from './shopSettings';
 
@@ -37,13 +37,15 @@ export const CSV_HEADER = ['営業日', '卓', '人数', '区分', 'コース', 
 function tableLogText(log: TableMove[]): string {
   return log.map(move => `${formatClock(move.at)} ${move.kind === 'move' ? `${move.from}→${move.to}番に移動` : move.kind === 'add' ? `${move.to}番を足す` : `${move.from}番を外す`}`).join(' / ');
 }
-// 料理を出した時刻（No.131）を1つの欄にする。例「1品目 18:20 / 2品目 18:35（+15分）」。
-// 前の品からの分を添えて、コースのペースを見やすくする。時刻を残す前の版で出した品は「時刻なし」
-function dishTimesText(times: (number | null)[]): string {
-  return times.map((at, i) => {
-    if (at === null) return `${i + 1}品目 時刻なし`;
-    const before = times[i - 1];
-    return `${i + 1}品目 ${formatClock(at)}${typeof before === 'number' ? `（+${Math.round((at - before) / 60_000)}分）` : ''}`;
+// 料理を出した時刻（No.131・No.167）を1つの欄にする。例「1品目 18:20 / 3品目 18:35（+15分）」。
+// 付けた料理だけを、その品目の番号で出す（飛ばした品は入れない）。時刻を残す前の版で出した品は「時刻なし」。
+// 前の品からの分は、時刻がある直前の出した品から数える
+function dishTimesText(records: { index: number; at: number | null }[]): string {
+  return records.map((record, offset) => {
+    if (record.at === null) return `${record.index + 1}品目 時刻なし`;
+    const before = records.slice(0, offset).map(item => item.at).filter((at): at is number => at !== null).at(-1);
+    const gap = before === undefined ? '' : `（+${Math.round((record.at - before) / 60_000)}分）`;
+    return `${record.index + 1}品目 ${formatClock(record.at)}${gap}`;
   }).join(' / ');
 }
 // 期間のお客さんを案内の順に1行ずつ。Excel で文字化けしないよう、先頭に BOM を付ける。
@@ -70,8 +72,8 @@ export function sessionsCsv(sessions: (Session & { record?: Partial<SessionRecor
       session.exitedByClosing ? 'はい' : '',
       clock(session.clearedAt),
       tableLogText(session.tableLog),
-      // 時刻を残す前の版で出した品も「時刻なし」で数える
-      dishTimesText(servedTimes(session, session.dishesServed)),
+      // 付けた料理だけ。時刻を残す前の版で出した品も「時刻なし」で数える
+      dishTimesText(recordedDishTimes(session)),
     ];
   });
   return '\ufeff' + [CSV_HEADER, ...rows].map(row => row.map(field).join(',')).join('\r\n') + '\r\n';

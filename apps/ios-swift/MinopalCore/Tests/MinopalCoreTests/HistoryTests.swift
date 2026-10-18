@@ -81,6 +81,11 @@ struct HistoryCsvTests {
         var old = course
         old.dishesServed = 2
         #expect(cells(csv([RecordedSession(old)])).last == "1品目 時刻なし / 2品目 時刻なし")
+        // 順番を飛ばして付けた卓は、付けた品目だけ出す（2品目は出していない。No.167）
+        var skipped = course
+        skipped.dishesServed = 2
+        skipped.dishServedAt = [at(3, 18, 20), nil, at(3, 18, 35)]
+        #expect(cells(csv([RecordedSession(skipped)])).last == "1品目 18:20 / 3品目 18:35（+15分）")
     }
 
     @Test("名前を変えた区分・コースも、記録に写したそのときの名前で出す（No.113）")

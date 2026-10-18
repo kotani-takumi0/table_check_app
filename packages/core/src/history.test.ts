@@ -68,6 +68,9 @@ describe('CSV', () => {
     expect(cells.at(-1)).toBe('1品目 時刻なし / 2品目 18:20 / 3品目 18:35（+15分） / 4品目 18:52（+17分）');
     // 時刻を残す前の記録も、出した品数だけ「時刻なし」で出す
     expect(lines(sessionsCsv([{ ...course, dishesServed: 2 }], settings))[1].split(',').at(-1)).toBe('1品目 時刻なし / 2品目 時刻なし');
+    // 順番を飛ばして付けた卓は、付けた品目だけ出す（2品目は出していない。No.167）
+    const skipped: Session = { ...course, dishesServed: 2, dishServedAt: [at(3, 18, 20), null, at(3, 18, 35)] };
+    expect(lines(sessionsCsv([skipped], settings))[1].split(',').at(-1)).toBe('1品目 18:20 / 3品目 18:35（+15分）');
   });
   it('名前を変えた区分・コースも、記録に写したそのときの名前で出す（No.113）', () => {
     const recorded = { ...course, record: { drinkPlanName: '前の名前', courseName: '前のコース名' } };

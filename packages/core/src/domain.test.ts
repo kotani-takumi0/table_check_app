@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_COURSE_MENUS as COURSE_MENUS, isMenuId, menuOf, priceLabel } from './courseMenus';
-import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isPickable, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, pickGuideLabel, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
+import { addTable, advance, alertOf, clearSession, clockTimeNear, DEFAULT_DRINK_PLANS, dishProgress, dishSlots, drinkPlanName, displayOf, isCourse, isGuestCount, lastOrderDue, limitsOf, moveTable, removeTable, RULES, serveDish, setCourse, setGuests, stepGuests, setMenu, startOf, togglePaid, editTime, formatClock, formatElapsed, isPickable, isVisible, newSession, nextActionLabel, nextStatus, occupantOf, pickGuideLabel, revert, timerOf, unpaidTableCount, unserveDish } from './domain';
 const seated = newSession('session', '31', 10_000);
 const otoshi = advance(seated, 20_000);
 const loDone = advance(otoshi, 30_000);
@@ -247,6 +247,27 @@ describe('コースの料理', () => {
     expect(setMenu(cheese, 'nijikai')?.dishServedAt).toEqual([1, 2, 3, 4, 5].slice(0, menuOf('nijikai')!.dishes.length));
     expect(setMenu(cheese, null)?.dishServedAt).toEqual([]);
     expect(setCourse(cheese, null)?.dishServedAt).toEqual([]);
+    // 飛ばして付けたチェックも、新しいメニューに入る品だけ残して数を数え直す（No.167）
+    const hole = { ...casual, menu: 'cheese', dishesServed: 2, dishServedAt: [1, null, 3] };
+    expect(setMenu(hole, 'nijikai')?.dishServedAt).toEqual([1, null, 3]);
+    expect(setMenu(hole, 'nijikai')?.dishesServed).toBe(2);
+    const short = [{ id: 'short', name: '短い', price: 1, short: '短', dishes: ['a', 'b'], lastOrderMin: null, seatLimitMin: null }];
+    expect(setMenu(hole, 'short', short)?.dishServedAt).toEqual([1]);
+    expect(setMenu(hole, 'short', short)?.dishesServed).toBe(1);
+  });
+  it('順番を飛ばして付いている品は、進める・戻す・表示で位置を残す（No.167）', () => {
+    const hole = { ...casual, dishesServed: 1, dishServedAt: [null, null, 50_000] };
+    expect(dishSlots(hole, menuOf('casual')!.dishes.length).map(slot => slot.served)[2]).toBe(true);
+    expect(dishSlots(hole, 4).map(slot => slot.served)).toEqual([false, false, true, false]);
+    expect(dishProgress(hole)?.next).toBe(menuOf('casual')!.dishes[0]);
+    const served = serveDish(hole, 60_000)!;
+    expect(served.dishesServed).toBe(2);
+    expect(served.dishServedAt).toEqual([60_000, null, 50_000]);
+    expect(unserveDish(hole)?.dishServedAt).toEqual([]);
+    expect(unserveDish(hole)?.dishesServed).toBe(0);
+    const both = { ...casual, dishesServed: 2, dishServedAt: [5 * minute, null, 15 * minute] };
+    expect(unserveDish(both)?.dishServedAt).toEqual([5 * minute]);
+    expect(dishProgress(both)?.served).toBe(2);
   });
 });
 describe('コース', () => {

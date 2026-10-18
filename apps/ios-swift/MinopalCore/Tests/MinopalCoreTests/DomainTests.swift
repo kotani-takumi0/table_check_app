@@ -281,27 +281,29 @@ struct DishTests {
         #expect(newSession(id: "s", tableId: "12", at: 0, guests: 4, course: "drinks").menu == nil)
     }
 
-    @Test("メニューの順に1品ずつ進め、全部出したらそれ以上進めない")
-    func servesInOrder() {
+    @Test("どの料理からでもチェックを付け外しでき、全部付けたらそれ以上の品は無い（No.167）")
+    func checksInAnyOrder() {
         let dishes = menuOf("casual")!.dishes
         #expect(dishProgress(casual) == DishProgress(served: 0, total: dishes.count, next: dishes[0]))
+        // 3品目から付けても、1品目はまだ出ていない
+        let third = toggleDish(casual, index: 2, at: 20 * minute)!
+        #expect(third.dishesServed == 1 && third.dishServedAt == [nil, nil, 20 * minute])
+        #expect(dishProgress(third) == DishProgress(served: 1, total: dishes.count, next: dishes[0]))
+        #expect(dishSlots(third, total: dishes.count).map(\.served) == dishes.indices.map { $0 == 2 })
         var session = casual
-        for i in 0..<dishes.count { session = serveDish(session, at: i)! }
+        for i in dishes.indices { session = toggleDish(session, index: i, at: i)! }
         #expect(dishProgress(session) == DishProgress(served: dishes.count, total: dishes.count, next: nil))
-        #expect(serveDish(session, at: dishes.count) == nil)
+        #expect(toggleDish(session, index: dishes.count, at: 0) == nil)
+        // もう一度押すと、その品だけ外れる
+        let undone = toggleDish(third, index: 2, at: 99)!
+        #expect(undone.dishesServed == 0 && undone.dishServedAt.isEmpty)
     }
 
-    @Test("1品戻せる。まだ出していなければ戻せない")
-    func unserves() {
-        #expect(unserveDish(casual) == nil)
-        #expect(unserveDish(serveDish(casual, at: 1)!) == casual)
-    }
-
-    @Test("コースが未選択・通常の卓は料理を進めない")
+    @Test("まだ料理を選んでいなければチェックを付けられない")
     func noMenu() {
         let noMenu = newSession(id: "s", tableId: "12", at: 0, guests: 4, course: "drinks")
         #expect(dishProgress(noMenu) == nil)
-        #expect(serveDish(noMenu, at: 1) == nil)
+        #expect(toggleDish(noMenu, index: 0, at: 1) == nil)
         #expect(dishProgress(newSession(id: "s", tableId: "12", at: 0)) == nil)
     }
 
@@ -317,26 +319,55 @@ struct DishTests {
 
     @Test("料理の進みは状態の進み・戻し・卓の移動で変わらない")
     func keepsProgress() {
-        let served = serveDish(casual, at: 1)!
+        let served = toggleDish(casual, index: 0, at: 1)!
         #expect(advance(served, at: 10 * 60_000).dishesServed == 1)
         #expect(moveTable(served, from: "12", to: "13", at: 1)?.dishesServed == 1)
     }
 
-    @Test("出した時刻を1品ごとに残し、1品戻すとその品の時刻を外す（No.131）")
+    @Test("出した時刻を1品ごとに残し、外した品の時刻だけ消す（No.131・No.167）")
     func recordsTimes() {
-        let two = serveDish(serveDish(casual, at: 5 * minute)!, at: 12 * minute)!
+        let two = toggleDish(toggleDish(casual, index: 0, at: 5 * minute)!, index: 1, at: 12 * minute)!
         #expect(two.dishesServed == 2 && two.dishServedAt == [5 * minute, 12 * minute])
-        let one = unserveDish(two)!
-        #expect(one.dishesServed == 1 && one.dishServedAt == [5 * minute])
-        #expect(serveDish(one, at: 15 * minute)?.dishServedAt == [5 * minute, 15 * minute])
+        let firstOnly = toggleDish(two, index: 1, at: 0)!
+        #expect(firstOnly.dishesServed == 1 && firstOnly.dishServedAt == [5 * minute])
+        // 2品目を外したあとに、3品目だけ付けても1品目の時刻は残る
+        let skipped = toggleDish(firstOnly, index: 2, at: 15 * minute)!
+        #expect(skipped.dishesServed == 2 && skipped.dishServedAt == [5 * minute, nil, 15 * minute])
+        #expect(dishSlots(skipped, total: menuOf("casual")!.dishes.count).map(\.served).prefix(3).elementsEqual([true, false, true]))
     }
 
-    @Test("時刻を残す前の版で出した品は時刻を nil にし、品の順はずらさない（No.131）")
+    @Test("時刻を残す前の版で出した品は時刻を nil のまま残し、品数よりうしろの時刻は落とす（No.131）")
     func legacyTimes() {
         let legacy = with(casual) { $0.dishesServed = 2 }
-        #expect(serveDish(legacy, at: 20 * minute)?.dishServedAt == [nil, nil, 20 * minute])
-        // 前の版で1品戻されて、品数より多く残っている時刻は落とす
-        #expect(serveDish(with(casual) { $0.dishesServed = 1; $0.dishServedAt = [5 * minute, 12 * minute] }, at: 20 * minute)?.dishServedAt == [5 * minute, 20 * minute])
+        #expect(toggleDish(legacy, index: 2, at: 20 * minute)?.dishServedAt == [nil, nil, 20 * minute])
+        #expect(toggleDish(legacy, index: 2, at: 20 * minute)?.dishesServed == 3)
+        // 時刻なしの2品を出したあとに、4品目だけ付ける（3品目は飛ばす）
+        let mixed = toggleDish(legacy, index: 3, at: 30 * minute)!
+        #expect(mixed.dishesServed == 3 && mixed.dishServedAt == [nil, nil, nil, 30 * minute])
+        #expect(dishSlots(mixed, total: 8).map(\.served).prefix(4).elementsEqual([true, true, false, true]))
+        // 前の版で1品戻されて、品数より多く残っている時刻は落とす。次の品を付けるとその次の時刻になる
+        #expect(toggleDish(with(casual) { $0.dishesServed = 1; $0.dishServedAt = [5 * minute, 12 * minute] }, index: 1, at: 20 * minute)?.dishServedAt == [5 * minute, 20 * minute])
+        // 上から2品出した記録の2品目だけ外すと、1品目は時刻なしのまま残る
+        let old = with(casual) { $0.dishesServed = 2 }
+        let kept = toggleDish(old, index: 1, at: 0)!
+        #expect(kept.dishesServed == 1 && kept.dishServedAt == [nil])
+        #expect(dishSlots(kept, total: 4).map(\.served) == [true, false, false, false])
+    }
+
+    @Test("時刻のない記録の途中を外しても、読み直すと外した品が外れたまま（No.131 以前）")
+    func uncheckingLegacyMiddleKeepsPosition() {
+        let old = with(casual) { $0.dishesServed = 2 }
+        // 1品目を外す。2品目は付いたまま。全部 nil のまま書くと、上から1品として読み直されてしまう
+        let firstOff = toggleDish(old, index: 0, at: 20 * minute)!
+        #expect(firstOff.dishesServed == 1 && firstOff.dishServedAt == [nil, 20 * minute])
+        #expect(dishSlots(firstOff, total: 4).map(\.served) == [false, true, false, false])
+        let reread = sessionFromDocument(id: firstOff.id, data: toSessionDocument(firstOff))!
+        #expect(dishSlots(reread, total: 4).map(\.served) == [false, true, false, false])
+        // 3品の真ん中を外しても、1品目と3品目が付いたまま
+        let three = with(casual) { $0.dishesServed = 3 }
+        let mid = toggleDish(three, index: 1, at: 20 * minute)!
+        #expect(mid.dishesServed == 2 && mid.dishServedAt == [20 * minute, nil, 20 * minute])
+        #expect(dishSlots(mid, total: 4).map(\.served) == [true, false, true, false])
     }
 
     @Test("コースを選び直すと品数に合わせて時刻も切り詰め、通常・未選択に戻すと消す（No.131）")
@@ -345,6 +376,13 @@ struct DishTests {
         #expect(setMenu(cheese, "nijikai")?.dishServedAt == Array([1, 2, 3, 4, 5].prefix(menuOf("nijikai")!.dishes.count)))
         #expect(setMenu(cheese, nil)?.dishServedAt == [])
         #expect(setCourse(cheese, nil)?.dishServedAt == [])
+        // 飛ばして付けたチェックも、新しいメニューに入る品だけ残して数を数え直す（No.167）
+        let hole = with(casual) { $0.menu = "cheese"; $0.dishesServed = 2; $0.dishServedAt = [1, nil, 3] }
+        #expect(setMenu(hole, "nijikai")?.dishServedAt == [1, nil, 3])
+        #expect(setMenu(hole, "nijikai")?.dishesServed == 2)
+        let short = [CourseMenu(id: "short", name: "短い", price: 1, short: "短", dishes: ["a", "b"])]
+        #expect(setMenu(hole, "short", menus: short)?.dishServedAt == [1])
+        #expect(setMenu(hole, "short", menus: short)?.dishesServed == 1)
     }
 }
 
