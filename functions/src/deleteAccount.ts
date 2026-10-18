@@ -85,7 +85,8 @@ async function deleteRefs(db: Firestore, refs: DocumentReference[]): Promise<voi
 }
 
 // feedback は店ごとのサブコレクションではなく、いちばん上に1か所。文書 id は `{uid}_{印}`、ログインした店は shop に uid を入れる。
-// feedbackPace/{uid} は連続送信の間隔。どちらもこのアカウントの分だけ消す
+// ルールで uid ごとの文書になっているのは feedbackPace/{uid}（連続送信の間隔）と clockProbes/{uid}（時計合わせ）だけ。
+// いちばん上の sessions や layoutHistory は「ログインせずに使う」店の共有で、このアカウントのものではないので消さない
 async function deleteOwnedFeedback(db: Firestore, uid: string): Promise<void> {
   const refs: DocumentReference[] = [];
   const byShop = await db.collection("feedback").where("shop", "==", uid).get();
@@ -98,6 +99,7 @@ async function deleteOwnedFeedback(db: Firestore, uid: string): Promise<void> {
     if (feedbackBelongsToAccount(doc.id, doc.get("shop"), uid)) refs.push(doc.ref);
   }
   refs.push(db.collection("feedbackPace").doc(uid));
+  refs.push(db.collection("clockProbes").doc(uid));
   await deleteRefs(db, refs);
 }
 

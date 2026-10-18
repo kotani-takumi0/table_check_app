@@ -93,6 +93,7 @@ async function wipe(): Promise<void> {
   await db.recursiveDelete(db.collection("feedbackPace"));
   await db.recursiveDelete(db.collection("sessions"));
   await db.recursiveDelete(db.collection("layoutHistory"));
+  await db.recursiveDelete(db.collection("clockProbes"));
   for (const uid of [NORTH, SOUTH, GUEST]) {
     if (await userExists(uid)) await getAuth().deleteUser(uid);
   }
@@ -130,6 +131,7 @@ test("自分の店のサブコレクションとご意見だけを消し、ほ�
   await seedShop(SOUTH, "架空の南口店");
   await seedShared();
   await getFirestore().doc(`clockProbes/${NORTH}`).set({ at: 1 });
+  await getFirestore().doc(`clockProbes/${SOUTH}`).set({ at: 2 });
 
   const result = await deleteOwnAccount({
     auth: { uid: NORTH, token: { auth_time: nowSec() } },
@@ -146,6 +148,7 @@ test("自分の店のサブコレクションとご意見だけを消し、ほ�
     `feedback/${NORTH}_${TICKET}`,
     `feedback/${NORTH}_${GUEST_TICKET}`,
     `feedbackPace/${NORTH}`,
+    `clockProbes/${NORTH}`,
   ]) {
     assert.equal(await exists(path), false, path);
   }
@@ -162,7 +165,7 @@ test("自分の店のサブコレクションとご意見だけを消し、ほ�
     `feedback/${NORTH}_extra_${"d".repeat(16)}`,
     "sessions/shared-guest",
     "layoutHistory/shared-guest",
-    `clockProbes/${NORTH}`,
+    `clockProbes/${SOUTH}`,
   ]) {
     assert.equal(await exists(path), true, path);
   }
@@ -224,6 +227,8 @@ test("匿名は auth_time が古くても消え、パスワードの店は残る
   const db = getFirestore();
   await db.doc(`feedback/${GUEST}_${GUEST_TICKET}`).set({ message: "匿名の試しの文", shop: null, platform: "ios" });
   await db.doc(`feedbackPace/${GUEST}`).set({ ticket: GUEST_TICKET });
+  await db.doc(`clockProbes/${GUEST}`).set({ at: 1 });
+  await db.doc(`clockProbes/${NORTH}`).set({ at: 2 });
 
   await deleteOwnAccount({
     auth: { uid: GUEST, token: { auth_time: nowSec() - 3600, firebase: { sign_in_provider: "anonymous" } } },
@@ -232,6 +237,8 @@ test("匿名は auth_time が古くても消え、パスワードの店は残る
   assert.equal(await userExists(GUEST), false);
   assert.equal(await exists(`feedback/${GUEST}_${GUEST_TICKET}`), false);
   assert.equal(await exists(`feedbackPace/${GUEST}`), false);
+  assert.equal(await exists(`clockProbes/${GUEST}`), false);
+  assert.equal(await exists(`clockProbes/${NORTH}`), true);
   assert.equal(await exists(`shops/${NORTH}/sessions/visit-1`), true);
   assert.equal(await exists(`feedback/${NORTH}_${TICKET}`), true);
   assert.equal(await userExists(NORTH), true);
