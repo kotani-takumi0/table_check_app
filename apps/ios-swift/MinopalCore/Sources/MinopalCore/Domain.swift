@@ -251,7 +251,12 @@ public func toggleDish(_ session: Session, index: Int, at: Int, menus: [CourseMe
     guard session.course != nil, let menu = menuOf(session.menu, menus: menus), menu.dishes.indices.contains(index) else { return nil }
     var slots = dishSlots(session, total: menu.dishes.count)
     slots[index] = slots[index].served ? DishSlot(served: false, at: nil) : DishSlot(served: true, at: at)
-    return applyDishSlots(session, slots)
+    let saved = applyDishSlots(session, slots)
+    // 時刻を残す前の記録は全部 nil だと上から N 品として読み直され、途中を外すと別の品が外れて見える。
+    // 読み直して同じ品に戻らないときだけ、残した品へ押した時刻を入れて位置を固定する（本当の提供時刻は残っていない）
+    if dishSlots(saved, total: slots.count).map(\.served) == slots.map(\.served) { return saved }
+    let fixed = slots.map { slot in slot.served && slot.at == nil ? DishSlot(served: true, at: at) : slot }
+    return applyDishSlots(session, fixed)
 }
 // 上から count 品を出した（時刻が無ければ nil）。それよりうしろは出していない
 private func prefixSlots(_ times: [Int?], count: Int, total: Int) -> [DishSlot] {

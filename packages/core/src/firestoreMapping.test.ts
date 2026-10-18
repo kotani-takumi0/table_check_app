@@ -98,6 +98,30 @@ describe('Firestore document mapping', () => {
     expect(fromSessionDoc('session', { ...course, dishServedAt: ['x', 40_000] })?.dishServedAt).toEqual([null, 40_000]);
     expect(fromSessionDoc('session', { ...data, dishServedAt: [30_000] })?.dishServedAt).toEqual([]);
   });
+  it('順番を飛ばした時刻は位置のまま往復し、時刻の無い記録は上から、混ざった記録は両方残す（No.167）', () => {
+    const course = { ...data, course: 'drinks', menu: 'cheese', dishesServed: 1 };
+    // Swift で3品目だけ付けた卓。お会計などで書き直しても [null, null, 時刻] のまま
+    const hole = fromSessionDoc('session', { ...course, dishServedAt: [null, null, 50_000] })!;
+    expect(hole.dishesServed).toBe(1);
+    expect(hole.dishServedAt).toEqual([null, null, 50_000]);
+    expect(toSessionDoc({ ...hole, paidAt: 60_000 }).dishServedAt).toEqual([null, null, 50_000]);
+    expect(toSessionDoc(hole).dishesServed).toBe(1);
+    // 時刻を残す前の記録は、配列が空のまま。上から N 品として読むのは dishProgress
+    const legacy = fromSessionDoc('session', { ...course, dishesServed: 2 })!;
+    expect(legacy.dishServedAt).toEqual([]);
+    expect(legacy.dishesServed).toBe(2);
+    expect(dishProgress(legacy)?.served).toBe(2);
+    expect(toSessionDoc(legacy).dishServedAt).toEqual([]);
+    // 時刻なしの品と、うしろの時刻が混ざる。出した数以下なら切らない
+    const mixed = fromSessionDoc('session', { ...course, dishesServed: 3, dishServedAt: [null, null, null, 30_000] })!;
+    expect(mixed.dishServedAt).toEqual([null, null, null, 30_000]);
+    expect(toSessionDoc(mixed).dishServedAt).toEqual([null, null, null, 30_000]);
+    expect(dishProgress(mixed)?.served).toBe(3);
+    // 時刻の数が出した数と同じで、間が空いているときも位置を残す
+    const skipped = fromSessionDoc('session', { ...course, dishesServed: 2, dishServedAt: [null, 20_000, null, 40_000] })!;
+    expect(skipped.dishServedAt).toEqual([null, 20_000, null, 40_000]);
+    expect(toSessionDoc(skipped).dishServedAt).toEqual([null, 20_000, null, 40_000]);
+  });
   it('複数卓を許可する', () => {
     expect(fromSessionDoc('session', { ...data, tableIds: ['31', '33'] })?.tableIds).toEqual(['31', '33']);
   });

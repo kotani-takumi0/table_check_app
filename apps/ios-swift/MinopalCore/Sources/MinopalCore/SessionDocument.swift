@@ -1,7 +1,7 @@
 import Foundation
 
 // Firestore の sessions の文書と Session の変換（packages/core/src/firestoreMapping.ts の Swift 版）。
-// TS と同じ形で書く。料理のチェック（No.167）は、飛ばした品の nil を残して読む（Web は上から dishesServed 品で切る）
+// TS と同じ形で書く。料理のチェック（No.167）は、飛ばした品の nil を残して読む（Web・Expo も同じ）
 
 // 保存する形。店が足した区分（No.90）は course に 'drinks' を入れ、本当の区分は drinkPlan に入れる。
 // 店が作ったコース（No.89）も同じく、menu は前の版も知っているものだけにし、本当のコースは courseMenu に入れる。

@@ -47,8 +47,8 @@ export interface Session {
   guests: number | null;   // 人数（団体は全員の合計）。null は未入力
   course: Course | null;   // null は通常。通常は otoshiAt にお通しの時刻、コースはファーストドリンクの時刻を入れる
   menu: string | null;     // どのコースか（courseMenus の id）。コースのときだけ。null は未選択
-  dishesServed: number;    // コースの料理を何品目まで出したか（メニューの順に数える）
-  dishServedAt: (number | null)[];   // 料理を出した時刻（No.131）。i 番目が i+1 品目。時刻を残さない前の版で出した品は null
+  dishesServed: number;    // 出した料理の数（No.167）。順番を飛ばしたときは、上から何品目かではなく数
+  dishServedAt: (number | null)[];   // 料理を出した時刻（No.131・No.167）。i 番目が i+1 品目。出していない品と、時刻を残す前の版で出した品は null
   leaveAt: number | null;  // この卓だけ早めに決めた退店の時刻（お席の終わり）。null はふつう（数え始めから120分）。L.O.はその30分前
   clearedAt: number | null;  // 全卓消去した時刻（No.113）。記録は消さずに残し、画面からだけ消す
   tableLog: TableMove[];     // 卓の動き（No.113）。移動・卓を足す・卓を外すを、した順にすべて残す
@@ -104,35 +104,106 @@ export function setCourse(session: Session, course: Course | null): Session | nu
   if (course === null) return { ...session, course, menu: null, dishesServed: 0, dishServedAt: [] };
   return isCourse(course) ? { ...session, course } : null;
 }
-// どのコースかを選び直す。選び間違いを直すときのために、出した品数はそのまま（新しいメニューの品数までに収める）
+// どのコースかを選び直す。選び間違いを直すときのために、付けた位置は残し、新しいメニューの品数までに収めて数を数え直す
 export function setMenu(session: Session, menu: string | null, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
   if (menu === null) return { ...session, menu, dishesServed: 0, dishServedAt: [] };
   const chosen = menuOf(menu, menus);
   if (session.course === null || !chosen) return null;
-  const dishesServed = Math.min(session.dishesServed, chosen.dishes.length);
-  return { ...session, menu, dishesServed, dishServedAt: servedTimes(session, dishesServed) };
+  return applyDishSlots({ ...session, menu }, dishSlots(session, chosen.dishes.length));
 }
-// コースの料理の進み。served 品目まで出していて、next が次に出す料理（全部出したら null）
+// 1品のチェック。served が出したか、at はその時刻（時刻を残す前の版で出した品は null）
+export interface DishSlot { served: boolean; at: number | null }
+// コースの料理の進み。served は出した数（順番は問わない）。next はまだ出していない最初の料理（全部出したら null）
 // menus：店が作ったコース（No.89）。設定で消したコースを選んでいる卓は null（料理の進みを出さない）
 export function dishProgress(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): { served: number; total: number; next: string | null } | null {
   const menu = session.course === null ? null : menuOf(session.menu, menus);
   if (!menu) return null;
-  const served = Math.min(session.dishesServed, menu.dishes.length);
-  return { served, total: menu.dishes.length, next: menu.dishes[served] ?? null };
+  const slots = dishSlots(session, menu.dishes.length);
+  const served = slots.filter(slot => slot.served).length;
+  const next = slots.findIndex(slot => !slot.served);
+  return { served, total: menu.dishes.length, next: next < 0 ? null : menu.dishes[next] };
 }
-// 1品目から served 品目までの出した時刻。時刻が無い品（前の版で出した）は null で埋め、それより後の時刻は落とす
-export function servedTimes(session: Session, served: number): (number | null)[] {
-  return Array.from({ length: served }, (_, i) => session.dishServedAt[i] ?? null);
+// 品数の上限（shopSettings の COURSE_LIMITS.dishes、firestore.rules の dishServedAt と同じ）
+const DISH_CAP = 30;
+// 品ごとのチェック（No.167）。i 番目が i+1 品目。Swift の dishSlots と同じ読み方。
+// 今の版は、時刻がある品だけを出したことにする（飛ばした品は null、dishesServed はその数）。
+// 時刻を残す前の版は dishesServed が「上から N 品」で、時刻の無い品も出した扱いにする。
+// 前の版が品数だけ戻して時刻が品数より多いときは、上から dishesServed 品だけ残す
+export function dishSlots(session: Session, total: number): DishSlot[] {
+  const count = Math.min(Math.max(total, 0), DISH_CAP);
+  const times = session.dishServedAt.slice(0, DISH_CAP);
+  const known = times.filter(at => at !== null).length;
+  const servedCount = Math.min(Math.max(session.dishesServed, 0), DISH_CAP);
+  if (known > servedCount || known === 0) return prefixSlots(times, servedCount, count);
+  if (servedCount === known) {
+    return Array.from({ length: count }, (_, i) => {
+      const at = i < times.length ? times[i] : null;
+      return { served: at !== null, at };
+    });
+  }
+  // 時刻の無い品（前の版）と、飛ばして付けた品が混ざる。時刻がある品は出した。
+  // 足りない数は、最後に出した品より前の null を前から「時刻なし」にし、それでも足りなければそのうしろも上から埋める
+  const last = lastIndex(times, at => at !== null);
+  let nilsLeft = servedCount - known;
+  const slots: DishSlot[] = Array.from({ length: count }, () => ({ served: false, at: null }));
+  if (last >= 0) {
+    for (let i = 0; i <= Math.min(last, count - 1); i++) {
+      const at = i < times.length ? times[i] : null;
+      if (at !== null) slots[i] = { served: true, at };
+      else if (nilsLeft > 0) { slots[i] = { served: true, at: null }; nilsLeft -= 1; }
+    }
+  }
+  for (let i = last + 1; nilsLeft > 0 && i < count; i++) {
+    slots[i] = { served: true, at: i < times.length ? times[i] : null };
+    nilsLeft -= 1;
+  }
+  return slots;
 }
-// 料理はメニューの順に1品ずつ進める・戻す。進めたときは押した時刻を残し（No.131）、戻したときはその品の時刻を外す
+// 振り返りに出す、出した料理（index は 0 始まり）。出していない料理は入れない。時刻の無い品は at が null
+export function recordedDishTimes(session: Session): { index: number; at: number | null }[] {
+  const total = Math.min(DISH_CAP, Math.max(session.dishServedAt.length, session.dishesServed));
+  return dishSlots(session, total).flatMap((slot, index) => slot.served ? [{ index, at: slot.at }] : []);
+}
+function lastIndex<T>(items: readonly T[], match: (item: T) => boolean): number {
+  for (let i = items.length - 1; i >= 0; i--) if (match(items[i])) return i;
+  return -1;
+}
+// 上から count 品を出した（時刻が無ければ null）。それよりうしろは出していない
+function prefixSlots(times: readonly (number | null)[], count: number, total: number): DishSlot[] {
+  return Array.from({ length: total }, (_, i) => (
+    i < count ? { served: true, at: i < times.length ? times[i] : null } : { served: false, at: null }
+  ));
+}
+// チェックを保存する形に戻す。上から続けて出しているときは、前の版と同じくその品数までの配列にする（時刻なしを残すため）。
+// 順番を飛ばしたときは、最後に出した品までを書き、出していない品は null、dishesServed は出した数
+function applyDishSlots(session: Session, slots: DishSlot[]): Session {
+  const servedCount = slots.filter(slot => slot.served).length;
+  if (slots.every((slot, i) => slot.served === (i < servedCount))) {
+    return { ...session, dishesServed: servedCount, dishServedAt: slots.slice(0, servedCount).map(slot => slot.at) };
+  }
+  const last = lastIndex(slots, slot => slot.served);
+  if (last < 0) return { ...session, dishesServed: 0, dishServedAt: [] };
+  return { ...session, dishesServed: servedCount, dishServedAt: slots.slice(0, last + 1).map(slot => slot.served ? slot.at : null) };
+}
+// 料理は、まだ出していない最初の品を出す・最後に出した品を戻す。押した時刻は残し、戻した品の時刻は外す。
+// 順番を飛ばして付いている品の位置は、ここでも消さない（No.167）
 export function serveDish(session: Session, at: number, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
-  const progress = dishProgress(session, menus);
-  if (!progress || progress.next === null) return null;
-  return { ...session, dishesServed: progress.served + 1, dishServedAt: [...servedTimes(session, progress.served), at] };
+  const menu = session.course === null ? null : menuOf(session.menu, menus);
+  if (!menu) return null;
+  const slots = dishSlots(session, menu.dishes.length);
+  const index = slots.findIndex(slot => !slot.served);
+  if (index < 0) return null;
+  slots[index] = { served: true, at };
+  return applyDishSlots(session, slots);
 }
 export function unserveDish(session: Session, menus: CourseMenu[] = DEFAULT_COURSE_MENUS): Session | null {
-  const progress = dishProgress(session, menus);
-  return progress && progress.served > 0 ? { ...session, dishesServed: progress.served - 1, dishServedAt: servedTimes(session, progress.served - 1) } : null;
+  const menu = session.course === null ? null : menuOf(session.menu, menus);
+  if (!menu) return null;
+  const slots = dishSlots(session, menu.dishes.length);
+  const last = lastIndex(slots, slot => slot.served);
+  if (last < 0) return null;
+  slots[last] = { served: false, at: null };
+  return applyDishSlots(session, slots);
 }
 export function nextStatus(s: Status): Status | null {
   return { seated: 'otoshi', otoshi: 'lo_done', lo_done: 'exited', exited: null }[s] as Status | null;

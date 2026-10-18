@@ -354,6 +354,22 @@ struct DishTests {
         #expect(dishSlots(kept, total: 4).map(\.served) == [true, false, false, false])
     }
 
+    @Test("時刻のない記録の途中を外しても、読み直すと外した品が外れたまま（No.131 以前）")
+    func uncheckingLegacyMiddleKeepsPosition() {
+        let old = with(casual) { $0.dishesServed = 2 }
+        // 1品目を外す。2品目は付いたまま。全部 nil のまま書くと、上から1品として読み直されてしまう
+        let firstOff = toggleDish(old, index: 0, at: 20 * minute)!
+        #expect(firstOff.dishesServed == 1 && firstOff.dishServedAt == [nil, 20 * minute])
+        #expect(dishSlots(firstOff, total: 4).map(\.served) == [false, true, false, false])
+        let reread = sessionFromDocument(id: firstOff.id, data: toSessionDocument(firstOff))!
+        #expect(dishSlots(reread, total: 4).map(\.served) == [false, true, false, false])
+        // 3品の真ん中を外しても、1品目と3品目が付いたまま
+        let three = with(casual) { $0.dishesServed = 3 }
+        let mid = toggleDish(three, index: 1, at: 20 * minute)!
+        #expect(mid.dishesServed == 2 && mid.dishServedAt == [20 * minute, nil, 20 * minute])
+        #expect(dishSlots(mid, total: 4).map(\.served) == [true, false, true, false])
+    }
+
     @Test("コースを選び直すと品数に合わせて時刻も切り詰め、通常・未選択に戻すと消す（No.131）")
     func trimsTimes() {
         let cheese = with(casual) { $0.menu = "cheese"; $0.dishesServed = 7; $0.dishServedAt = [1, 2, 3, 4, 5, 6, 7] }
