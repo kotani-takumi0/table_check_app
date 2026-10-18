@@ -14,7 +14,11 @@ struct AccountDeletionErrorTests {
         #expect(accountDeletionError(authCode: nil, functionsCode: "failed-precondition", reason: "app-check-required") == .failed)
         #expect(accountDeletionError(authCode: nil, functionsCode: nil, reason: nil) == .failed)
         #expect(accountDeletionMessage(.wrongPassword, isAnonymous: false) == "パスワードが違います")
-        #expect(accountDeletionMessage(.recentLoginRequired, isAnonymous: true).contains("時間が経ちました"))
+        #expect(accountDeletionMessage(.recentLoginRequired, isAnonymous: false) == "パスワードを入れ直してください")
+        let anonymousRecent = accountDeletionMessage(.recentLoginRequired, isAnonymous: true)
+        #expect(anonymousRecent == accountDeletionMessage(.failed, isAnonymous: true))
+        #expect(!anonymousRecent.contains("ログアウト"))
+        #expect(!anonymousRecent.contains("入り直"))
     }
 }
 
@@ -131,7 +135,9 @@ struct AccountDeletionFlowTests {
         await anonymous.confirmDelete()
         #expect(anonymous.step == .confirm)
         #expect(!anonymous.finished)
-        #expect(anonymous.message.contains("時間が経ちました"))
+        #expect(!anonymous.message.contains("ログアウト"))
+        #expect(!anonymous.message.contains("入り直"))
+        #expect(anonymous.message == accountDeletionMessage(.failed, isAnonymous: true))
     }
 
     @Test("サーバーでは消えても、端末からログアウトできなければもう一度試せる")

@@ -5,16 +5,20 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import {
+  FUNCTIONS_REGION,
   RECENT_LOGIN_REQUIRED,
+  deleteAccount,
   deleteOwnAccount,
   feedbackBelongsToAccount,
   isRecentAuthTime,
   performAccountDeletion,
+  recentLoginRequired,
 } from "./deleteAccount";
 
 // 本物の Firebase にはつながない。firebase emulators:exec（demo-minopal）の中だけで動かす
 const NORTH = "owner-north-172";
 const SOUTH = "owner-south-172";
+const GUEST = "guest-anon-172";
 const TICKET = "a".repeat(16);
 const GUEST_TICKET = "b".repeat(16);
 
@@ -89,7 +93,7 @@ async function wipe(): Promise<void> {
   await db.recursiveDelete(db.collection("feedbackPace"));
   await db.recursiveDelete(db.collection("sessions"));
   await db.recursiveDelete(db.collection("layoutHistory"));
-  for (const uid of [NORTH, SOUTH]) {
+  for (const uid of [NORTH, SOUTH, GUEST]) {
     if (await userExists(uid)) await getAuth().deleteUser(uid);
   }
 }
@@ -177,12 +181,25 @@ test("ログインしていない呼び出しは拒否し、データは残る",
   assert.equal(await userExists(NORTH), true);
 });
 
+test("匿名だけ auth_time の確認を飛ばし、同時起動は5まで", () => {
+  const stale = nowSec() - 3600;
+  assert.equal(recentLoginRequired({ auth_time: stale, firebase: { sign_in_provider: "anonymous" } }, nowSec()), false);
+  assert.equal(recentLoginRequired({ auth_time: stale, firebase: { sign_in_provider: "password" } }, nowSec()), true);
+  assert.equal(recentLoginRequired({ auth_time: stale }, nowSec()), true);
+  assert.equal(recentLoginRequired({ auth_time: nowSec(), firebase: { sign_in_provider: "password" } }, nowSec()), false);
+  assert.equal(deleteAccount.__endpoint.maxInstances, 5);
+  assert.deepEqual(deleteAccount.__endpoint.region, [FUNCTIONS_REGION]);
+});
+
 test("auth_time が5分より古いと拒否し、データは残る", async () => {
   await wipe();
   await createUser(NORTH);
   await seedShop(NORTH, "架空の北口店");
   await assert.rejects(
-    () => deleteOwnAccount({ auth: { uid: NORTH, token: { auth_time: nowSec() - 301 } }, data: { uid: SOUTH } }),
+    () => deleteOwnAccount({
+      auth: { uid: NORTH, token: { auth_time: nowSec() - 301, firebase: { sign_in_provider: "password" } } },
+      data: { uid: SOUTH },
+    }),
     (error: unknown) => {
       assert.ok(error instanceof HttpsError);
       assert.equal(error.code, "failed-precondition");
@@ -195,6 +212,27 @@ test("auth_time が5分より古いと拒否し、データは残る", async () 
     (error: unknown) => error instanceof HttpsError && error.code === "failed-precondition",
   );
   assert.equal(await exists(`shops/${NORTH}/layoutHistory/change-1`), true);
+  assert.equal(await exists(`feedback/${NORTH}_${TICKET}`), true);
+  assert.equal(await userExists(NORTH), true);
+});
+
+test("匿名は auth_time が古くても消え、パスワードの店は残る", async () => {
+  await wipe();
+  await getAuth().createUser({ uid: GUEST });
+  await createUser(NORTH);
+  await seedShop(NORTH, "架空の北口店");
+  const db = getFirestore();
+  await db.doc(`feedback/${GUEST}_${GUEST_TICKET}`).set({ message: "匿名の試しの文", shop: null, platform: "ios" });
+  await db.doc(`feedbackPace/${GUEST}`).set({ ticket: GUEST_TICKET });
+
+  await deleteOwnAccount({
+    auth: { uid: GUEST, token: { auth_time: nowSec() - 3600, firebase: { sign_in_provider: "anonymous" } } },
+    data: { uid: NORTH },
+  });
+  assert.equal(await userExists(GUEST), false);
+  assert.equal(await exists(`feedback/${GUEST}_${GUEST_TICKET}`), false);
+  assert.equal(await exists(`feedbackPace/${GUEST}`), false);
+  assert.equal(await exists(`shops/${NORTH}/sessions/visit-1`), true);
   assert.equal(await exists(`feedback/${NORTH}_${TICKET}`), true);
   assert.equal(await userExists(NORTH), true);
 });

@@ -22,8 +22,9 @@ public func accountDeletionMessage(_ error: AccountDeletionError, isAnonymous: B
     case .wrongPassword:
         "パスワードが違います"
     case .recentLoginRequired:
+        // 匿名は入り直すと別の利用者になるので、ログアウトの案内は出さない
         isAnonymous
-            ? "ログインしてから時間が経ちました。一度ログアウトして入り直し、もう一度消してください"
+            ? "アカウントを消せませんでした。もう一度ためしてください"
             : "パスワードを入れ直してください"
     case .notSignedIn:
         "ログインしていません。入り直してからもう一度ためしてください"

@@ -13,8 +13,13 @@ export const RECENT_LOGIN_REQUIRED = "recent-login-required";
 const FEEDBACK_TICKET = /^[a-z0-9]{16}$/;
 
 // 呼び出しの形だけ。uid は auth から取り、data は見ない
+export interface AccountDeletionToken {
+  auth_time?: number;
+  firebase?: { sign_in_provider?: string };
+}
+
 export interface AccountDeletionCall {
-  auth?: { uid: string; token: { auth_time?: number } } | null;
+  auth?: { uid: string; token: AccountDeletionToken } | null;
   app?: unknown;
   data?: unknown;
 }
@@ -31,6 +36,12 @@ export function isRecentAuthTime(authTime: unknown, nowSec: number): boolean {
   if (typeof authTime !== "number" || !Number.isFinite(authTime)) return false;
   const age = nowSec - authTime;
   return age <= RECENT_LOGIN_SECONDS && age >= -60;
+}
+
+// 匿名はパスワードが無く、入り直すと別の利用者になる。そのときだけ auth_time を見ない。ほかのログイン方法は見る
+export function recentLoginRequired(token: AccountDeletionToken | undefined, nowSec: number): boolean {
+  if (token?.firebase?.sign_in_provider === "anonymous") return false;
+  return !isRecentAuthTime(token?.auth_time, nowSec);
 }
 
 // このアカウントのご意見だけ。shop が自分の uid ならログインした店。shop が null なら文書 id が自分の uid のときだけ（今の店）
@@ -112,7 +123,7 @@ export async function deleteOwnAccount(request: AccountDeletionCall): Promise<{ 
   }
   assertAccountUid(uid);
   const nowSec = Math.floor(Date.now() / 1000);
-  if (!isRecentAuthTime(request.auth?.token.auth_time, nowSec)) {
+  if (recentLoginRequired(request.auth?.token, nowSec)) {
     throw new HttpsError("failed-precondition", "パスワードを入れ直してから、もう一度消してください", {
       reason: RECENT_LOGIN_REQUIRED,
     });
@@ -131,4 +142,8 @@ export async function deleteOwnAccount(request: AccountDeletionCall): Promise<{ 
 
 // プラットフォームの enforceAppCheck は false のままにする。無効なトークンも関数まで届き、上で記録できる。
 // 強制するときは ENFORCE_APP_CHECK=true にする（あとからオンにする）
-export const deleteAccount = onCall({ region: FUNCTIONS_REGION, enforceAppCheck: false }, (request) => deleteOwnAccount(request));
+// 同時に動く数を抑えて、繰り返し呼ばれたときの費用を頭打ちにする
+export const deleteAccount = onCall(
+  { region: FUNCTIONS_REGION, enforceAppCheck: false, maxInstances: 5 },
+  (request) => deleteOwnAccount(request),
+);
