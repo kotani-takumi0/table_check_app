@@ -14,11 +14,12 @@
     "build": "npm run typecheck -w @table-check/core && npm run build -w @table-check/web",
     "test": "npm test --workspaces --if-present && node scripts/export-ios-content.mjs --check",
     "test:rules": "npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-minopal \"node scripts/feedback-rules.test.mjs\"",
+    "test:functions": "npm --prefix functions ci && npx --yes firebase-tools@15.33.0 emulators:exec --only auth,firestore --project demo-minopal \"npm --prefix functions test\"",
     "typecheck:ios": "npm run typecheck -w @table-check/ios",
     "ios-swift:open": "cd apps/ios-swift && xcodegen generate && open Minopal.xcodeproj",
     "ios-swift:content": "node scripts/export-ios-content.mjs",
     "ios-swift:test": "bash scripts/ios-swift-test.sh",
-    "ios-swift:emulators": "npx --yes firebase-tools@15.33.0 emulators:start --only auth,firestore --project demo-minopal",
+    "ios-swift:emulators": "npm --prefix functions ci && npm --prefix functions run build && npx --yes firebase-tools@15.33.0 emulators:start --only auth,firestore,functions --project demo-minopal",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules -P prod",
     "deploy:store": "npm run typecheck -w @table-check/core && STORE_DEPLOY=1 npm run build -w @table-check/web -- --mode development && firebase deploy --only hosting,firestore:rules -P dev"
   },
