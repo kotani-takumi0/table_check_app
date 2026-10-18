@@ -142,3 +142,4 @@ L.O.・店のタイマーの時間は前もって分かるので、端末の中�
 ## 入れないもの（ver.3.0.0）
 
 マイクの許可（`NSMicrophoneUsageDescription`）、`UIBackgroundModes` の `audio`、録音のコード。録音なしで申請するため。
+入っていないことは `npm run ios-swift:check-recording`（`apps/ios-swift/scripts/check-no-recording.mjs`）で確かめる。Info.plist・entitlements・project.yml のマイク許可と `UIBackgroundModes` の audio、Swift の録音 API を見る。PR の CI は、それに加えて申請用の Release ビルドの Info.plist も見る。
