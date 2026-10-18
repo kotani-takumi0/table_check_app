@@ -27,15 +27,19 @@ final class NoticeUITests: XCTestCase {
         bell.tap()
         tap(app.buttons["notice-action"].firstMatch)
 
-        // 済にすると 1件になり、元に戻すと 2件に戻る（戻った通知はもう一度バナーで知らせる）
+        // 元に戻すと 2件のまま（戻った通知はもう一度バナーで知らせる）。元に戻すは 6 秒で消え、件数が減るのを待つと間に合わないことがあるので、すぐ押す
         let undo = app.buttons["undo-button"]
         XCTAssertTrue(undo.waitForExistence(timeout: 5), "元に戻すが出ない")
-        tuckNotices(app)
-        XCTAssertTrue(waitForLabel(bell, "通知 1件"), "済にしても通知が減らない")
         undo.tap()
         XCTAssertTrue(app.buttons["notice-close"].firstMatch.waitForExistence(timeout: 10), "戻した通知がバナーに出ない")
         tuckNotices(app)
         XCTAssertTrue(waitForLabel(bell, "通知 2件"), "元に戻しても通知が戻らない")
+
+        // 済にすると 1件に減る
+        bell.tap()
+        tap(app.buttons["notice-action"].firstMatch)
+        tuckNotices(app)
+        XCTAssertTrue(waitForLabel(bell, "通知 1件"), "済にしても通知が減らない")
 
         // ご案内 → 次の段階へ → 元に戻す
         table.tap()

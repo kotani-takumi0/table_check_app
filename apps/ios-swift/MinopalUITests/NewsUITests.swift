@@ -43,8 +43,10 @@ final class NewsUITests: XCTestCase {
                       "待ちの案内が出ない")
 
         tap(app.buttons["最近の更新"])
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "版ごとに、新しくなったところ")).firstMatch.waitForExistence(timeout: 5),
-                      "最近の更新が出ない")
+        // ご意見を送るときに下へスクロールしたまま切り替わると、いちばん上の案内が画面の外にあって見つからないので、上へ戻す
+        let intro = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "版ごとに、新しくなったところ")).firstMatch
+        if !intro.waitForExistence(timeout: 3) { app.collectionViews.firstMatch.swipeDown() }
+        XCTAssertTrue(intro.waitForExistence(timeout: 5), "最近の更新が出ない")
         // いちばん新しい版はいちばん上に出る（版が増えても画面の中にある）
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "v[0-9]+\\.[0-9]+\\.[0-9]+")).firstMatch.exists, "版ごとのまとめが出ない")
     }
