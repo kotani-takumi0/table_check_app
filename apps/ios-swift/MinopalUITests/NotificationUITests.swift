@@ -35,7 +35,7 @@ final class NotificationUITests: XCTestCase {
         openDeviceSettings(app, pad: pad)
         let toggle = app.switches["通知"].firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), "通知の切り替えが無い")
-        if toggle.value as? String == "0" { toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap() }
+        if toggle.value as? String == "0" { flip(toggle) }
         let allow = app.buttons["notifications-allow"]
         if allow.waitForExistence(timeout: 2) {
             allow.tap()
@@ -51,7 +51,7 @@ final class NotificationUITests: XCTestCase {
         // 通知を切ると届かない
         app.activate()
         openDeviceSettings(app, pad: pad)
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        flip(toggle)
         XCTAssertTrue(waitForValue(toggle, "0"), "通知を切れない")
         markDone(app, "トイレ清掃", pad: pad)
         XCUIDevice.shared.press(.home)
@@ -60,7 +60,7 @@ final class NotificationUITests: XCTestCase {
         // 次に流すときのため、通知を入れ直しておく
         app.activate()
         openDeviceSettings(app, pad: pad)
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        flip(toggle)
         XCTAssertTrue(waitForValue(toggle, "1"), "通知を入れ直せない")
     }
 
@@ -69,6 +69,17 @@ final class NotificationUITests: XCTestCase {
         openSettings(app, pad: pad)
         // iPhone は設定タブの奥に進んだまま戻ってくることがある
         if !app.switches["通知"].firstMatch.waitForExistence(timeout: 1) { tap(app.buttons["settings-device"]) }
+    }
+
+    // 切り替えのスイッチそのものを押す。行の右端を押すと、iPad でサイドバーを開いていて列が細いときに、スイッチの外に当たるため
+    @MainActor
+    private func flip(_ toggle: XCUIElement) {
+        let knob = toggle.switches.firstMatch
+        if knob.exists {
+            knob.tap()
+        } else {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        }
     }
 
     // 店のタイマーを済にする（iPad はサイドバー、iPhone はお店タブの行の「済」）
