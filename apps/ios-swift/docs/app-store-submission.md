@@ -163,7 +163,7 @@ Archive したビルドにアイコンが入るかは、匠さんが Xcode で A
 匠さんが、この順で行います。
 
 1. 版を 3.0.0 にする PR（`chore/release-3.0.0`）がマージされてから Archive する。この PR では版を上げていない
-2. Apple Developer で、App ID `jp.minopal.app` に App Attest を付ける。資格の値は production（`Minopal/Minopal.entitlements`）
+2. Apple Developer で、App ID `jp.minopal.app` に App Attest を付ける。資格の値は production（`project.yml` の `entitlements.properties` と `Minopal/Minopal.entitlements`）。path だけを書くと、XcodeGen が資格ファイルを空で上書きする
 3. Firebase コンソールで、この iOS アプリに App Check の App Attest を登録する。強制（enforcement）は Authentication も Firestore もオフのままにする（記録だけ）。Web 版も含めて全部のアプリが App Check に対応してから、断る設定に変える。このリポジトリの `firestore.rules` は変えていない
 4. App Attest を使えない端末だけ DeviceCheck に戻す。強制がオフなので、DeviceCheck をコンソールに登録していなくても読み書きは断られない。登録するなら DeviceCheck も足す
 5. デバッグトークンは DEBUG ビルドのログに SDK が出すことがある。リポジトリにも CI のシークレットにも置かない。コンソールへの登録は、手元の開発ビルドで必要になったときだけ匠さんが行う
