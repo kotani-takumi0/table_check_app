@@ -1,6 +1,7 @@
 # Minopal iOS（Swift 版）
 
 今の iOS 版（`apps/ios`、Expo）を Swift（SwiftUI）で作り直したもの。ver.3.0.0 で、録音なしで App Store に申請するまでを目指す。
+App Store に出すときの説明文・プライバシーの申告・審査メモ・スクショとアイコンの確認は `docs/app-store-submission.md`。
 画面は No.150 で No.149 の画面案どおりに作った（ログイン・最初のページ・配置図・ご案内・卓の詳細・通知と元に戻す・設定・席の配置とコースの編集・お知らせとご意見）。今の iOS 版でできることとの対応表は Notion の No.162 にある。
 
 ## 中身
@@ -14,6 +15,7 @@
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
+| `docs/app-store-submission.md` | App Store 申請の下書き（説明文・プライバシー・審査用アカウント・スクショとアイコン・TestFlight） |
 
 ## 卓のルールは TS と Swift の両方にある
 
@@ -142,4 +144,4 @@ L.O.・店のタイマーの時間は前もって分かるので、端末の中�
 ## 入れないもの（ver.3.0.0）
 
 マイクの許可（`NSMicrophoneUsageDescription`）、`UIBackgroundModes` の `audio`、録音のコード。録音なしで申請するため。
-入っていないことは `npm run ios-swift:check-recording`（`apps/ios-swift/scripts/check-no-recording.mjs`）で確かめる。Info.plist・entitlements・project.yml のマイク許可と `UIBackgroundModes` の audio、Swift の録音 API を見る。PR の CI は、それに加えて申請用の Release ビルドの Info.plist も見る。
+入っていないことは `npm run ios-swift:check-recording`（`apps/ios-swift/scripts/check-no-recording.mjs`）で確かめる。Info.plist・entitlements・プライバシーマニフェスト・project.yml のマイク許可と `UIBackgroundModes` の audio、Swift の録音 API を見る。PR の CI は、それに加えて申請用の Release ビルドの Info.plist も見る。

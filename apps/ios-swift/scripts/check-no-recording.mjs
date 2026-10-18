@@ -220,7 +220,7 @@ function problemsInTree(tree = root) {
   for (const file of walk(tree)) {
     const label = relative(tree, file);
     if (file.endsWith('.swift')) problems.push(...problemsInSwift(readFileSync(file, 'utf8'), label));
-    else if (file.endsWith('.plist') || file.endsWith('.entitlements')) {
+    else if (file.endsWith('.plist') || file.endsWith('.entitlements') || file.endsWith('.xcprivacy')) {
       problems.push(...problemsInPlistObject(readPlist(file), label));
     } else if (file.endsWith('project.yml')) problems.push(...problemsInProjectYml(readFileSync(file, 'utf8'), label));
   }
