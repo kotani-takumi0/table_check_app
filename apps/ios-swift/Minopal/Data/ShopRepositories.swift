@@ -54,6 +54,8 @@ final class ShopSettingsRepository {
 @MainActor @Observable
 final class ShopTimerRepository {
     private(set) var done: ShopTimerDone = [:]
+    // 済の時刻を一度でも読み終えたか。空のキャッシュのあいだは false（開いた直後を未実施＝0分にしない）
+    private(set) var loaded = false
     private(set) var syncState = SyncState.offline
     @ObservationIgnored private let collection: CollectionReference
     @ObservationIgnored private var listener: ListenerRegistration?
@@ -68,7 +70,14 @@ final class ShopTimerRepository {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 logError(error)
-                if let snapshot { self.done = shopTimerDone(snapshot.documents.map { (id: $0.documentID, data: $0.data()) }) }
+                if let snapshot {
+                    let documents = snapshot.documents.map { (id: $0.documentID, data: $0.data()) }
+                    // Web は persistentLocalCache の前回の時刻を先に出す。空のキャッシュはサーバーの返事の前なので採用しない
+                    let next = applyShopTimerSnapshot(ShopTimerRead(done: self.done, loaded: self.loaded), fromCache: snapshot.metadata.isFromCache,
+                                                      documentCount: documents.count, parsed: shopTimerDone(documents))
+                    self.done = next.done
+                    self.loaded = next.loaded
+                }
                 self.syncState = syncStateOf(snapshot?.metadata)
             }
         }
@@ -77,9 +86,12 @@ final class ShopTimerRepository {
         listener?.remove()
         listener = nil
         syncState = .offline
+        // done と loaded は残す。聞き直すあいだに空のキャッシュが来ても、前回の時刻を 0分で消さない
     }
-    // 前の時刻も残し、元に戻すときはルールがその値に戻すことだけを許す（No.102）。古い時刻の書き込みはルールで断られ、画面はサーバーの値に戻る
+    // 前の時刻も残し、元に戻すときはルールがその値に戻すことだけを許す（No.102）。古い時刻の書き込みはルールで断られ、画面はサーバーの値に戻る。
+    // 読み終わる前は前の時刻が分からないので書かない（prevDoneAt を空にして、本当の前回を消せないようにする）
     func markDone(_ id: String, at: Int) {
+        guard loaded else { return }
         collection.document(id).setData(["doneAt": at, "prevDoneAt": done[id].map { $0 as Any } ?? NSNull(), "updatedAt": FieldValue.serverTimestamp()]) { logError($0) }
     }
     // 済にしたのを取り消す（No.102）。今の時刻が after のときだけ before に戻す（一度も済にしていなかったタイマーは doneAt: null）

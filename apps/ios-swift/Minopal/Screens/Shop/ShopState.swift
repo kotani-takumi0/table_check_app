@@ -25,8 +25,9 @@ struct ShopState {
         let settings = services.settings.settings
         summary = FloorSummary(layout: services.layout.layout, sessions: services.sessions.sessions, settings: settings, now: now)
         editingIds = editingSessionIds(services.editing.marks, now: now)
+        // 読み終わる前の空は「一度も済にしていない」と見分けがつかない。通知を出さない（開いた直後に「時間です」にしない）
         notices = noticesOf(services.sessions.sessions, shopTimers: services.timers.done, now: now,
-                            rulesOf: { sessionRules(settings.rules, $0, menus: settings.courseMenus) }, timers: settings.shopTimers)
+                            rulesOf: { sessionRules(settings.rules, $0, menus: settings.courseMenus) }, timers: Self.noticeTimers(services))
     }
 
     var settings: ShopSettings { services.settings.settings }
@@ -37,22 +38,31 @@ struct ShopState {
         return name.isEmpty ? (account == nil ? "今の店" : "ログインした店") : name
     }
 
-    func timerState(_ timer: ShopTimer) -> ShopTimerState {
-        shopTimerState(intervalMin: timer.intervalMin, doneAt: services.timers.done[timer.id], now: now)
+    var timersLoaded: Bool { services.timers.loaded }
+    // 読み終わる前は nil。読み終わったあとは Web と同じ shopTimerState（済の時刻が無ければすぐにやる時間）
+    func timerState(_ timer: ShopTimer) -> ShopTimerState? {
+        shownShopTimerState(intervalMin: timer.intervalMin, doneAt: services.timers.done[timer.id], now: now, loaded: timersLoaded)
     }
+    func timerDue(_ timer: ShopTimer) -> Bool { timerState(timer)?.due == true }
     // 残り時間（画面の時刻は1秒ごとなので、済にした直後に周期を超えて見えないよう上限をかける。Web と同じ）
     func timerRest(_ timer: ShopTimer) -> String {
-        let state = timerState(timer)
+        guard let state = timerState(timer) else { return "読み込み中" }
         if state.due { return "時間です" }
         return "あと\(min(timer.intervalMin, (state.remainingMs + 59_999) / 60_000))分"
     }
-    // 印に残す緑の割合（0〜1）
-    func timerLeft(_ timer: ShopTimer) -> Double {
-        let state = timerState(timer)
-        return state.due ? 0 : min(1, Double(state.remainingMs) / Double(timer.intervalMin * 60_000))
+    // 前回済にした時刻。読み終わる前は出さない（「まだ済にしていません」と決めない）
+    func timerNote(_ timer: ShopTimer) -> String? {
+        guard timersLoaded else { return nil }
+        return services.timers.done[timer.id].map { "前回 \(formatClock($0)) に済" } ?? "まだ済にしていません"
     }
-    // 済にする（数秒は元に戻せる）
+    // 印に残す緑の割合（0〜1）。読み終わる前は空の丸（赤い「時間です」にしない）
+    func timerLeft(_ timer: ShopTimer) -> Double {
+        guard let state = timerState(timer), !state.due else { return 0 }
+        return min(1, Double(state.remainingMs) / Double(timer.intervalMin * 60_000))
+    }
+    // 済にする（数秒は元に戻せる）。読み終わる前は前の時刻が分からないので受け付けない
     func markTimerDone(_ timer: ShopTimer) {
+        guard timersLoaded else { return }
         let at = nowMs()
         let before = services.timers.done[timer.id]
         services.timers.markDone(timer.id, at: at)
@@ -85,8 +95,14 @@ struct ShopState {
 
     // 端末の通知に予約する分（No.151）：画面の通知と同じ知らせの、これから時間が来る分
     var scheduledNotices: [ScheduledNotice] {
-        MinopalCore.scheduledNotices(sessions, shopTimers: services.timers.done, now: now, rulesOf: rules, timers: settings.shopTimers,
+        // 読み終わる前は店のタイマーを予約しない（未実施として、すぐ鳴る予約を作らない）
+        MinopalCore.scheduledNotices(sessions, shopTimers: services.timers.done, now: now, rulesOf: rules, timers: Self.noticeTimers(services),
                                     closingMin: settings.closingMin)
+    }
+
+    // 済の時刻を読み終わるまで、店のタイマーを通知・予約に入れない
+    private static func noticeTimers(_ services: ShopServices) -> [ShopTimer] {
+        services.timers.loaded ? services.settings.settings.shopTimers : []
     }
 
     // その卓に使う時間のルール（コースごとの L.O.・お席の時間。No.89）

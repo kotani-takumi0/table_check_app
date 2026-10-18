@@ -32,10 +32,38 @@ public struct ShopTimerState: Equatable, Sendable {
     public var dueAt: Int
     public var remainingMs: Int
 }
-// 一度も済にしていなければ、すぐにやる時間として扱う
+// 一度も済にしていなければ、すぐにやる時間として扱う。
+// まだ読んでいない空の辞書を渡すと、開いた直後に残り 0分になる。画面は shownShopTimerState を使う
 public func shopTimerState(intervalMin: Int, doneAt: Int?, now: Int) -> ShopTimerState {
     let dueAt = doneAt.map { $0 + intervalMin * minute } ?? 0
     return ShopTimerState(due: now >= dueAt, dueAt: dueAt, remainingMs: max(0, dueAt - now))
+}
+// 画面に出す残り。済の時刻を読み終わる前は nil（開いた直後に 0分・「時間です」と出さない）。
+// 読み終わったあとは shopTimerState。一度も済にしていなければ、すぐにやる時間（Web の shopTimerState と同じ）
+public func shownShopTimerState(intervalMin: Int, doneAt: Int?, now: Int, loaded: Bool) -> ShopTimerState? {
+    guard loaded else { return nil }
+    return shopTimerState(intervalMin: intervalMin, doneAt: doneAt, now: now)
+}
+
+// 済の時刻と、それを読み終えたか（開いた直後の空は「読み終わった」ではない）
+public struct ShopTimerRead: Equatable, Sendable {
+    public var done: ShopTimerDone
+    public var loaded: Bool
+    public init(done: ShopTimerDone = [:], loaded: Bool = false) {
+        self.done = done
+        self.loaded = loaded
+    }
+}
+// キャッシュが空の最初の知らせは、サーバーの返事の前なので読み終わりではない。
+// Web は persistentLocalCache で前回の時刻が先に届く。文書の無いキャッシュを「一度も済にしていない」にすると、残りが 0分になる
+public func shopTimersLoaded(fromCache: Bool, documentCount: Int) -> Bool {
+    !fromCache || documentCount > 0
+}
+// 今の読みに、Firestore の知らせを重ねる。空のキャッシュは無視する（読み終わったあとの時刻を空で消さない）。
+// キャッシュに文書がある、またはサーバーから届いた（文書が無くても）ときは、その時刻を採用する
+public func applyShopTimerSnapshot(_ current: ShopTimerRead, fromCache: Bool, documentCount: Int, parsed: ShopTimerDone) -> ShopTimerRead {
+    guard shopTimersLoaded(fromCache: fromCache, documentCount: documentCount) else { return current }
+    return ShopTimerRead(done: parsed, loaded: true)
 }
 // id は英小文字・数字・_ の24文字まで（firestore.rules の shopTimers と同じ形）
 public func isShopTimerId(_ id: String) -> Bool { isCourse(id) }

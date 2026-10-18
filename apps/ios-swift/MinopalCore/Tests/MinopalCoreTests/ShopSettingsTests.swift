@@ -173,6 +173,27 @@ struct ShopTimerStateTests {
         #expect(shopTimerState(intervalMin: 120, doneAt: nil, now: 5).due)
     }
 
+    @Test("読み終わる前は残りを出さない。読み終わったら前に済にした時刻から出す")
+    func hiddenUntilLoaded() {
+        let doneAt = 1_000_000
+        #expect(shownShopTimerState(intervalMin: 30, doneAt: nil, now: doneAt, loaded: false) == nil)
+        #expect(shownShopTimerState(intervalMin: 30, doneAt: doneAt, now: doneAt, loaded: false) == nil)
+        let shown = shownShopTimerState(intervalMin: 30, doneAt: doneAt, now: doneAt + 10 * minute, loaded: true)
+        #expect(shown == ShopTimerState(due: false, dueAt: doneAt + 30 * minute, remainingMs: 20 * minute))
+        #expect(shownShopTimerState(intervalMin: 30, doneAt: nil, now: doneAt, loaded: true)?.due == true)
+    }
+
+    @Test("空のキャッシュは読み終わりではない。文書があるキャッシュと、サーバーの返事は読み終わり")
+    func snapshotLoaded() {
+        let waiting = ShopTimerRead(done: ["toilet_check": 50], loaded: false)
+        #expect(applyShopTimerSnapshot(waiting, fromCache: true, documentCount: 0, parsed: [:]) == waiting)
+        let cached = applyShopTimerSnapshot(waiting, fromCache: true, documentCount: 1, parsed: ["toilet_check": 80])
+        #expect(cached == ShopTimerRead(done: ["toilet_check": 80], loaded: true))
+        #expect(applyShopTimerSnapshot(ShopTimerRead(), fromCache: false, documentCount: 0, parsed: [:]) == ShopTimerRead(done: [:], loaded: true))
+        #expect(applyShopTimerSnapshot(cached, fromCache: true, documentCount: 0, parsed: [:]) == cached)
+        #expect(shopTimersLoaded(fromCache: false, documentCount: 2))
+    }
+
     @Test("保存データから有限の数値だけ取り出す")
     func parsesDoneAt() {
         #expect(parseDoneAt("10") == 10)

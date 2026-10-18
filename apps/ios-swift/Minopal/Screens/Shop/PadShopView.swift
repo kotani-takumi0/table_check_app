@@ -191,7 +191,7 @@ struct PadShopView: View {
     private var timers: some View {
         HStack(spacing: 16) {
             ForEach(state.settings.shopTimers, id: \.id) { timer in
-                let due = state.timerState(timer).due
+                let due = state.timerDue(timer)
                 HStack(spacing: 8) {
                     ShopTimerMark(left: state.timerLeft(timer), due: due)
                     VStack(alignment: .leading, spacing: 0) {
@@ -212,6 +212,7 @@ struct PadShopView: View {
                         .frame(minHeight: Metrics.minTap)
                         .contentShape(Capsule())
                         .accessibilityLabel("\(timer.label)を済にする")
+                        .disabled(!state.timersLoaded)
                 }
             }
         }
