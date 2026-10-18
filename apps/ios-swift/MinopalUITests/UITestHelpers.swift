@@ -71,12 +71,14 @@ extension XCTestCase {
         }
     }
 
-    // エミュレータと同期するまで待つ。iPad はヘッダーに同期の状態が出る。iPhone は同期済みのときは出さない（送信待ち・オフラインだけ出す）
+    // エミュレータと同期するまで待つ。iPad はヘッダーに同期の状態が出る。iPhone は同期済みのときは出さない（送信待ち・オフラインだけ出す）。
+    // 状態は snapshot で一度に読む（exists を見てから label を読むと、その間に表示が消えたときにテストが落ちるため）
     func waitUntilSynced(_ app: XCUIApplication, timeout: TimeInterval = 15) -> Bool {
-        let state = app.descendants(matching: .any)["sync-state"]
+        let state = app.descendants(matching: .any)["sync-state"].firstMatch
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
-            if !state.exists ? UIDevice.current.userInterfaceIdiom == .phone : state.label == "同期済み" { return true }
+            let shown = try? state.snapshot()
+            if shown == nil ? UIDevice.current.userInterfaceIdiom == .phone : shown?.label == "同期済み" { return true }
             RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         } while Date() < deadline
         return false
