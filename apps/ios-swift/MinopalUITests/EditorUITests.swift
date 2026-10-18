@@ -68,9 +68,15 @@ final class EditorUITests: XCTestCase {
         tap(app.buttons["settings-course"])
         // 「コースを足す」は料理のコースの下（区分とコースが並ぶので、画面の下にあれば上へスクロールする）
         let addCourse = app.buttons["コースを足す"]
+        // 「コースを足す」があるリスト（いちばん右の列）の、画面に見えている所を上へドラッグする。
+        // iPad でサイドバーを開いていると、この列は右の画面の外まで押し出されるので、列の真ん中や画面の決まった位置では当たらない
+        let rightmost = app.collectionViews.matching(NSPredicate(format: "label != %@", "Sidebar")).allElementsBoundByIndex.max { $0.frame.minX < $1.frame.minX }
+        let list = pad ? rightmost ?? app : app
+        let shown = list.frame.intersection(app.frame)
+        let origin = app.coordinate(withNormalizedOffset: .zero)
         for _ in 0..<5 where !addCourse.isHittable {
-            // iPad は右の列（中身）を、iPhone は画面のリストを上へ
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.7)).press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.3)))
+            origin.withOffset(CGVector(dx: shown.midX, dy: shown.minY + shown.height * 0.7))
+                .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: shown.midX, dy: shown.minY + shown.height * 0.3)))
         }
         tap(addCourse)
         let save = app.buttons["editor-save"]
