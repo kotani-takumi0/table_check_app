@@ -46,15 +46,15 @@ extension XCTestCase {
         confirm?.tap()
     }
 
-    // 最初の画面でログインする。作ったばかりのアカウントは最初のページ（No.087）が出るので、テンプレート（居酒屋・21卓）で始める
-    func logIn(_ app: XCUIApplication, email: String, password: String = "password123", startWithTemplate: Bool = true) {
-        enter(app.textFields["メールアドレス"], email)
-        typeSlowly(app.secureTextFields["パスワード"], password)
-        app.buttons["ログイン"].tap()
+    // ログインした店でアプリを起動する。画面ではログインせず、起動の引数でアプリにログインさせる（Minopal/Data/TestLogin.swift）。
+    // 画面でログインすると iOS の「パスワードを保存しますか？」が出て、閉じるのに数秒〜2分かかるため。
+    // 作ったばかりのアカウントは最初のページ（No.087）が出るので、テンプレート（居酒屋・21卓）で始める
+    func launchLoggedIn(_ app: XCUIApplication, email: String, startWithTemplate: Bool = true) {
+        app.launchArguments += ["-MinopalTestLogin", email]
+        app.launch()
         guard startWithTemplate else { return }
         let template = app.buttons["first-template-izakaya_21"]
         if firstToAppear(template, app.buttons["table-1"]) == template {
-            dismissSavePassword(app)
             template.tap()
         }
     }
@@ -71,28 +71,17 @@ extension XCTestCase {
         }
     }
 
-    // エミュレータと同期するまで待つ。iPad はヘッダーに同期の状態が出る。iPhone は同期済みのときは出さない（送信待ち・オフラインだけ出す）
+    // エミュレータと同期するまで待つ。iPad はヘッダーに同期の状態が出る。iPhone は同期済みのときは出さない（送信待ち・オフラインだけ出す）。
+    // 状態は snapshot で一度に読む（exists を見てから label を読むと、その間に表示が消えたときにテストが落ちるため）
     func waitUntilSynced(_ app: XCUIApplication, timeout: TimeInterval = 15) -> Bool {
-        let state = app.descendants(matching: .any)["sync-state"]
+        let state = app.descendants(matching: .any)["sync-state"].firstMatch
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
-            if !state.exists ? UIDevice.current.userInterfaceIdiom == .phone : state.label == "同期済み" { return true }
+            let shown = try? state.snapshot()
+            if shown == nil ? UIDevice.current.userInterfaceIdiom == .phone : shown?.label == "同期済み" { return true }
             RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         } while Date() < deadline
         return false
-    }
-
-    // ログインのあとに iOS が出す「パスワードを保存しますか？」を閉じる（出ると画面を覆い、最初のタップはこれを閉じるだけになる）。
-    // 出なければ何もしない
-    func dismissSavePassword(_ app: XCUIApplication) {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        guard let notNow = firstToAppear(app.buttons["今はしない"], springboard.buttons["今はしない"], timeout: 5) else { return }
-        // 出てくる途中に押すと届かないので、消えるまで押し直す。消えきるまでは、下の画面を押せない
-        for _ in 0..<3 where notNow.exists {
-            notNow.tap()
-            _ = XCTWaiter().wait(for: [expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: notNow)], timeout: 2)
-        }
-        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
     }
 
     // パスワードの欄にまとめて打つと、1文字しか入らないことがある（シミュレータのテストだけで起き、人が打つときは起きない）ので1文字ずつ打つ

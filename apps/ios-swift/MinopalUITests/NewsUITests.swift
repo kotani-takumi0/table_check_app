@@ -14,13 +14,10 @@ final class NewsUITests: XCTestCase {
         let email = "uitest-\(UUID().uuidString.prefix(8).lowercased())@example.com"
         try createEmulatorAccount(email: email, password: "password123")
         let app = minopalApp()
-        app.launch()
 
-        openLoginScreen(app)
-        logIn(app, email: email)
+        launchLoggedIn(app, email: email)
         XCTAssertTrue(app.buttons["table-1"].waitForExistence(timeout: 15), "ログインした店の卓が出ない")
         XCTAssertTrue(waitUntilSynced(app), "エミュレータと同期できない")
-        dismissSavePassword(app)
         tuckNotices(app)
 
         // iPad はサイドバー、iPhone はタブから開く。最初は今後の予定

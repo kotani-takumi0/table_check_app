@@ -86,10 +86,31 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 
 ## テスト
 
-- 卓のルール：`cd apps/ios-swift/MinopalCore && swift test`
-- Firestore の読み書きと画面：エミュレータを起動してから、Xcode で ⌘U（`MinopalTests` と `MinopalUITests`）。
-  コマンドで流すときは `-collect-test-diagnostics never` を付ける（付けないと、落ちたテストがあるたびに診断の情報を集めて10分ほど待たされる）。
-  iPad と iPhone は `-destination` を2つ並べると同時に流れる
+- 卓のルール：`cd apps/ios-swift/MinopalCore && swift test`（数秒）
+- Firestore の読み書きと画面：エミュレータ（`npm run ios-swift:emulators`）を起動してから、`npm run ios-swift:test` で流す。
+  iPad と iPhone で同時に流れ、最後に件数・落ちたテスト・かかった時間が出る。
+  - **ふだんは直した画面のテストだけ**流す：`npm run ios-swift:test -- FloorUITests SettingsUITests`（名前は `MinopalUITests`・`MinopalTests` のファイル名）。
+    `MINOPAL_TEST_DEVICES=pad` で iPad だけにもできる
+
+    | 直したところ | 流すテスト |
+    |---|---|
+    | 最初の画面（ログイン・アカウントを作る） | `LoginScreenUITests` |
+    | 配置図・ご案内・卓の詳細・団体 | `FloorUITests` |
+    | 最初のページ・席の配置・コース | `EditorUITests` |
+    | 設定 | `SettingsUITests` |
+    | 通知のバナー・ベル・元に戻す | `NoticeUITests` |
+    | 端末の通知 | `NotificationUITests` |
+    | お知らせ（予定・更新・ご意見） | `NewsUITests` |
+    | Firestore の読み書き（`Minopal/Data`）・画面の部品の計算 | `MinopalTests` |
+    | 店の画面の枠（サイドバー・タブ）・`UITestHelpers.swift` | 全部 |
+  - **全部は PR を出す前に1回**：`npm run ios-swift:test`。UI テストは1本 30〜150 秒あり、全部だと15分ほどかかる（2026-10-18 に並べて流して 14分39秒）
+  - 流している間は **Mac の蓋を開けたまま**にする。バッテリーで蓋を閉じるとスリープしてテストが止まり、何時間もかかったうえに落ちる（10/18 に2回あった）
+  - スクリプト（`scripts/ios-swift-test.sh`）は、`GoogleService-Info.plist` を流す間だけどける・毎回 `xcodegen generate` する・
+    テストごとに時間の上限（3分）を置く・落ちても診断を集めない・1件も流れなければ失敗にする。手で `xcodebuild test` を打つときも、
+    plist をどけて `-collect-test-diagnostics never` を付ける（付けないと、落ちたテストがあるたびに10分ほど待たされる）
+  - ログインした店で始める UI テストは、画面ではログインせず、起動の引数 `-MinopalTestLogin <メール>` でアプリにログインさせる
+    （`Minopal/Data/TestLogin.swift`。開発中のビルドでエミュレータのときだけ）。画面でログインすると iOS の「パスワードを保存しますか？」が出て、
+    閉じるのに数秒〜2分かかるため。ログインの画面そのものは `LoginScreenUITests` で確かめる
 - PR を出すと、GitHub Actions で卓のルールのテストとシミュレータ向けのビルドが回る（`.github/workflows/ios-swift.yml`）。CI ではアプリを起動しての確かめ（UI テスト）はしない
 - PR に添えるスクショ：テストデータ（いろいろな状態の卓）を入れた「ログインせずに使う」の店で撮る。ふだんのテストでは飛ばす
   ```sh
