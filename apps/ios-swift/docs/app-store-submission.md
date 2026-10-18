@@ -192,7 +192,7 @@ PR の CI は、ソースの確認に加えて、署名しない Release ビル�
 `npm run ios-swift:check-release`（`apps/ios-swift/scripts/check-release-bundle.mjs`）が、次を見つけると失敗します。
 
 - `project.yml` の `entitlements.properties` に App Attest の資格（production）が無い
-- Release ビルドの資格（`.xcent`）が空、または `com.apple.developer.devicecheck.appattest-environment` が production ではない
+- `Minopal/Minopal.entitlements` が空、または `com.apple.developer.devicecheck.appattest-environment` が production ではない（CI は `xcodegen generate` のあとのファイルを見る）
 - ビルドしたアプリに `PrivacyInfo.xcprivacy` が無い
 
-署名しないビルドは資格をアプリの中に埋め込まないので、CI は Release の中間生成物（`.xcent`）を見ます。
+署名しないビルドは `.xcent` を出さないので、資格の中身はそこでは見ません。

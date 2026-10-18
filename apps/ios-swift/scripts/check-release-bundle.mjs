@@ -1,9 +1,11 @@
-// Release ビルドの資格が空でないことと、プライバシーマニフェストがアプリに入っていることを確かめる。
-// XcodeGen は entitlements.properties が空だと、資格ファイルを空の辞書で上書きする。
+// 資格とプライバシーマニフェストを確かめる。
+// 署名しない CI は .xcent を出さないので、資格は project.yml と、xcodegen が書いた Minopal.entitlements を見る。
+// プライバシーマニフェストは、ビルドしたアプリ束（--app）だけを見る。
 // 使い方：
 //   node apps/ios-swift/scripts/check-release-bundle.mjs --self-test
-//   node apps/ios-swift/scripts/check-release-bundle.mjs --app path/to/Release-iphonesimulator/Minopal.app --derived path/to/DerivedData
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+//   node apps/ios-swift/scripts/check-release-bundle.mjs
+//   node apps/ios-swift/scripts/check-release-bundle.mjs --app path/to/Release-iphonesimulator/Minopal.app
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -11,6 +13,7 @@ import { readPlist } from './check-no-recording.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const appAttestKey = 'com.apple.developer.devicecheck.appattest-environment';
+const entitlementsPath = join(root, 'Minopal', 'Minopal.entitlements');
 
 function stripHashComments(text) {
   return text.split('\n').map((line) => {
@@ -48,65 +51,32 @@ function problemsInEntitlements(data, label) {
   return [];
 }
 
-function walk(dir, files = []) {
-  if (!existsSync(dir)) return files;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) walk(path, files);
-    else files.push(path);
-  }
-  return files;
-}
-
-// 署名しない Release ビルドは、中間生成物の .xcent に資格を書く（アプリ束には埋め込まない）
-function releaseEntitlementFiles(appPath, derived) {
-  const files = [];
-  const archived = join(appPath, 'archived-expanded-entitlements.xcent');
-  if (existsSync(archived)) files.push(archived);
-  const rootDir = derived || dirname(dirname(dirname(dirname(appPath))));
-  const intermediates = join(rootDir, 'Build', 'Intermediates.noindex');
-  for (const file of walk(intermediates)) {
-    if (!file.endsWith('.xcent')) continue;
-    if (!file.includes('Release-') || !file.includes('Minopal')) continue;
-    files.push(file);
-  }
-  return [...new Set(files)];
-}
-
-function problemsInPrivacy(appPath) {
-  const file = join(appPath, 'PrivacyInfo.xcprivacy');
-  if (!existsSync(file)) return [`${appPath} に PrivacyInfo.xcprivacy が無い`];
-  const raw = readFileSync(file);
-  if (raw.length === 0 || !raw.toString('utf8').trim()) return [`${file} の中身が空`];
-  let data;
+function problemsInEntitlementsFile(file) {
+  if (!existsSync(file)) return [`${file} が無い`];
   try {
-    data = readPlist(file);
+    return problemsInEntitlements(readPlist(file), file);
   } catch (error) {
     return [`${file} を読めない: ${error.message}`];
   }
-  if (!data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) {
-    return [`${file} の中身が空`];
-  }
-  return [];
 }
 
-function problemsInReleaseBuild(appPath, derived) {
+function problemsInPrivacy(appPath) {
   const problems = [];
   if (!appPath.includes('Release-')) {
     problems.push(`渡されたアプリが Release ビルドではない（パスに Release- が無い）: ${appPath}`);
   }
-  problems.push(...problemsInPrivacy(appPath));
-  const entitlements = releaseEntitlementFiles(appPath, derived);
-  if (entitlements.length === 0) {
-    problems.push(`Release ビルドの資格（.xcent）が見つからない: ${appPath}`);
-    return problems;
+  const file = join(appPath, 'PrivacyInfo.xcprivacy');
+  if (!existsSync(file)) return [...problems, `${appPath} に PrivacyInfo.xcprivacy が無い`];
+  const raw = readFileSync(file);
+  if (raw.length === 0 || !raw.toString('utf8').trim()) return [...problems, `${file} の中身が空`];
+  let data;
+  try {
+    data = readPlist(file);
+  } catch (error) {
+    return [...problems, `${file} を読めない: ${error.message}`];
   }
-  for (const file of entitlements) {
-    try {
-      problems.push(...problemsInEntitlements(readPlist(file), file));
-    } catch (error) {
-      problems.push(`${file} を読めない: ${error.message}`);
-    }
+  if (!data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0) {
+    return [...problems, `${file} の中身が空`];
   }
   return problems;
 }
@@ -119,21 +89,6 @@ function assertEqual(actual, expected, message) {
 
 function plist(body) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>${body}</dict></plist>\n`;
-}
-
-function writeFixture(dir, { entitlementsBody, privacyBody, debugEntitlementsBody }) {
-  const app = join(dir, 'Build', 'Products', 'Release-iphonesimulator', 'Minopal.app');
-  const xcentDir = join(dir, 'Build', 'Intermediates.noindex', 'Minopal.build', 'Release-iphonesimulator', 'Minopal.build');
-  const debugDir = join(dir, 'Build', 'Intermediates.noindex', 'Minopal.build', 'Debug-iphonesimulator', 'Minopal.build');
-  mkdirSync(app, { recursive: true });
-  mkdirSync(xcentDir, { recursive: true });
-  mkdirSync(debugDir, { recursive: true });
-  if (privacyBody !== undefined) writeFileSync(join(app, 'PrivacyInfo.xcprivacy'), privacyBody);
-  writeFileSync(join(xcentDir, 'Minopal.app.xcent'), plist(entitlementsBody));
-  if (debugEntitlementsBody !== undefined) {
-    writeFileSync(join(debugDir, 'Minopal.app.xcent'), plist(debugEntitlementsBody));
-  }
-  return app;
 }
 
 function selfTest() {
@@ -153,43 +108,37 @@ function selfTest() {
   assertEqual(problemsInEntitlements({ other: 'x' }, 'other').length, 1, 'キーの欠落を見過ごす');
   assertEqual(problemsInEntitlements({ [appAttestKey]: 'production' }, 'ok'), [], 'production を誤検知する');
 
-  const goodDir = mkdtempSync(join(tmpdir(), 'minopal-release-'));
-  const badDir = mkdtempSync(join(tmpdir(), 'minopal-release-bad-'));
-  const emptyDir = mkdtempSync(join(tmpdir(), 'minopal-release-empty-'));
+  const dir = mkdtempSync(join(tmpdir(), 'minopal-release-'));
   try {
-    const privacy = plist('<key>NSPrivacyTracking</key><false/>');
-    const goodApp = writeFixture(goodDir, {
-      entitlementsBody: `<key>${appAttestKey}</key><string>production</string>`,
-      privacyBody: privacy,
-      debugEntitlementsBody: '',
-    });
-    assertEqual(problemsInReleaseBuild(goodApp, goodDir), [], '揃った Release ビルドを誤検知する');
+    const entitlements = join(dir, 'Minopal.entitlements');
+    const app = join(dir, 'Release-iphonesimulator', 'Minopal.app');
+    writeFileSync(entitlements, plist(''));
+    assertEqual(problemsInEntitlementsFile(entitlements), [`${entitlements} の資格が空`], '空の資格ファイルを見過ごす');
+    writeFileSync(entitlements, plist('<key>other</key><string>x</string>'));
+    if (!problemsInEntitlementsFile(entitlements).some((line) => line.includes(appAttestKey))) {
+      throw new Error('資格ファイルのキー欠落を見過ごす');
+    }
+    writeFileSync(entitlements, plist(`<key>${appAttestKey}</key><string>production</string>`));
+    assertEqual(problemsInEntitlementsFile(entitlements), [], 'production の資格ファイルを誤検知する');
 
-    const badApp = writeFixture(badDir, {
-      entitlementsBody: '<key>other</key><string>x</string>',
-      privacyBody: privacy,
-    });
-    const bad = problemsInReleaseBuild(badApp, badDir);
-    if (!bad.some((line) => line.includes(appAttestKey))) throw new Error('資格の欠落を見過ごす');
-
-    const emptyApp = writeFixture(emptyDir, { entitlementsBody: '', privacyBody: '' });
-    const empty = problemsInReleaseBuild(emptyApp, emptyDir);
-    if (!empty.some((line) => line.includes('資格が空'))) throw new Error('空の資格を見過ごす');
-    if (!empty.some((line) => line.includes('中身が空'))) throw new Error('空のプライバシーマニフェストを見過ごす');
-
-    const noPrivacy = join(emptyDir, 'Build', 'Products', 'Release-iphonesimulator', 'Minopal.app', 'PrivacyInfo.xcprivacy');
-    rmSync(noPrivacy);
-    if (!problemsInReleaseBuild(emptyApp, emptyDir).some((line) => line.includes('PrivacyInfo.xcprivacy が無い'))) {
+    mkdirSync(app, { recursive: true });
+    if (!problemsInPrivacy(app).some((line) => line.includes('PrivacyInfo.xcprivacy が無い'))) {
       throw new Error('プライバシーマニフェストの欠落を見過ごす');
     }
+    writeFileSync(join(app, 'PrivacyInfo.xcprivacy'), '');
+    if (!problemsInPrivacy(app).some((line) => line.includes('中身が空'))) {
+      throw new Error('空のプライバシーマニフェストを見過ごす');
+    }
+    writeFileSync(join(app, 'PrivacyInfo.xcprivacy'), plist('<key>NSPrivacyTracking</key><false/>'));
+    assertEqual(problemsInPrivacy(app), [], 'プライバシーマニフェストがあるアプリを誤検知する');
   } finally {
-    rmSync(goodDir, { recursive: true, force: true });
-    rmSync(badDir, { recursive: true, force: true });
-    rmSync(emptyDir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
   }
 
   const spec = problemsInSpec(readFileSync(join(root, 'project.yml'), 'utf8'));
   if (spec.length > 0) throw new Error(spec.join('\n'));
+  const generated = problemsInEntitlementsFile(entitlementsPath);
+  if (generated.length > 0) throw new Error(generated.join('\n'));
   console.log('資格とプライバシーマニフェストの自己テストに通りました');
 }
 
@@ -201,7 +150,10 @@ function main() {
       process.exit(1);
     }
   }
-  const problems = [...problemsInSpec(readFileSync(join(root, 'project.yml'), 'utf8'))];
+  const problems = [
+    ...problemsInSpec(readFileSync(join(root, 'project.yml'), 'utf8')),
+    ...problemsInEntitlementsFile(entitlementsPath),
+  ];
   const appFlag = args.indexOf('--app');
   if (appFlag >= 0) {
     const appPath = args[appFlag + 1];
@@ -209,17 +161,15 @@ function main() {
       console.error('--app のあとに Minopal.app のパスが要る');
       process.exit(1);
     }
-    const derivedFlag = args.indexOf('--derived');
-    const derived = derivedFlag >= 0 ? args[derivedFlag + 1] : '';
-    problems.push(...problemsInReleaseBuild(appPath, derived || undefined));
+    problems.push(...problemsInPrivacy(appPath));
   }
   if (problems.length > 0) {
     console.error(problems.join('\n'));
     process.exit(1);
   }
   console.log(appFlag >= 0
-    ? 'Release ビルドの資格とプライバシーマニフェストを確かめました'
-    : 'project.yml の App Attest の資格は production です');
+    ? '資格とプライバシーマニフェストを確かめました'
+    : 'project.yml と Minopal.entitlements の App Attest の資格は production です');
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

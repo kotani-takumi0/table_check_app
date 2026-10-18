@@ -61,6 +61,10 @@ jobs:
         working-directory: apps/ios-swift
         run: '"$RUNNER_TEMP/xcodegen/bin/xcodegen" generate'
 
+      - name: XcodeGen のあとの資格を確かめる
+        working-directory: apps/ios-swift
+        run: node scripts/check-release-bundle.mjs
+
       - name: シミュレータ向けにビルド（Debug。デバッグプロバイダの側もコンパイルする）
         working-directory: apps/ios-swift
         run: |
@@ -85,4 +89,4 @@ jobs:
           app="$(find "$RUNNER_TEMP/minopal-derived/Build/Products" -type d -name 'Minopal.app' -path '*Release-iphonesimulator*' -print -quit)"
           test -n "$app"
           node scripts/check-no-recording.mjs --app "$app"
-          node scripts/check-release-bundle.mjs --app "$app" --derived "$RUNNER_TEMP/minopal-derived"
+          node scripts/check-release-bundle.mjs --app "$app"
