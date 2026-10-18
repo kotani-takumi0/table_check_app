@@ -48,9 +48,15 @@ extension XCTestCase {
 
     // 最初の画面でログインする。作ったばかりのアカウントは最初のページ（No.087）が出るので、テンプレート（居酒屋・21卓）で始める
     func logIn(_ app: XCUIApplication, email: String, password: String = "password123", startWithTemplate: Bool = true) {
-        enter(app.textFields["メールアドレス"], email)
-        typeSlowly(app.secureTextFields["パスワード"], password)
-        app.buttons["ログイン"].tap()
+        // 欄は押さずにキーボードの「次へ」「実行」で進める。メールアドレスを打ったあとにパスワードの欄を押すと、キーボード（日本語かな）で
+        // 画面がずれて「アカウントを作る」の切り替えに当たり、パスワードの欄が無くなることがある
+        enter(app.textFields["メールアドレス"], email + "\n")
+        let passwordField = app.secureTextFields["パスワード"]
+        XCTAssertTrue(passwordField.waitForExistence(timeout: 5), "パスワードの欄が無い")
+        for ch in password {
+            passwordField.typeText(String(ch))
+        }
+        passwordField.typeText("\n")
         guard startWithTemplate else { return }
         let template = app.buttons["first-template-izakaya_21"]
         if firstToAppear(template, app.buttons["table-1"]) == template {
