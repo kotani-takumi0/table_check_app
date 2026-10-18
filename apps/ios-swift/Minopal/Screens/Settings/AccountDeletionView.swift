@@ -39,7 +39,7 @@ private struct AccountDeletionForm: View {
                 }
             case .confirm:
                 Section {
-                    Text("この店のデータ（席・履歴・設定）がすべて消えます。元に戻せません")
+                    Text("この店のデータ（席・履歴・設定）と、送ったご意見がすべて消えます。元に戻せません")
                         .minopalFont(17, relativeTo: .body)
                         .foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)

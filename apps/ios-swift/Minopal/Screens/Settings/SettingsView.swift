@@ -78,7 +78,8 @@ struct PadSettingsView: View {
     }
 }
 
-// アカウント：ログアウトと「アカウントを削除」は赤い文字の行（No.149・No.172）。今の店は「ログインする」で最初の画面に戻る
+// アカウント：ログアウトは赤い文字の行（No.149）。今の店は「ログインする」で最初の画面に戻る。
+// アカウントの削除は押し間違えないよう、ログアウトとは別のまとまりにして離す（No.172）
 struct AccountSection: View {
     let account: String?
     let onLeave: () -> Void
@@ -87,27 +88,31 @@ struct AccountSection: View {
     @State private var deleting = false
 
     var body: some View {
-        Section(header: SettingsHeading(text: "アカウント"),
-                footer: SettingsFootnote(text: account.map { "ログイン中：\($0)" } ?? "今の店（ログインなしで使っている店）を使っています")) {
-            Button { confirming = true } label: {
-                Text(account == nil ? "ログインする" : "ログアウト")
-                    .minopalFont(17, .bold, relativeTo: .body)
-                    .foregroundStyle(account == nil ? Palette.keyText : Palette.nowInk)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .contentShape(Rectangle())
+        Group {
+            Section(header: SettingsHeading(text: "アカウント"),
+                    footer: SettingsFootnote(text: account.map { "ログイン中：\($0)" } ?? "今の店（ログインなしで使っている店）を使っています")) {
+                Button { confirming = true } label: {
+                    Text(account == nil ? "ログインする" : "ログアウト")
+                        .minopalFont(17, .bold, relativeTo: .body)
+                        .foregroundStyle(account == nil ? Palette.keyText : Palette.nowInk)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .listRowBackground(Palette.page)
             }
-            .buttonStyle(.borderless)
-            .listRowBackground(Palette.page)
-            Button { deleting = true } label: {
-                Text("アカウントを削除")
-                    .minopalFont(17, .bold, relativeTo: .body)
-                    .foregroundStyle(Palette.nowInk)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .contentShape(Rectangle())
+            Section {
+                Button { deleting = true } label: {
+                    Text("アカウントを削除")
+                        .minopalFont(17, .bold, relativeTo: .body)
+                        .foregroundStyle(Palette.nowInk)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .listRowBackground(Palette.page)
+                .accessibilityIdentifier("delete-account")
             }
-            .buttonStyle(.borderless)
-            .listRowBackground(Palette.page)
-            .accessibilityIdentifier("delete-account")
         }
         .sheet(isPresented: $deleting) {
             AccountDeletionSheet(isAnonymous: account == nil, email: account ?? "", onDeleted: {
