@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, drinkPlanName, formatClock, formatElapsed, nextActionLabel, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, dishSlots, displayOf, drinkPlanName, formatClock, formatElapsed, nextActionLabel, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { CoursePicker } from './CoursePicker';
 import { MenuPicker } from './MenuPicker';
@@ -98,6 +98,9 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
   const order = `案内 → ${otoshi ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
   const progress = dishProgress(session, settings.courseMenus);
   const dishes = menuOf(session.menu, settings.courseMenus)?.dishes ?? [];
+  // 付けた品は位置で出す（3品目だけ付けても1品目には ✓ を付けない。No.167）
+  const slots = progress ? dishSlots(session, progress.total) : [];
+  const nextIndex = slots.findIndex(slot => !slot.served);
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
@@ -151,21 +154,21 @@ export function DetailPanel({ session, time, othersEditing = false, settings, on
       {session.course !== null && <section className="panel-section" aria-labelledby="panel-dishes">
         <h3 id="panel-dishes" className="panel-heading">料理{progress && <span className="panel-heading-sub">{progress.served}/{progress.total}品</span>}</h3>
         {progress ? <>
-          {/* 料理はメニューの順に1品ずつ進める。進みのバーと次に出す料理 */}
+          {/* 進みのバーと、まだ出していない最初の料理。✓ は付けた品の位置 */}
           <div className="dish-bar" role="progressbar" aria-label="料理の進み" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.served}
             aria-valuetext={`${progress.total}品中${progress.served}品提供済み`}><span style={{ width: `${progress.total === 0 ? 0 : progress.served / progress.total * 100}%` }} /></div>
           <p className="dish-next">{progress.next === null ? '全部出しました' : <>次：<strong>{progress.next}</strong></>}</p>
           <div className="panel-actions">
             <button className="panel-button" disabled={progress.served === 0} onClick={() => onUnserve(session)}>1品戻す</button>
-            <button className="panel-button primary" disabled={progress.next === null} onClick={() => onServe(session)}>
-              {progress.next === null ? '全部出しました' : `${progress.served + 1}品目を出した`}
+            <button className="panel-button primary" disabled={nextIndex < 0} onClick={() => onServe(session)}>
+              {nextIndex < 0 ? '全部出しました' : `${nextIndex + 1}品目を出した`}
             </button>
           </div>
           <details className="dish-details">
             <summary>料理をすべて見る</summary>
             <ol className="dish-list" aria-label={`料理 ${progress.total}品中${progress.served}品提供済み`}>
-              {dishes.map((dish, i) => <li key={i} className={i < progress.served ? 'served' : i === progress.served ? 'next' : ''} aria-current={i === progress.served ? 'step' : undefined}>
-                <span className="dish-mark" aria-hidden="true">{i < progress.served ? '✓' : i + 1}</span>{dish}
+              {dishes.map((dish, i) => <li key={i} className={slots[i]?.served ? 'served' : i === nextIndex ? 'next' : ''} aria-current={i === nextIndex ? 'step' : undefined}>
+                <span className="dish-mark" aria-hidden="true">{slots[i]?.served ? '✓' : i + 1}</span>{dish}
               </li>)}
             </ol>
           </details>

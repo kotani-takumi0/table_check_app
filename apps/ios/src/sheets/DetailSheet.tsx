@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { alertOf, limitsOf, clockTimeNear, dishProgress, displayOf, formatClock, formatElapsed, nextActionLabel, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
+import { alertOf, limitsOf, clockTimeNear, dishProgress, dishSlots, displayOf, formatClock, formatElapsed, nextActionLabel, nextStatus, STATUS_LABEL, timerOf, type Course, type EditableTime, sessionRules, type Rules, type Session, REASON_LABEL } from '@table-check/core/domain';
 import type { ShopSettings } from '@table-check/core/shopSettings';
 import { COLORS, TABULAR } from '../theme';
 import { feedback } from '../feedback';
@@ -101,6 +101,9 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
   const order = `案内 → ${otoshi ? 'お通し' : 'ファーストドリンク'} → L.O.確認・現在`;
   const progress = dishProgress(session, settings.courseMenus);
   const dishes = menuOf(session.menu, settings.courseMenus)?.dishes ?? [];
+  // 付けた品は位置で出す（3品目だけ付けても1品目には ✓ を付けない。No.167）
+  const slots = progress ? dishSlots(session, progress.total) : [];
+  const nextIndex = slots.findIndex(slot => !slot.served);
   const save = (field: EditableTime, near: number) => (hhmm: string) => {
     const at = clockTimeNear(hhmm, near);
     return at !== null && onRetime(session, field, at);
@@ -148,7 +151,7 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
     {session.course !== null && <View style={styles.section}>
       <Text style={styles.heading} accessibilityRole="header">料理{progress ? `  ${progress.served}/${progress.total}品` : ''}</Text>
       {progress ? <>
-        {/* 料理はメニューの順に1品ずつ進める。進みのバーと次に出す料理 */}
+        {/* 進みのバーと、まだ出していない最初の料理。✓ は付けた品の位置 */}
         <View style={styles.bar} accessibilityRole="progressbar" accessibilityLabel="料理の進み"
           accessibilityValue={{ min: 0, max: progress.total, now: progress.served, text: `${progress.total}品中${progress.served}品提供済み` }}>
           <View style={[styles.barFill, { width: `${progress.total === 0 ? 0 : progress.served / progress.total * 100}%` }]} />
@@ -156,7 +159,7 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
         <Text style={sheet.text}>{progress.next === null ? '全部出しました' : <>次：<Text style={styles.nextDishName}>{progress.next}</Text></>}</Text>
         <View style={sheet.actions}>
           <PanelButton label="1品戻す" disabled={progress.served === 0} onPress={() => { feedback.step(); onUnserve(session); }} style={sheet.action} />
-          <PanelButton label={progress.next === null ? '全部出しました' : `${progress.served + 1}品目を出した`} tone="primary" disabled={progress.next === null}
+          <PanelButton label={nextIndex < 0 ? '全部出しました' : `${nextIndex + 1}品目を出した`} tone="primary" disabled={nextIndex < 0}
             onPress={() => { feedback.step(); onServe(session); }} style={sheet.action} />
         </View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showDishes }} onPress={() => setShowDishes(!showDishes)} style={styles.toggle}>
@@ -164,8 +167,8 @@ export function DetailSheet({ session, time, othersEditing = false, settings, on
         </Pressable>
         {showDishes && <View accessibilityLabel={`料理 ${progress.total}品中${progress.served}品提供済み`}>
           {dishes.map((dish, i) => {
-            const served = i < progress.served;
-            const isNext = i === progress.served;
+            const served = slots[i]?.served === true;
+            const isNext = i === nextIndex;
             return (
               <View key={i} style={[styles.dish, isNext && styles.nextDish]}>
                 <Text style={[styles.dishMark, served && sheet.muted, TABULAR]}>{served ? '✓' : i + 1}</Text>
