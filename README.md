@@ -144,6 +144,22 @@ npm run deploy:store    # table-check-dev（店）に Hosting と Firestore ル�
 
 ルールだけを出すときも `firebase deploy --only firestore:rules -P prod` のように必ず `-P` を付けます。
 
+### Cloud Functions の初回デプロイ（アカウント削除）
+
+`npm run deploy` と `npm run deploy:store` には Functions は入っていません。iOS のアカウント削除（`deleteAccount`、リージョン `asia-northeast1`）は、アプリを出す前に別に出します。関数が無いと、アプリからアカウントを消せません。
+
+1. Firebase プロジェクトを **Blaze** プランにします。予算アラートを設定します。
+2. コンソールで Cloud Firestore の場所が **asia-northeast1（東京）** であることを確認します。関数も同じ場所に出します。
+3. 出します。
+
+```sh
+firebase deploy --only functions -P prod
+```
+
+店のプロジェクトへ出すときは `-P dev` です。`-P` を付けない `firebase deploy` は行き先が決まらず止まります。
+
+4. この関数をデプロイしてから、アプリを出します。
+
 ### 同期の挙動と確認
 
 - 購読開始時から過去12時間以内のセッションのうち、`tables/{卓}.sessionId` がそのセッションを指し、かつセッションの `tableIds` にもその卓がある卓に表示します。同時案内では卓の参照を後から書いたセッションが表示されます。
