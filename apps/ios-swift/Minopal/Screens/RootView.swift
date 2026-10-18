@@ -90,7 +90,12 @@ struct RootView: View {
         guard let email = TestLogin.email else { return }
         guard connection.isEmulator else { testLoginPending = false; return }
         try? auth.signOut()
-        try? await auth.signIn(email: email, password: TestLogin.password)
+        do {
+            try await auth.signIn(email: email, password: TestLogin.password)
+        } catch {
+            // 失敗するとログインの画面に戻り、テストは「卓が出ない」で落ちる。原因が分かるよう残す
+            print("TestLogin:", error.localizedDescription)
+        }
         storedMode = LoginMode.account.rawValue
         testLoginPending = false
         #endif
