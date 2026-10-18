@@ -2,11 +2,12 @@ import MinopalCore
 import SwiftUI
 
 // iPad（No.149 のサイドバー v6・フロア図 v6）：左にサイドバー（幅 300pt、sidebar.left と左端のスワイプで開け閉め）、右に今の画面。
+// サイドバーははじめ閉じておく（No.165）。
 // サイドバーを開いている間はヘッダーを詰め、ロゴと店のタイマーはサイドバー側に出す（同じものを2か所に出さない）
 struct PadShopView: View {
     let state: ShopState
     let onLeave: () -> Void
-    @State private var visibility = NavigationSplitViewVisibility.all
+    @State private var visibility = NavigationSplitViewVisibility.detailOnly
     @State private var page = ShopPage.floor
     // 設定から奥へ進んだ、直す画面（席の配置・コース）
     @State private var routes: [EditorRoute] = []

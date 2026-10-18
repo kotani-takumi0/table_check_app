@@ -26,6 +26,11 @@ final class ScreenshotUITests: XCTestCase {
         XCTAssertTrue(table.waitForExistence(timeout: 15), "卓が出ない")
         // テストデータは店を開いて2秒後に入る
         RunLoop.current.run(until: Date().addingTimeInterval(5))
+        // iPad のサイドバーははじめ閉じているので、開いてから撮る
+        if pad {
+            app.buttons["サイドバーを開く"].tap()
+            RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+        }
         snap("floor")
         if pad {
             app.buttons["サイドバーを閉じる"].tap()
