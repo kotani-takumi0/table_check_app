@@ -11,6 +11,7 @@ public enum AccountDeletionError: Error, Equatable, Sendable {
     case wrongPassword
     case recentLoginRequired
     case notSignedIn
+    case pendingWrites
     case failed
 }
 
@@ -28,9 +29,21 @@ public func accountDeletionMessage(_ error: AccountDeletionError, isAnonymous: B
             : "パスワードを入れ直してください"
     case .notSignedIn:
         "ログインしていません。入り直してからもう一度ためしてください"
+    case .pendingWrites:
+        pendingWritesMessage
     case .failed:
         "アカウントを消せませんでした。もう一度ためしてください"
     }
+}
+
+// 削除の関数を呼ぶ前に、送信待ちの書き込みを送り切る。送り切れなければ関数は呼ばない（ログアウトの leave と同じ）
+@MainActor
+public func flushThenDeleteAccount(
+    flush: @MainActor () async -> Bool,
+    delete: @MainActor () async throws -> Void
+) async throws {
+    guard await flush() else { throw AccountDeletionError.pendingWrites }
+    try await delete()
 }
 
 // ログインのエラーコード（Web と同じ "auth/〜"）と、Functions のコードから、画面の失敗に分ける

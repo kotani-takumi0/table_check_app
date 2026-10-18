@@ -28,15 +28,20 @@ final class FirebaseAccountDeletion: AccountDeletionClient {
     }
 
     func deleteAccount() async throws {
-        guard let user = Auth.auth().currentUser else { throw AccountDeletionError.notSignedIn }
-        // パスワードの入れ直しで更新した auth_time を、関数に渡すトークンへ載せる
-        _ = try await user.getIDToken(forcingRefresh: true)
-        do {
-            _ = try await Functions.functions(region: FirebaseSetup.functionsRegion).httpsCallable("deleteAccount").call()
-        } catch let error as AccountDeletionError {
-            throw error
-        } catch {
-            throw Self.functionsError(error)
+        guard Auth.auth().currentUser != nil else { throw AccountDeletionError.notSignedIn }
+        // オフラインでたまった書き込みが、サーバーで消したあとに届くと、持ち主のいないデータが残る。
+        // ログアウト（leave）と同じく、送り切ってから関数を呼ぶ。送り切れなければ止め、理由を出す
+        try await flushThenDeleteAccount(flush: { await AuthService.flushPendingWrites() }) {
+            guard let user = Auth.auth().currentUser else { throw AccountDeletionError.notSignedIn }
+            // パスワードの入れ直しで更新した auth_time を、関数に渡すトークンへ載せる
+            _ = try await user.getIDToken(forcingRefresh: true)
+            do {
+                _ = try await Functions.functions(region: FirebaseSetup.functionsRegion).httpsCallable("deleteAccount").call()
+            } catch let error as AccountDeletionError {
+                throw error
+            } catch {
+                throw Self.functionsError(error)
+            }
         }
     }
 

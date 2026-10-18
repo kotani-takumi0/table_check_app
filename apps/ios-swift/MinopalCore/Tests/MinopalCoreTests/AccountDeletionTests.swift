@@ -13,6 +13,8 @@ struct AccountDeletionErrorTests {
         #expect(accountDeletionError(authCode: nil, functionsCode: "failed-precondition", reason: recentLoginRequiredReason) == .recentLoginRequired)
         #expect(accountDeletionError(authCode: nil, functionsCode: "failed-precondition", reason: "app-check-required") == .failed)
         #expect(accountDeletionError(authCode: nil, functionsCode: nil, reason: nil) == .failed)
+        #expect(accountDeletionMessage(.pendingWrites, isAnonymous: false) == pendingWritesMessage)
+        #expect(accountDeletionMessage(.pendingWrites, isAnonymous: true) == pendingWritesMessage)
         #expect(accountDeletionMessage(.wrongPassword, isAnonymous: false) == "パスワードが違います")
         #expect(accountDeletionMessage(.recentLoginRequired, isAnonymous: false) == "パスワードを入れ直してください")
         let anonymousRecent = accountDeletionMessage(.recentLoginRequired, isAnonymous: true)
@@ -95,6 +97,47 @@ struct AccountDeletionFlowTests {
         #expect(client.deleteCount == 1)
         #expect(client.signedOut)
         #expect(model.finished)
+    }
+
+    @Test("送信待ちを送り切れなければ、削除の関数は呼ばない")
+    func flushBeforeDelete() async {
+        var called = false
+        var thrown: AccountDeletionError?
+        do {
+            try await flushThenDeleteAccount(flush: { false }, delete: { called = true })
+        } catch let error as AccountDeletionError {
+            thrown = error
+        } catch {
+            thrown = .failed
+        }
+        #expect(thrown == .pendingWrites)
+        #expect(!called)
+
+        thrown = nil
+        do {
+            try await flushThenDeleteAccount(flush: { true }, delete: { called = true })
+        } catch let error as AccountDeletionError {
+            thrown = error
+        } catch {
+            thrown = .failed
+        }
+        #expect(thrown == nil)
+        #expect(called)
+    }
+
+    @Test("送信待ちが残っているときは消さず、ログアウトしない")
+    func staysWhenPendingWritesRemain() async {
+        let client = FakeAccountDeletion()
+        let model = AccountDeletionModel(isAnonymous: false, client: client)
+        model.password = "password123"
+        await model.submitPassword()
+        client.deleteError = AccountDeletionError.pendingWrites
+        await model.confirmDelete()
+        #expect(model.step == .confirm)
+        #expect(!model.finished)
+        #expect(!client.signedOut)
+        #expect(model.message == pendingWritesMessage)
+        #expect(client.deleteCount == 1)
     }
 
     @Test("消せなかったときは残って、もう一度押せる")
