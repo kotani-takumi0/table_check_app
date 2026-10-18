@@ -11,6 +11,7 @@
 # - 足したテストのファイルが入るよう、毎回 xcodegen generate する（Info.plist のコメントが消えるので戻す）
 # - テストごとに時間の上限を置き、落ちても診断を集めない（集めると1件ごとに10分ほど待たされる）
 # - 1件も流れなかったら失敗にする
+# - 流している間は Mac をスリープさせない（caffeinate）。ただしバッテリーで蓋を閉じると止められないので、蓋は開けたままにする
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -74,9 +75,9 @@ fi
 
 RESULT="$WORK/result.xcresult"
 LOG="$WORK/xcodebuild.log"
-echo "テストを流す（${*:-全部}）。全部の出力：$LOG"
+echo "テストを流す（${*:-全部}）。Mac の蓋は開けたままにする（閉じるとスリープしてテストが止まる）。全部の出力：$LOG"
 status=0
-xcodebuild test -project Minopal.xcodeproj -scheme Minopal "${destinations[@]}" ${only[@]+"${only[@]}"} \
+caffeinate -dims xcodebuild test -project Minopal.xcodeproj -scheme Minopal "${destinations[@]}" ${only[@]+"${only[@]}"} \
   "${parallel[@]}" \
   -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 300 \
   -collect-test-diagnostics never -skipPackagePluginValidation -skipMacroValidation \

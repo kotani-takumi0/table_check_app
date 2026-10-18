@@ -104,6 +104,7 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
     | Firestore の読み書き（`Minopal/Data`）・画面の部品の計算 | `MinopalTests` |
     | 店の画面の枠（サイドバー・タブ）・`UITestHelpers.swift` | 全部 |
   - **全部は PR を出す前に1回**：`npm run ios-swift:test`。UI テストは1本 20〜80 秒あり、全部だと10分ほどかかる
+  - 流している間は **Mac の蓋を開けたまま**にする。バッテリーで蓋を閉じるとスリープしてテストが止まり、何時間もかかったうえに落ちる（10/18 に2回あった）
   - スクリプト（`scripts/ios-swift-test.sh`）は、`GoogleService-Info.plist` を流す間だけどける・毎回 `xcodegen generate` する・
     テストごとに時間の上限（3分）を置く・落ちても診断を集めない・1件も流れなければ失敗にする。手で `xcodebuild test` を打つときも、
     plist をどけて `-collect-test-diagnostics never` を付ける（付けないと、落ちたテストがあるたびに10分ほど待たされる）
