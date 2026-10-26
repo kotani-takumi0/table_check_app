@@ -37,6 +37,15 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseAppCheck
+    # App Attest。値は production（TestFlight と App Store の配布用）。
+    # path だけだと XcodeGen 2.46.0 が generate のたびに資格ファイルを空の辞書で上書きする（writePlists）。
+    # 中身は properties に書く。開発ビルドは App Check のデバッグプロバイダなので、この資格で証明しない
+    entitlements:
+      path: Minopal/Minopal.entitlements
+      properties:
+        com.apple.developer.devicecheck.appattest-environment: production
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.minopal.app
