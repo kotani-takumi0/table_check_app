@@ -1,6 +1,7 @@
 # Minopal iOS（Swift 版）
 
 今の iOS 版（`apps/ios`、Expo）を Swift（SwiftUI）で作り直したもの。ver.3.0.0 で、録音なしで App Store に申請するまでを目指す。
+App Store に出すときの説明文・プライバシーの申告・審査メモ・スクショとアイコンの確認は `docs/app-store-submission.md`。
 画面は No.150 で No.149 の画面案どおりに作った（ログイン・最初のページ・配置図・ご案内・卓の詳細・通知と元に戻す・設定・席の配置とコースの編集・お知らせとご意見）。今の iOS 版でできることとの対応表は Notion の No.162 にある。
 
 ## 中身
@@ -14,6 +15,7 @@
 | `MinopalUITests/` | 画面を押して確かめるテスト（Firebase エミュレータが要る） |
 | `MinopalTests/` | Firestore の読み書き（`Minopal/Data`）を、Firebase エミュレータに対して確かめるテスト |
 | `project.yml` | Xcode プロジェクトの設計図。`Minopal.xcodeproj` はここから作るので、リポジトリには入れない |
+| `docs/app-store-submission.md` | App Store 申請の下書き（説明文・プライバシー・審査用アカウント・スクショとアイコン・TestFlight） |
 
 ## 卓のルールは TS と Swift の両方にある
 
@@ -84,6 +86,8 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 
 `GoogleService-Info.plist` はリポジトリに入れない（`.gitignore` 済み）。
 
+App Check（App Attest）は申請版に入っている。リリースは端末の App Attest で、App Attest を使えない端末だけ DeviceCheck に戻す。開発中のビルド（`#if DEBUG`）だけデバッグプロバイダで、シミュレータと手元のエミュレータ向け。トークンが無くても、Firebase コンソールで強制をオフにしているあいだは読み書きを断らない。強制は、Web 版も含めて全部のアプリが対応してからにする。デバッグトークンはリポジトリに書かない。資格（`com.apple.developer.devicecheck.appattest-environment`）は production（TestFlight と App Store 用）で、`project.yml` の `entitlements.properties` に書く。path だけだと XcodeGen が資格ファイルを空で上書きする。
+
 ## テスト
 
 - 卓のルール：`cd apps/ios-swift/MinopalCore && swift test`（数秒）
@@ -140,3 +144,5 @@ L.O.・店のタイマーの時間は前もって分かるので、端末の中�
 ## 入れないもの（ver.3.0.0）
 
 マイクの許可（`NSMicrophoneUsageDescription`）、`UIBackgroundModes` の `audio`、録音のコード。録音なしで申請するため。
+入っていないことは `npm run ios-swift:check-recording`（`apps/ios-swift/scripts/check-no-recording.mjs`）で確かめる。Info.plist・entitlements・プライバシーマニフェスト・project.yml のマイク許可と `UIBackgroundModes` の audio、Swift の録音 API を見る。PR の CI は、それに加えて申請用の Release ビルドの Info.plist も見る。
+資格が XcodeGen で消えていないことと、ビルドしたアプリにプライバシーマニフェストが入っていることは `npm run ios-swift:check-release` で確かめる。CI は `xcodegen generate` のあとの `Minopal.entitlements` と、アプリ束の `PrivacyInfo.xcprivacy` を見る。
