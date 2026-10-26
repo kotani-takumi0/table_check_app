@@ -3,6 +3,7 @@ import FirebaseAppCheck
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
+import FirebaseFunctions
 import MinopalCore
 
 // App Check（App Attest）。トークンは付ける。ここで読み書きを断つ設定はしない。
@@ -36,6 +37,9 @@ enum FirebaseSetup {
     static let emulatorHost = "127.0.0.1"
     static let authPort = 9099
     static let firestorePort = 8080
+    static let functionsPort = 5001
+    // アカウント削除の関数。Firestore の場所（東京）に合わせる
+    static let functionsRegion = "asia-northeast1"
 
     // GoogleService-Info.plist をアプリに入れていればそのプロジェクトに、無ければエミュレータにつなぐ。
     // dev・prod とも店のデータが入っているので、試すときはエミュレータか、試し用のアカウントでログインして使う
@@ -58,6 +62,7 @@ enum FirebaseSetup {
         // エミュレータは止めるとデータが消えるので、端末に古いキャッシュを残さない
         settings.cacheSettings = MemoryCacheSettings()
         Firestore.firestore().settings = settings
+        Functions.functions(region: functionsRegion).useEmulator(withHost: emulatorHost, port: functionsPort)
         return FirebaseConnection(projectId: emulatorProjectId)
     }
 }

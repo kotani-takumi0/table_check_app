@@ -71,7 +71,7 @@ Firestore の読み書き（`firestore〜.ts`）は `Minopal/Data` にある。
 1. Xcode を入れる（App Store から）。初回の起動で iOS のシミュレータも入れる
 2. XcodeGen と Java を入れる：`brew install xcodegen openjdk@21`
    （Java は Firebase エミュレータに要る。`java -version` で出なければ `export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"`）
-3. Firebase エミュレータを起動したままにする：`npm run ios-swift:emulators`
+3. Firebase エミュレータを起動したままにする：`npm run ios-swift:emulators`（Auth・Firestore・アカウント削除の Functions）
 4. 別のターミナルで `npm run ios-swift:open`（Xcode プロジェクトを作って Xcode で開く）
 5. Xcode の上で iPad か iPhone のシミュレータを選び、▶ で動かす
 
@@ -140,6 +140,23 @@ L.O.・店のタイマーの時間は前もって分かるので、端末の中�
 - 初めて店の画面を開いたときに一度だけ説明を出してから iOS の許可を求める。断っても使える。設定の「この端末」で切れる
 - UI テストでは、通知のテスト（`NotificationUITests`）のほかは説明を出さない（`minopalApp()` が起動の引数で「もう聞いた」にする）。
   通知のテストは開発中のビルドの起動の引数 `-MinopalNotifyWithin <秒>` で、予約した通知を数秒のうちに出して確かめる
+
+## アカウントの削除（App Store 審査 5.1.1(v)）
+
+場所は **設定 → アカウントを削除**。
+
+メールでログインしている店は、パスワードを入れ直してから、「この店のデータ（席・履歴・設定）と、送ったご意見がすべて消えます。元に戻せません」を確認して消す。パスワードが違うときは「パスワードが違います」と出て、先へ進まない。ログインしてから5分を過ぎているときは、パスワードの画面に戻る。ログインせずに使うときは、パスワードの画面は出さず確認だけ。入り直すと別の利用者になるので、「ログアウトして入り直して」とは出さない。消えるとログインの画面に戻る。失敗したときは理由を出して、もう一度押せる。
+
+消えるもの：そのアカウントの `shops/{uid}` 以下（席・履歴・設定・配置の移り変わり）と、その店が送ったご意見（`feedback` のうちその店の文書と `feedbackPace/{uid}`）、時計合わせの `clockProbes/{uid}`、Firebase Authentication のユーザー。いちばん上の `sessions` などは、ログインせずに使う店の共有なので消さない。Firestore のルールは変えていない。削除は Cloud Functions の `deleteAccount`（リージョン `asia-northeast1`、同時起動は5まで）が行う。メールの店は、呼び出したトークンのログイン時刻が5分より古いと消さない。匿名のログイン（`anonymous`）だけは、パスワードを入れ直せないので、その確認をしない。消す前に、端末の送信待ちを送り切る。送り切れなければ止め、「送信待ちの記録があります。インターネットにつながってから、もう一度押してください」と出す。
+
+### 関数の初回デプロイ
+
+`npm run deploy` と `npm run deploy:store` には Functions は入っていない。アプリを出す前に、次の順で `deleteAccount` を出す。関数が無いと、アプリからアカウントを消せない。
+
+1. Firebase プロジェクトを **Blaze** プランにする。予算アラートを設定する。
+2. コンソールで Cloud Firestore の場所が **asia-northeast1（東京）** であることを確認する。関数も同じ場所に出す。
+3. `firebase deploy --only functions -P prod`（店のプロジェクトへ出すときは `-P dev`）。`-P` を付けない `firebase deploy` は行き先が決まらず止まる。
+4. この関数をデプロイしてから、アプリを出す。
 
 ## 入れないもの（ver.3.0.0）
 

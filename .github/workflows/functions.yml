@@ -1,0 +1,44 @@
+# アカウント削除の Cloud Functions（functions/）。Firestore のルールはクライアントのままなので、ここでは確かない。
+# エミュレータは demo-minopal。本番や店の Firebase にはつながない。
+name: Functions
+
+on:
+  pull_request:
+    paths:
+      - functions/**
+      - firebase.json
+      - .github/workflows/functions.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: functions-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: 依存を入れる
+        working-directory: functions
+        run: npm ci
+
+      - name: エミュレータでテスト
+        run: npx --yes firebase-tools@15.33.0 emulators:exec --only auth,firestore --project demo-minopal "npm --prefix functions test"

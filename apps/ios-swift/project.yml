@@ -36,6 +36,8 @@ targets:
       - package: Firebase
         product: FirebaseFirestore
       - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
         product: FirebaseAppCheck
     # App Attest。値は production（TestFlight と App Store の配布用）。
     # path だけだと XcodeGen 2.46.0 が generate のたびに資格ファイルを空の辞書で上書きする（writePlists）。

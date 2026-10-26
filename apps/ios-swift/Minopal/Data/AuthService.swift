@@ -53,6 +53,10 @@ final class AuthService {
     // 送信待ちはログイン中の利用者ごとに持たれるので、送り終わる前にログイン・ログアウトすると記録が届かなくなる。
     // 少し待っても終わらなければ false（切り替えない）
     func flushPendingWrites(waitSeconds: Double = 3) async -> Bool {
+        await Self.flushPendingWrites(waitSeconds: waitSeconds)
+    }
+
+    static func flushPendingWrites(waitSeconds: Double = 3) async -> Bool {
         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             let once = Once()
             Firestore.firestore().waitForPendingWrites { error in

@@ -7,6 +7,7 @@ struct PhoneSettingsView: View {
     let state: ShopState
     let onOpen: (EditorRoute) -> Void
     let onLeave: () -> Void
+    let onDeleted: () -> Void
     @State private var clearing = false
 
     var body: some View {
@@ -20,7 +21,7 @@ struct PhoneSettingsView: View {
                         .accessibilityIdentifier("settings-\(page.rawValue)")
                 }
             }
-            AccountSection(account: state.account, onLeave: onLeave)
+            AccountSection(account: state.account, onLeave: onLeave, onDeleted: onDeleted)
         }
         .settingsListStyle()
         // 画面の名前（iOS 26 は左に出す）。奥の画面の戻るボタンにも使う
@@ -51,6 +52,7 @@ struct PadSettingsView: View {
     let state: ShopState
     let onOpen: (EditorRoute) -> Void
     let onLeave: () -> Void
+    let onDeleted: () -> Void
     @State private var page = SettingsPage.today
     @State private var clearing = false
 
@@ -63,7 +65,7 @@ struct PadSettingsView: View {
                             .accessibilityIdentifier("settings-\(item.rawValue)")
                     }
                 }
-                AccountSection(account: state.account, onLeave: onLeave)
+                AccountSection(account: state.account, onLeave: onLeave, onDeleted: onDeleted)
             }
             .settingsListStyle()
             .frame(width: 340)
@@ -76,24 +78,47 @@ struct PadSettingsView: View {
     }
 }
 
-// アカウント：ログアウトは赤い文字の行を真ん中ぞろえで置き、押したら確認を出す（No.149）。今の店は「ログインする」で最初の画面に戻る
+// アカウント：ログアウトは赤い文字の行（No.149）。今の店は「ログインする」で最初の画面に戻る。
+// アカウントの削除は押し間違えないよう、ログアウトとは別のまとまりにして離す（No.172）
 struct AccountSection: View {
     let account: String?
     let onLeave: () -> Void
+    let onDeleted: () -> Void
     @State private var confirming = false
+    @State private var deleting = false
 
     var body: some View {
-        Section(header: SettingsHeading(text: "アカウント"),
-                footer: SettingsFootnote(text: account.map { "ログイン中：\($0)" } ?? "今の店（ログインなしで使っている店）を使っています")) {
-            Button { confirming = true } label: {
-                Text(account == nil ? "ログインする" : "ログアウト")
-                    .minopalFont(17, .bold, relativeTo: .body)
-                    .foregroundStyle(account == nil ? Palette.keyText : Palette.nowInk)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .contentShape(Rectangle())
+        Group {
+            Section(header: SettingsHeading(text: "アカウント"),
+                    footer: SettingsFootnote(text: account.map { "ログイン中：\($0)" } ?? "今の店（ログインなしで使っている店）を使っています")) {
+                Button { confirming = true } label: {
+                    Text(account == nil ? "ログインする" : "ログアウト")
+                        .minopalFont(17, .bold, relativeTo: .body)
+                        .foregroundStyle(account == nil ? Palette.keyText : Palette.nowInk)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .listRowBackground(Palette.page)
             }
-            .buttonStyle(.borderless)
-            .listRowBackground(Palette.page)
+            Section {
+                Button { deleting = true } label: {
+                    Text("アカウントを削除")
+                        .minopalFont(17, .bold, relativeTo: .body)
+                        .foregroundStyle(Palette.nowInk)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .listRowBackground(Palette.page)
+                .accessibilityIdentifier("delete-account")
+            }
+        }
+        .sheet(isPresented: $deleting) {
+            AccountDeletionSheet(isAnonymous: account == nil, email: account ?? "", onDeleted: {
+                deleting = false
+                onDeleted()
+            })
         }
         .alert(account == nil ? "最初の画面に戻りますか？" : "ログアウトしますか？", isPresented: $confirming) {
             Button("やめる", role: .cancel) {}
